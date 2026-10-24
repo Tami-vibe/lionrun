@@ -1,4 +1,5 @@
 import {catalog,SectionId} from './catalog';
+import {contactHours} from './contact-hours';
 import {SectionSettings,FooterColumn,defaultColumns,normalizeSettings,headerLook,pageSlug} from '../editor/settings';
 import {MediaSettings,mediaDefaults,socialEmbed} from '../media/model';
 export type BlockItem = {title:string;description:string;icon:IconName;media?:MediaSettings;price?:string;pageId?:string;caption?:string;group?:string;tag?:string;value?:string;note?:string;when?:string;source?:string;stars?:number};
@@ -209,7 +210,7 @@ export function applyIndustryMedia(block:Block):Block {
   if(block.type==='quote'&&bundled(content.media.src))content.media=still('/media/ai-images/repair-bench.jpg','Repair bench');
   if(block.type==='promo'&&bundled(content.media.src))content.media=still('/media/ai-images/promo-bg.jpg','Seasonal workshop offer');
   if(block.type==='contact'&&bundled(content.media.src))content.media=still('/media/showcase/mountain-road.jpg','Open road');
-  if(block.type==='contact'&&block.id==='contact'&&(!content.hours.trim()||/^8:00\s*[–-]\s*20:00$/.test(content.hours.trim())))content.hours='Monday–Friday  8:00–20:00\nSaturday  10:00–13:00\nSunday  Closed';
+  if(block.type==='contact'&&block.id==='contact')content.hours=contactHours(content.hours);
   if(block.type==='about')content.items=content.items.map((item,i)=>bundled(item.media?.src)?{...item,media:still(i?'/media/showcase/diagnostic-scanner.jpg':'/media/showcase/bodywork-door-repair.jpg',item.title)}:item);
   if(block.type==='solutions'){if(bundled(content.before?.src))content.before=still('/media/ai-images/before-repair.jpeg','Before the repair');if(bundled(content.after?.src))content.after=still('/media/ai-images/after-repair.jpeg','After the repair');if(block.id==='solutions'&&block.layout==='Numbered steps')content.items=content.items.map((item,i)=>{const file=['Documenting Damage on a Luxury Sedan.png','Inspecting Automotive Damage in the Workshop.png','Digital Car Repair Consultation.png','Precision Auto Body Repair in a Modern Garage.png','Luxury Sedan in a Sunset Garage.png'][i];const src=file?`/media/ai-images/${file}`:'';return src&&(bundled(item.media?.src)||item.media?.src===src)?{...item,media:{...still(src,item.title),ratio:'4/3'}}:item;});}
   if(block.type==='pains')content.items=content.items.map((item,i)=>{const shot=['/media/ai-images/rental-delay.jpg','/media/ai-images/estimate-stress.jpg','/media/ai-images/paint-flaw.jpg'][i];return shot&&bundled(item.media?.src)?{...item,media:still(shot,item.title)}:item;});
