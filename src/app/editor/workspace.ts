@@ -7,6 +7,14 @@ type KeyValueStore = {
   setItem(key: string, value: string): void;
 };
 
+export const preRecoveryKey = "business-builder-workspace-v2-pre-recovery";
+
+export function keepPreRecoveryCopy(storage: KeyValueStore) {
+  if (storage.getItem(preRecoveryKey)) return;
+  const saved = storage.getItem(workspaceKey);
+  if (saved) storage.setItem(preRecoveryKey, saved);
+}
+
 export function retainFailedWorkspace(storage: KeyValueStore): {dirty: boolean; error: string} {
   const saved = storage.getItem(workspaceKey);
   if (!saved) return {dirty: true, error: ""};
