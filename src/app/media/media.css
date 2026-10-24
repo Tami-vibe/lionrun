@@ -1,0 +1,40 @@
+.media-manager { margin:0 0 28px; padding-bottom:24px; border-bottom:1px solid #e1e5ed; }
+.media-manager h3 { font-size:15px; margin:0 0 12px; }
+.media-manager .helper-text { font-size:11px; }
+.media-manager .media-view { margin-bottom:20px; }
+.media-manager input[type=range] { width:100%; accent-color:#7963ff; }
+.asset-list { display:grid; gap:7px; max-height:210px; overflow:auto; margin-bottom:20px; }
+.asset-list>div { display:flex; gap:4px; border:1px solid #e0e4ed; border-radius:7px; padding:5px; align-items:center; }
+.asset-list button { min-width:0; padding:6px; border:0; background:#f3f5fa; border-radius:4px; font-size:10px; }
+.asset-list button:first-child { text-align:left; flex:1; overflow-wrap:anywhere; }
+.asset-list small { display:block; color:#667085; margin-top:4px; }
+.media-notice { font-size:12px; padding:12px; background:#edf0ff; color:#35427b; border-radius:6px; }
+.media-options { border-top:1px solid #e0e4ed; padding:15px 0; }
+.media-options summary { cursor:pointer; font-size:12px; font-weight:700; margin-bottom:16px; }
+.media-check { display:flex; align-items:center; gap:8px; font-size:12px; margin:12px 0; }
+.media-view { position:relative; width:100%; overflow:hidden; background:#141922; min-width:0; color:#f2f4fa; }
+.media-content { position:absolute; inset:0; overflow:hidden; }
+.media-image,.media-content>video { width:100%; height:100%; object-fit:var(--media-fit); object-position:var(--media-x) var(--media-y); background-size:var(--media-fit); background-repeat:no-repeat; background-position:var(--media-x) var(--media-y); transform:scale(var(--media-zoom)); transform-origin:var(--media-x) var(--media-y); }
+.media-background { position:absolute; inset:0; height:100%; aspect-ratio:auto!important; }
+.hero:not([data-layout=short]):not([data-layout=story]):not(:has(.hero-business)):has(.media-background) { min-height:0; aspect-ratio:var(--hero-ratio,16/9); }
+.hero-shade { position:absolute; inset:0; pointer-events:none; z-index:1; }
+.hero-inner { z-index:2; pointer-events:none; }
+.hero-inner a { pointer-events:auto; }
+.hero-index { z-index:2; pointer-events:none; }
+.social-embed { width:100%; height:100%; display:flex; flex-direction:column; }
+.social-embed iframe { width:100%; flex:1; min-height:0; border:0; }
+.embed-consent,.media-fallback { margin:auto; padding:20px; text-align:center; max-width:500px; font:14px/1.6 Arial,sans-serif; }
+.embed-consent p,.media-fallback p { color:#c3cbd9; }
+.embed-consent button { background:#7963ff; color:#faf9ff; border:0; border-radius:6px; padding:10px 18px; cursor:pointer; }
+.social-fallback { display:block; text-align:center; font-size:12px; background:#202836; padding:8px; }
+.media-fallback a { text-decoration:underline; }
+.mobile-poster { display:none; position:absolute; inset:0; background-size:cover; background-position:var(--media-x) var(--media-y); }
+.media-description { position:absolute; bottom:0; margin:0; padding:8px 14px; background:#141922dc; width:100%; font-size:12px; color:#e5eaf4!important; pointer-events:none; }
+.proof-section>.media-view,.site-footer>.media-view { grid-column:1/-1; }
+.contact-section:has(>.media-view) { flex-wrap:wrap; }
+@container(max-width:560px) { .mobile-media-hide { display:none; } .mobile-media-poster:has(.mobile-poster) .media-content { display:none; } .mobile-media-poster .mobile-poster { display:block; } .hero:not([data-layout=short]):not([data-layout=story]):not(:has(.hero-business)):has(.media-background) { aspect-ratio:auto; min-height:540px; } }
+@media(prefers-reduced-motion:reduce) { .media-view video[autoplay] { visibility:hidden; } .media-view:has(video[autoplay]) .mobile-poster { display:block; } }
+.hero:has(.social-embed) { display:flex; flex-direction:column; aspect-ratio:auto; }
+.hero:has(.social-embed) .media-background { position:relative; height:auto; aspect-ratio:var(--hero-ratio,16/9)!important; order:2; }
+.hero:has(.social-embed) .hero-shade,.hero:has(.social-embed) .hero-index { display:none; }
+.hero:has(.social-embed) .hero-inner { padding-block:55px; }

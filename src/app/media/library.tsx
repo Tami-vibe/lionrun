@@ -1,0 +1,80 @@
+"use client";
+import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
+import { ACCEPT, assetStore, Asset, LIMITS, validateUpload } from './store';
+import { mediaDefaults, MediaSettings, mediaURL, normalizeMedia, socialEmbed, https } from './model';
+const LibraryContext=createContext<{assets:Asset[];resolve:(src:string)=>string;reload:()=>Promise<void>;error:string}>({assets:[],resolve:()=>'',reload:async()=>{},error:''});
+export function MediaProvider({children}:{children:React.ReactNode}){
+  const [assets,setAssets]=useState<Asset[]>([]),[urls,setUrls]=useState<Record<string,string>>({}),[error,setError]=useState('');
+  const objectURLs=useRef<Record<string,string>>({});
+  const apply=useCallback((rows:Asset[])=>{for(const [id,url] of Object.entries(objectURLs.current))if(!rows.some(a=>a.id===id)){URL.revokeObjectURL(url);delete objectURLs.current[id];}for(const a of rows)if(!objectURLs.current[a.id])objectURLs.current[a.id]=URL.createObjectURL(a.blob);setAssets(rows);setUrls({...objectURLs.current});setError('');},[]);
+  const reload=useCallback(async()=>{try{apply(await assetStore('list'));}catch(e){setError(String(e));}},[apply]);
+  useEffect(()=>{let live=true;void assetStore('list').then(rows=>{if(live)apply(rows);}).catch(e=>{if(live)setError(String(e));});const current=objectURLs.current;return()=>{live=false;Object.entries(current).forEach(([id,url])=>{URL.revokeObjectURL(url);delete current[id];});};},[apply]);
+  const resolve=(src:string)=>src?.startsWith('media:')?urls[src.slice(6)]||'':mediaURL(src||'');
+  return <LibraryContext.Provider value={{assets,resolve,reload,error}}>{children}</LibraryContext.Provider>;
+}
+export const useMediaLibrary=()=>useContext(LibraryContext);
+export function MediaView({value,background=false,editable=false,repeat,fill=false,className=''}:{value:Partial<MediaSettings>;background?:boolean;editable?:boolean;repeat?:number;fill?:boolean;className?:string}){
+  const m=normalizeMedia(value),{resolve}=useMediaLibrary(),[allowed,setAllowed]=useState(false),[failedSource,setFailedSource]=useState('');
+  const src=resolve(m.src),poster=resolve(m.poster),embed=socialEmbed(m.src,m),failed=failedSource===src&&!!src;
+  useEffect(()=>{if(m.kind!=='image'||!src)return;let live=true;const image=new Image();image.onerror=()=>{if(live)setFailedSource(src);};image.src=src;return()=>{live=false;};},[src,m.kind]);
+  const rootRef=useRef<HTMLDivElement>(null);
+  useEffect(()=>{const root=rootRef.current;if(!root)return;const motion=window.matchMedia('(prefers-reduced-motion: reduce)');const sync=()=>{const video=root.querySelector('video');if(!video)return;const hidden=!!root.closest('[hidden]');if(hidden){video.dataset.held='1';video.pause();return;}if((root.clientWidth<=560&&m.mobile!=='same')||motion.matches){video.pause();return;}if(video.dataset.held==='1'){video.dataset.held='';video.dataset.played='0';delete video.dataset.done;try{video.currentTime=0;}catch{}}if(m.autoplay&&m.muted&&!video.dataset.done)void video.play().catch(()=>{});};const observer=new ResizeObserver(sync);observer.observe(root);const slide=root.closest('[data-slide]');const hiddenWatch=slide?new MutationObserver(sync):null;if(slide&&hiddenWatch)hiddenWatch.observe(slide,{attributes:true,attributeFilter:['hidden']});motion.addEventListener('change',sync);sync();return()=>{observer.disconnect();hiddenWatch?.disconnect();motion.removeEventListener('change',sync);};},[src,m.mobile,m.autoplay,m.muted]);
+  const style={...(fill?{}:{aspectRatio:m.ratio}),'--media-x':`${m.x}%`,'--media-y':`${m.y}%`,'--media-zoom':m.zoom,'--media-fit':m.fit} as React.CSSProperties;
+  const videoMeta=m.kind!=='image'&&m.title&&m.description&&m.poster ? {'@context':'https://schema.org','@type':'VideoObject',name:m.title,description:m.description,thumbnailUrl:m.poster, ...(m.uploadDate?{uploadDate:m.uploadDate}:{}),...(m.kind==='social'?{embedUrl:embed.src||embed.url}:{contentUrl:m.src})}:null;
+  const fallback=<div className="media-fallback"><strong>{m.title||(m.kind==='social'?embed.provider:'Media unavailable')}</strong><p>{failed?(m.kind==='image'?'This image could not load. Check its URL or choose another file.':'This media could not be played here. MOV and other codecs depend on your browser.'):m.kind==='social'?'Inline embedding may be unavailable or require login. Open the original post if it does not load.':!src?'Choose a media file from this browser’s library or a valid HTTPS URL.':''}</p>{https(m.src)&&<a href={https(m.src)} target="_blank" rel="noopener noreferrer" onClick={e=>e.stopPropagation()}>Open original ↗</a>}</div>;
+  return <div ref={rootRef} className={`media-view ${background?'media-background':''} mobile-media-${m.mobile}${className?` ${className}`:''}`} style={style} data-media-source={m.src} data-media-poster={m.poster}>
+    <div className="media-content" style={{pointerEvents:editable?'none':undefined}}>
+      {m.kind==='image' ? src&&!failed ? <div role="img" aria-label={m.alt} className="media-image" style={{backgroundImage:`url("${src}")`}}/>:fallback : m.kind==='video' ? (!src||failed)?fallback:<video key={src} src={src||undefined} title={m.title} aria-label={m.title||'Video'} poster={poster||undefined} controls={m.controls} autoPlay={m.autoplay&&m.muted} muted={m.muted} loop={repeat?false:m.loop} playsInline preload="metadata" onError={()=>setFailedSource(src)} onEnded={e=>{if(!repeat)return;const video=e.currentTarget,played=Number(video.dataset.played||0)+1;video.dataset.played=String(played);if(played<repeat){video.currentTime=0;void video.play().catch(()=>{});}else video.dataset.done='1';}} data-asset-src={m.src} data-asset-poster={m.poster}>
+        {m.captions&&<track key={m.captions} kind="captions" src={resolve(m.captions)} srcLang={m.captionLanguage||'en'} label="Captions" default data-asset-src={m.captions}/>}
+        Your browser cannot play this video. {https(m.src)&&<a href={https(m.src)}>Open original</a>}
+      </video> : embed.src ? <div className="social-embed" data-embed-src={embed.src} data-embed-consent={m.consent?'true':'false'}>
+        {(allowed||!m.consent)&&!editable ? <iframe title={m.title||embed.provider} src={embed.src} sandbox="allow-scripts allow-same-origin allow-presentation" referrerPolicy="strict-origin-when-cross-origin" allow="autoplay; encrypted-media; fullscreen; picture-in-picture" allowFullScreen/>:<div className="embed-consent"><strong>{m.title||embed.provider}</strong><p>Loading this content connects to {embed.provider}, which may set cookies.</p><button type="button" data-load-embed onClick={e=>{e.stopPropagation();setAllowed(true);}}>Load {embed.provider}</button></div>}
+        <a className="social-fallback" href={embed.url} target="_blank" rel="noopener noreferrer">Open original on {embed.provider} ↗</a>
+      </div>:fallback}
+    </div>
+    {poster&&<div className="mobile-poster" role="img" aria-label={m.alt||m.title} style={{backgroundImage:`url("${poster}")`}}/>}
+    {!background&&m.description&&<p className="media-description">{m.description}</p>}
+    {videoMeta&&<script type="application/ld+json" data-video-metadata dangerouslySetInnerHTML={{__html:JSON.stringify(videoMeta).replace(/</g,'\\u003c')}}/>}
+  </div>;
+}
+export function MediaManager({value,onChange,used}:{value:Partial<MediaSettings>;onChange:(m:MediaSettings)=>void;used:string}){
+  const m=normalizeMedia(value),{assets,reload,error}=useMediaLibrary();
+  const [busy,setBusy]=useState(false),[notice,setNotice]=useState(''),[search,setSearch]=useState('');
+  const update=(patch:Partial<MediaSettings>)=>onChange(normalizeMedia({...m,...patch}));
+  const field=(label:string,key:'src'|'alt'|'title'|'description'|'poster'|'captions'|'uploadDate'|'captionLanguage')=><label className="field"><span>{label}</span><input value={m[key]} onChange={e=>update({[key]:e.target.value})}/></label>;
+  async function upload(file:File,caption=false){setBusy(true);setNotice('');try{
+    const checked=await validateUpload(file);
+    if(caption&&checked.kind!=='captions')throw Error('Choose a WebVTT (.vtt) caption file.');
+    if(!caption&&checked.kind==='captions')throw Error('Use the captions upload for WebVTT files.');
+    const rows=await assetStore('list');if(rows.reduce((n,a)=>n+a.size,0)+file.size>LIMITS.total)throw Error('Library limit is 250 MB. Remove unused files first.');
+    const asset:Asset={id:crypto.randomUUID(),name:file.name,kind:checked.kind,mime:checked.mime,size:checked.blob.size,created:new Date().toISOString(),blob:checked.blob};
+    await assetStore('put',asset);await reload();
+    if(caption)update({captions:`media:${asset.id}`});else update({src:`media:${asset.id}`,kind:asset.kind as 'image'|'video',title:m.title||file.name,uploadDate:asset.created});
+    setNotice('Saved to your media library.');
+  }catch(e){setNotice(String(e));}finally{setBusy(false);}}
+  return <section className="media-manager" aria-label="Media manager"><h3>Media manager</h3><p className="helper-text">Saved in this browser. Images up to 10 MB; videos up to 100 MB; library 250 MB. MOV playback depends on its codec.</p>
+    {(error||notice)&&<p role="status" className="media-notice">{error||notice}</p>}
+    <label className="upload-media">{busy?'Saving…':'Upload image or video'}<input disabled={busy} type="file" accept={ACCEPT} onChange={e=>{const file=e.target.files?.[0];if(file)void upload(file);e.target.value='';}}/></label>
+    <label className="field"><span>Search media library</span><input type="search" value={search} onChange={e=>setSearch(e.target.value)} placeholder="Filename…"/></label>
+    <div className="asset-list">{assets.filter(a=>a.name.toLowerCase().includes(search.toLowerCase())).map(a=><div key={a.id}><button type="button" onClick={()=>a.kind==='captions'?update({captions:`media:${a.id}`}):update({src:`media:${a.id}`,kind:a.kind,title:m.title||a.name,uploadDate:a.created})}><strong>{a.name}</strong><small>{a.kind} · {(a.size/1_000_000).toFixed(2)} MB · Use here</small></button>{a.kind==='image'&&<button type="button" title={`Use ${a.name} as poster`} onClick={()=>update({poster:`media:${a.id}`})}>Poster</button>}<button type="button" disabled={busy||used.includes(`media:${a.id}`)} title={used.includes(`media:${a.id}`)?'Remove all references before deleting':'Delete from this browser'} onClick={async()=>{if(!window.confirm('Delete this unused file from this browser? This cannot be undone.'))return;setBusy(true);try{await assetStore('delete',a.id);await reload();setNotice('Unused asset deleted.');}catch(e){setNotice(String(e));}finally{setBusy(false);}}}>Delete</button></div>)}</div>
+    {!assets.length&&<p className="helper-text">Your uploads will appear here and can be reused in any section.</p>}
+    <label className="field"><span>Media type</span><select value={m.kind} onChange={e=>update({kind:e.target.value as MediaSettings['kind']})}><option value="image">Image</option><option value="video">Video file / URL</option><option value="social">Social embed</option></select></label>
+    {field('Media URL or library reference','src')}{m.src&&!mediaURL(m.src)&&<p role="alert">Use an HTTPS link or select a library file.</p>}
+    <MediaView key={m.src} value={m}/>
+    {field('Image alt text','alt')}{field('Media title','title')}{field('Description / visible caption','description')}
+    <details className="media-options" open><summary>Framing and placement</summary>
+      {(['zoom','x','y'] as const).map(key=><label className="field" key={key}><span>{key==='zoom'?'Zoom':key==='x'?'Horizontal position':'Vertical position'}: {key==='zoom'?`${Math.round(m[key]*100)}%`:`${m[key]}%`}</span><input type="range" min={key==='zoom'?0.25:0} max={key==='zoom'?4:100} step={key==='zoom'?0.05:1} value={m[key]} onChange={e=>update({[key]:Number(e.target.value)})}/></label>)}
+      <button type="button" onClick={()=>update({zoom:1,x:50,y:50})}>Reset framing</button>
+      <label className="field"><span>Aspect ratio</span><select value={m.ratio} onChange={e=>update({ratio:e.target.value})}>{['16/9','4/3','1/1','9/16','21/9'].map(r=><option key={r}>{r}</option>)}</select></label>
+      <label className="field"><span>Fit</span><select value={m.fit} onChange={e=>update({fit:e.target.value as MediaSettings['fit']})}><option value="cover">Cover</option><option value="contain">Contain</option></select></label>
+    </details>
+    <details className="media-options"><summary>Playback, mobile and SEO</summary>
+      {m.kind!=='image'&&<>{(['autoplay','muted','loop','controls','consent'] as const).map(key=><label className="media-check" key={key}><input type="checkbox" checked={m[key]} onChange={e=>update({[key]:e.target.checked})}/>{({autoplay:'Autoplay (requires mute)',muted:'Mute audio',loop:'Loop',controls:'Show playback controls',consent:'Require consent for social embeds'})[key]}</label>)}<p className="helper-text">Provider settings vary. TikTok, Instagram and Facebook manage their own player controls. Autoplay may be blocked by the browser.</p></>}
+      {field('Poster / thumbnail URL or library reference','poster')}
+      <label className="field"><span>Mobile behavior</span><select value={m.mobile} onChange={e=>update({mobile:e.target.value as MediaSettings['mobile']})}><option value="same">Same media</option><option value="poster">Show poster instead</option><option value="hide">Hide media</option></select></label>
+      {m.mobile==='poster'&&!m.poster&&<p role="alert">Choose a poster image for the mobile fallback.</p>}
+      {m.kind!=='image'&&<>{field('Captions HTTPS URL or library reference','captions')}<label className="upload-media">Upload WebVTT captions<input type="file" accept=".vtt,text/vtt" disabled={busy} onChange={e=>{const f=e.target.files?.[0];if(f)void upload(f,true);e.target.value='';}}/></label>{field('Caption language (e.g. en)','captionLanguage')}{field('Upload date (ISO 8601)','uploadDate')}<p className="helper-text">VideoObject metadata is emitted when title, description and thumbnail are set. Provide a valid upload date for search eligibility.</p></>}
+    </details>
+  </section>;
+}
+export {mediaDefaults};

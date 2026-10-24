@@ -1,0 +1,11 @@
+import type {Block,Site} from '../blocks';
+import type {SectionSettings} from '../../editor/settings';
+import type {PageEntry} from '../../editor/navigation';
+import {HeroSection} from './hero';
+import {ServicesSection} from './services';
+import {ProofSection} from './proof';
+import {AboutSection} from './gallery';
+import {HeaderSection,FooterSection} from './menu';
+import {LogosSection,ConcernsSection,ProcessSection,TrustSection,ReviewsSection,QuoteSection,FAQSection,PromotionSection,ContactSection,ClosingSection} from './content';
+export type SectionProps={block:Block;site:Site;editable:boolean;selected:boolean;change:(settings:SectionSettings)=>void;link:(href:string,id?:string|null)=>React.AnchorHTMLAttributes<HTMLAnchorElement>;labelFor:(label:string,href:string,id?:string|null)=>string;pages:PageEntry<Site>[];homeId:string;activeId:string;parentIndex:number};
+export const sectionComponents={header:HeaderSection,hero:HeroSection,logos:LogosSection,services:ServicesSection,proof:ProofSection,about:AboutSection,pains:ConcernsSection,solutions:ProcessSection,trust:TrustSection,reviews:ReviewsSection,quote:QuoteSection,faq:FAQSection,promo:PromotionSection,contact:ContactSection,closing:ClosingSection,footer:FooterSection};
