@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {trustSignalContent} from '../src/app/site/blocks.ts';
+import {contentForLayout,migrateSite,settingsForLayout,trustSignalContent} from '../src/app/site/blocks.ts';
+import {mediaDefaults} from '../src/app/media/model.ts';
 import {safeHref} from '../src/app/site/safe-href.ts';
 import {packageWebsite} from '../src/app/export/package.ts';
 
@@ -172,6 +173,103 @@ const pages = [
   {id: 'home', name: 'Home', slug: 'home', site: {seoTitle: 'Home & <Northline>', seoDescription: 'A "shop"'}},
   {id: 'about', name: 'About', slug: 'about', site: {seoTitle: 'About', seoDescription: ''}},
 ];
+
+function fields(content = {}) {
+  return {smallLabel:'', title:'', description:'', items:[], media:{...mediaDefaults, src:''}, buttons:[], facts:[], note:'', formButton:'', consent:'', fields:[], slides:[], ...content};
+}
+function section(type, id, layout, content, settings = {columns:3, widths:[50, 25, 25], gap:8, padding:72}) {
+  return {id, type, layout, hidden:false, settings, content:fields(content)};
+}
+const hero = section('hero', 'hero', 'split', {
+  smallLabel:'Shop', title:'My headline', description:'My words',
+  media:{...mediaDefaults, src:'/media/showcase/workshop-bay.jpg', alt:'My bay'},
+  slides:[{...mediaDefaults, src:'/media/showcase/workshop-bay.jpg', alt:'My slide'}],
+  buttons:[{label:'Call', href:'tel:+15551212', icon:'phone'}],
+  facts:['Open late'], factIcons:['calendar'], showSecondary:false,
+});
+const proof = section('proof', 'proof', 'Text and photo', {
+  smallLabel:'Promise', title:'Our promise', description:'Written by the shop.',
+  items:[{title:'Hours', description:'By appointment', icon:'calendar'}],
+  media:{...mediaDefaults, src:'media:proof-photo', alt:'Proof'},
+  buttons:[{label:'Book', href:'#contact', icon:'arrow'}], buttonCount:1,
+}, {columns:2, widths:[40, 60], gap:12, padding:64});
+const logos = section('logos', 'logos', 'Scrolling row', {
+  title:'Trusted by our community', description:'Brands and partners we work with',
+  items:[{title:'Audi', description:'Kept', icon:'none', media:{...mediaDefaults, src:'media:audi', alt:'Audi'}}],
+});
+
+test('layout switches keep authored hero, proof, and logo content', () => {
+  for (const layout of ['story', 'split', 'center', 'image', 'short', 'story']) {
+    assert.equal(contentForLayout(hero, layout), hero.content);
+    assert.equal(contentForLayout({...hero, layout}, layout), hero.content);
+  }
+  for (const layout of ['Text and photo', 'Promise band', 'Photo and reasons', 'Text and photo'])
+    assert.equal(contentForLayout(proof, layout), proof.content);
+  for (const layout of ['Scrolling row', 'Heading and slider', 'Still row', 'Heading and slider'])
+    assert.equal(contentForLayout(logos, layout), logos.content);
+  assert.equal(hero.content.showSecondary, false);
+  assert.equal(hero.content.media.src, '/media/showcase/workshop-bay.jpg');
+  assert.equal(hero.content.slides[0].alt, 'My slide');
+  assert.equal(proof.content.items.length, 1);
+  assert.equal(proof.content.buttonCount, 1);
+  assert.equal(logos.content.title, 'Trusted by our community');
+  assert.equal(logos.content.description, 'Brands and partners we work with');
+  assert.equal(logos.content.smallLabel, '');
+});
+
+test('empty sections receive layout defaults once', () => {
+  const blankHero = section('hero', 'hero', 'short', {});
+  const story = contentForLayout(blankHero, 'story');
+  assert.equal(story.showSecondary, true);
+  assert.deepEqual(story.factIcons, ['shield', 'gear', 'star']);
+  assert.equal(story.slides.length, 3);
+  assert.equal(story.media.src, '');
+  assert.equal(contentForLayout({...blankHero, content:story}, 'story'), story);
+  const blankProof = section('proof', 'proof', 'Text and photo', {});
+  const reasons = contentForLayout(blankProof, 'Photo and reasons');
+  assert.ok(reasons.items.length > blankProof.content.items.length);
+  assert.equal(contentForLayout({...blankProof, content:reasons}, 'Photo and reasons'), reasons);
+  const blankLogos = section('logos', 'logos', 'Scrolling row', {});
+  const headed = contentForLayout(blankLogos, 'Heading and slider');
+  assert.equal(headed.smallLabel, 'Trust');
+  assert.equal(headed.title, '');
+  assert.equal(contentForLayout({...blankLogos, content:headed}, 'Heading and slider'), headed);
+});
+
+test('column settings stay when the layout uses the same count', () => {
+  assert.equal(settingsForLayout('hero', 'story', hero.settings), hero.settings);
+  assert.equal(settingsForLayout('services', 'Photo cards', hero.settings), hero.settings);
+  const price = settingsForLayout('services', 'Price list', hero.settings);
+  assert.equal(price.gap, 8);
+  assert.equal(price.padding, 72);
+  assert.deepEqual(price.widths, [100]);
+  assert.equal(price.columns, 1);
+  const restored = settingsForLayout('trust', 'Big numbers', price);
+  assert.equal(restored.padding, 72);
+  assert.equal(restored.columns, 3);
+});
+
+test('custom layout content survives a save and reload', () => {
+  const chosen = [
+    {...hero, layout:'story', content:contentForLayout(hero, 'story'), settings:settingsForLayout('hero', 'story', hero.settings)},
+    {...proof, layout:'Photo and reasons', content:contentForLayout(proof, 'Photo and reasons'), settings:settingsForLayout('proof', 'Photo and reasons', proof.settings)},
+    {...logos, layout:'Heading and slider', content:contentForLayout(logos, 'Heading and slider'), settings:settingsForLayout('logos', 'Heading and slider', logos.settings)},
+  ];
+  const site = {brand:'Northline', hidden:[], headerStyle:'standard', footerStyle:'columns', address:'Chicago', phone:'555', email:'hello@example.com', footerColumns:[{title:'Keep', text:'Saved', links:[]}], blocks:chosen};
+  const loaded = migrateSite(JSON.parse(JSON.stringify(site)));
+  const again = migrateSite(structuredClone(loaded));
+  for (const block of chosen) {
+    const saved = loaded.blocks.find(item => item.id === block.id);
+    assert.deepEqual(saved.content, block.content);
+    assert.equal(saved.settings.columns, block.settings.columns);
+    assert.deepEqual(saved.settings.widths, block.settings.widths);
+    assert.equal(saved.settings.gap, block.settings.gap);
+    assert.equal(saved.settings.padding, block.settings.padding);
+    assert.equal(saved.layout, block.layout);
+    assert.deepEqual(again.blocks.find(item => item.id === block.id).content, block.content);
+  }
+  assert.equal(loaded.blocks.find(item => item.id === 'proof').content.items.some(item => item.title === 'Casey Nguyen'), false);
+});
 
 test('html and wordpress archives keep public files and drop editor chrome', async () => {
   installExportDom();

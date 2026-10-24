@@ -1,7 +1,7 @@
 import {catalog} from './catalog';
 import type {SectionId} from './catalog';
 import {contactHours} from './contact-hours';
-import {defaultColumns,normalizeSettings,headerLook,pageSlug} from '../editor/settings';
+import {defaultColumns,equalWidths,normalizeSettings,headerLook,pageSlug} from '../editor/settings';
 import type {SectionSettings,FooterColumn} from '../editor/settings';
 import {mediaDefaults,socialEmbed} from '../media/model';
 import type {MediaSettings} from '../media/model';
@@ -206,6 +206,26 @@ export function trustSignalContent(content:BlockContent):BlockContent {
   if(content.smallLabel.trim()||content.title.trim()||content.description.trim()||content.items.length||content.media?.src)return content;
   return {...content,smallLabel:'Trust signals',title:'Confidence comes\nfrom evidence.',description:'Real qualifications, transparent processes, and documented results. No guesswork, no surprises.',items:signalStarter.map(item=>({...item}))};
 }
+export function sectionIsBlank(content:BlockContent):boolean {
+  const text=(value?:string)=>!value?.trim();
+  return text(content.smallLabel)&&text(content.title)&&text(content.description)&&!content.items?.length&&!content.media?.src&&!(content.slides||[]).some(slide=>slide.src)&&!(content.buttons||[]).some(button=>button.label?.trim()||button.href?.trim())&&!(content.facts||[]).some(fact=>fact?.trim());
+}
+export function contentForLayout(block:Block,layout:string):BlockContent {
+  const content=block.content;
+  if(!sectionIsBlank(content))return content;
+  if(block.type==='hero'&&layout==='story'&&block.id==='hero')return {...content,...storyHeroMedia(content),showSecondary:true,factIcons:content.factIcons?.length?content.factIcons:['shield','gear','star']};
+  if(block.type==='hero'&&!['short','center'].includes(layout))return {...content,showSecondary:true};
+  if(block.type==='proof'&&layout==='Photo and reasons')return proofReasonContent(content);
+  if(block.type==='logos'&&layout==='Heading and slider')return logoBandContent(content);
+  if(block.type==='trust'&&layout==='Signals')return trustSignalContent(content);
+  return content;
+}
+const singleColumnLayouts=['Price list','Promise band','One message','One large quote','Accordion','Scrolling row','Heading and slider','Signals'];
+export function settingsForLayout(type:string,layout:string,settings:SectionSettings):SectionSettings {
+  const count=singleColumnLayouts.includes(layout)?1:layout==='Two columns'?2:defaultColumns(type);
+  if(settings.columns===count&&settings.widths?.length===count)return settings;
+  return {...settings,columns:count,widths:equalWidths(count)};
+}
 export function logoBandContent(content:BlockContent):BlockContent {
   return {...content,smallLabel:content.smallLabel.trim()?content.smallLabel:'Trust',title:content.title==='Trusted by our community'?'Trusted by\nour community':content.title,description:content.description==='Brands and partners we work with'?"We're proud to work with individuals, families, and local businesses across Chicago and the surrounding areas.":content.description};
 }
@@ -228,7 +248,7 @@ export function applyIndustryMedia(block:Block):Block {
   if(block.type==='hero'&&block.id==='hero'&&block.layout==='story'){const film=storyHeroMedia(content);content.media=film.media;content.slides=film.slides;}
   else if(block.type==='hero'&&block.id==='hero'&&(legacyMedia(content.media.src)||content.media.src==='/media/showcase/highway-suv.jpg'))content.media=clip('/media/ai-images/mountain-sports-car.mp4','/media/showcase/mountain-road.jpg',content.title||'Sports car on a mountain road');
   if(block.type==='proof'&&legacyMedia(content.media.src))content.media=still(workshop,'Workshop bay');
-  if(block.type==='proof'&&block.layout==='Photo and reasons')Object.assign(content,proofReasonContent(content));
+  if(block.type==='proof'&&block.layout==='Photo and reasons'&&sectionIsBlank(content))Object.assign(content,proofReasonContent(content));
   if(block.type==='logos'&&content.items.length===3&&content.items.every((item,i)=>item.title===['Certified repair','Insurance partners','Local business'][i]&&!item.media?.src))content.items=['Audi','BMW','Mercedes-Benz','Porsche','Tesla','Volvo','Land Rover'].map(title=>({title,description:'',icon:'none' as const}));
   if(block.type==='quote'&&legacyMedia(content.media.src))content.media=still('/media/ai-images/repair-bench.jpg','Repair bench');
   if(block.type==='promo'&&legacyMedia(content.media.src))content.media=still('/media/ai-images/promo-bg.jpg','Seasonal workshop offer');
