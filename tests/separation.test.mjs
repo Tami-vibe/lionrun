@@ -132,6 +132,7 @@ test('export escaping and link checks reject active content', () => {
   assert.equal(htmlEscape(`a&b<c>"'`), 'a&amp;b&lt;c&gt;&quot;&#39;');
   assert.equal(safeHref('javascript:alert(1)'), '#contact');
   assert.equal(safeHref('//evil.example'), '#contact');
+  assert.equal(safeHref('https://user:pass@example.com/path'), '#contact');
   assert.equal(safeHref('https://example.com/path'), 'https://example.com/path');
   assert.equal(safeHref('mailto:hello@example.com'), 'mailto:hello@example.com');
   assert.match(menuRuntime, /menu-dropdown/);
