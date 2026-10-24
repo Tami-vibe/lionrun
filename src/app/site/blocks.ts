@@ -12,6 +12,7 @@ export const blockLayouts:Record<SectionId,readonly string[]> = {
  header:['standard','pill','rounded'],hero:['split','center','image','short','story'],logos:['Scrolling row','Still row','Heading and slider'],services:['Icon cards','Photo cards','Price list'],proof:['Text and photo','Promise band','Photo and reasons'],about:['Story and photos','Photos only'],pains:['Photo cards','One message'],solutions:['Numbered steps','Before and after'],trust:['Big numbers','Numbers and certifications','Signals'],reviews:['Review cards','One large quote','Carousel','Auto'],quote:['Photo beside the form'],faq:['Accordion','Two columns'],promo:['Offer band'],contact:['Details and map'],closing:['Quiet','Full color'],footer:['columns','minimal'],
 };
 export type IconName = "none" | "arrow" | "phone" | "calendar" | "mail" | "check" | "message" | "car" | "wrench" | "shield" | "star" | "pin" | "paint" | "gear" | "tow" | "battery" | "wheel" | "scan" | "glass";
+export const icons: IconName[] = ["none", "arrow", "phone", "calendar", "mail", "check", "message", "car", "wrench", "shield", "star", "pin", "paint", "gear", "tow", "battery", "wheel", "scan", "glass"];
 export type ButtonData = {
     label: string;
     href: string;
@@ -304,7 +305,7 @@ export function syncServicePages<T extends {id:string;name:string;slug?:string;s
 export function validBlocks(value:unknown):value is Block[] {
   if(!Array.isArray(value)||value.length>80)return false;
   const ids=new Set<string>(),shared=new Set<string>();
-  const icon=(name:unknown)=>typeof name==='string'&&['none','arrow','phone','calendar','mail','check','message','car','wrench','shield','star','pin','paint','gear','tow','battery','wheel','scan','glass'].includes(name);
+  const icon=(name:unknown)=>typeof name==='string'&&icons.includes(name as IconName);
   const media=(m:unknown)=>{if(!m||typeof m!=='object')return false;const input=m as Record<string,unknown>;return Object.entries(mediaDefaults).every(([key,base])=>input[key]===undefined||typeof input[key]===typeof base)&&typeof input.src==='string';};
   const optionalStrings=(input:Record<string,unknown>,keys:string[])=>keys.every(key=>input[key]===undefined||typeof input[key]==='string');
   return value.every(block=>{
