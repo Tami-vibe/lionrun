@@ -1,4 +1,5 @@
 import type {PageEntry} from "../editor/navigation";
+import {pageAddresses} from "../editor/settings";
 import {prepareMediaExport, exportRuntime} from "../media/export";
 import type {Site} from "../site/blocks";
 import {safeHref} from "../site/safe-href";
@@ -6,7 +7,8 @@ import {zipFiles} from "./zip";
 export function downloadFile(blob: Blob, name: string) { const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = name; document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 1000); }
 export const htmlEscape = (s: string) => s.replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]!));
 export const menuRuntime = `document.querySelectorAll('.menu-dropdown a').forEach(function(a){a.addEventListener('click',function(){a.closest('details').removeAttribute('open');});});var menuBox=document.querySelector('.menu-frame');if(menuBox)new ResizeObserver(function(){document.querySelector('.site-preview').style.setProperty('--actual-menu-space',menuBox.offsetHeight+'px');}).observe(menuBox);var menuTick=false;function markMenu(){menuTick=false;var sections=Array.from(document.querySelectorAll('.site-preview section[id]')),header=document.querySelector('.menu-frame'),edge=(header?header.getBoundingClientRect().height:0)+40,current='#top';sections.forEach(function(s){if(s.getBoundingClientRect().top<=edge)current='#'+s.id;});document.querySelectorAll('.site-menu nav a[href^="#"]:not([data-current-page])').forEach(function(a){if(a.getAttribute('href')===current)a.setAttribute('aria-current','page');else a.removeAttribute('aria-current');});document.querySelectorAll('.menu-dropdown').forEach(function(d){var summary=d.querySelector('summary');if(d.querySelector('[aria-current="page"]:not(summary)'))summary.setAttribute('aria-current','page');else summary.removeAttribute('aria-current');});}window.addEventListener('scroll',function(){if(!menuTick){menuTick=true;requestAnimationFrame(markMenu);}},{passive:true});markMenu();`;
-export async function packageWebsite(pages:PageEntry<Site>[],format:'html'|'wordpress') {
+export async function packageWebsite(incoming:PageEntry<Site>[],format:'html'|'wordpress') {
+    const pages=pageAddresses(incoming);
     const home=pages.find(p=>p.id==='home')||pages[0],encoder=new TextEncoder();
     const files=new Map<string,Uint8Array>(),references=new Set<string>();
     const write=(name:string,content:string)=>files.set(name,encoder.encode(content));

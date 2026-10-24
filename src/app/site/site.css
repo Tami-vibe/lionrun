@@ -33,6 +33,11 @@
 .site-preview .hero-copy { grid-column:1/9; padding:0; max-width:900px; margin:0; }
 .site-preview .hero-copy h1 { margin:24px 0; }
 .site-preview .hero-copy > p { max-width:55ch; color:inherit; opacity:.85; font-size:16px; }
+@container (min-width: 1024px) {
+  .site-preview .section-heading-copy p,
+  .site-preview .site-block p,
+  .site-preview .hero-copy > p { font-size:18px; }
+}
 .site-preview .hero-facts { display:flex; flex-wrap:wrap; gap:12px 22px; padding:0; margin:32px 0 0; list-style:none; font-size:13px; }
 .site-preview .hero-facts li { display:flex; align-items:center; gap:7px; }
 .site-preview .hero-rating { display:inline-flex; align-items:center; gap:10px; margin-top:24px; }

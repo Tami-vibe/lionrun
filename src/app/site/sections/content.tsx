@@ -13,7 +13,11 @@ function nudgeLogos(button:HTMLButtonElement) {
 export function LogosSection({block,editable,selected,change}:SectionProps) {
  const {resolve}=useMediaLibrary();
  const c=block.content,headed=block.layout==='Heading and slider',scrolling=block.layout!=='Still row',lines=c.title.split('\n');
- const marks=(copy:boolean)=>c.items.map((item,i)=>{const media=item.media,src=media?.src&&media.kind!=='video'&&media.kind!=='social'?resolve(media.src):'';return <div className="logo-item" key={i}>{src?<img className="logo-picture" src={src} alt={media?.alt||item.title||''} data-asset-src={media?.src}/>:media?.src?<MediaView value={media} editable={editable&&!copy} fill/>:<strong>{item.title}</strong>}</div>;});
+ const marks=(copy:boolean)=>c.items.map((item,i)=>{const media=item.media,src=media?.src&&media.kind!=='video'&&media.kind!=='social'?resolve(media.src):'';return <div className="logo-item" key={i}>{src
+  // This node is copied into static HTML and WordPress exports, where next/image cannot run.
+  // eslint-disable-next-line @next/next/no-img-element
+  ?<img className="logo-picture" src={src} alt={media?.alt||item.title||''} data-asset-src={media?.src}/>
+  :media?.src?<MediaView value={media} editable={editable&&!copy} fill/>:<strong>{item.title}</strong>}</div>;});
  const track=<div className={`logo-window${headed?' logo-divided':''}`}><div className="logo-nudge"><div className="logo-row"><div className="logo-set">{marks(false)}</div><div className="logo-set" aria-hidden="true">{marks(true)}</div></div></div></div>;
  const head=headed?c.showHeading!==false&&<div className="logo-band-head"><div>{c.smallLabel&&<span className="proof-kicker">{c.smallLabel}</span>}<h2>{lines[0]}{lines.length>1&&<span className="proof-quiet">{lines.slice(1).join(' ')}</span>}</h2>{c.description&&<p>{c.description}</p>}</div><div className="logo-nav"><button type="button" className="logo-prev" data-logo-step="1" aria-label="Previous logos" onClick={e=>{e.stopPropagation();nudgeLogos(e.currentTarget);}}><Icon name="arrow" size={16}/></button><button type="button" className="logo-next" data-logo-step="-1" aria-label="Next logos" onClick={e=>{e.stopPropagation();nudgeLogos(e.currentTarget);}}><Icon name="arrow" size={16}/></button></div></div>:<SectionHeading content={c}/>;
  return headed?<div className="logo-band">{head}{track}</div>:<>{head}{scrolling?track:<div className="logo-still"><Columns className="block-grid logo-row" value={block.settings} editable={editable&&selected} onChange={change}>{marks(false)}</Columns></div>}</>;

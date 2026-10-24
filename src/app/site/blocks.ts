@@ -116,7 +116,11 @@ const legacyInitial: Omit<Site,'blocks'> = {
 export const workshop='/media/showcase/workshop-bay.jpg';
 export const detailPhoto='/media/showcase/diagnostic-scanner.jpg';
 const still = (src:string, alt:string): MediaSettings => ({...mediaDefaults, src, alt, kind:'image'});
-const clip = (src:string, poster:string, alt:string): MediaSettings => ({...mediaDefaults, src, poster, alt, kind:'video', autoplay:true, muted:true, loop:true, controls:false});
+const clip = (src:string, poster:string, alt:string): MediaSettings => {
+  const {playback, clickToPlay, ...stored} = {...mediaDefaults, src, poster, alt, kind:'video' as const, autoplay:true, muted:true, loop:true, controls:false};
+  void playback; void clickToPlay;
+  return stored as MediaSettings;
+};
 export const shopServices: {title:string;description:string;icon:IconName;media:MediaSettings}[] = [
   {title:'Collision repair', description:'Frame and body restored to factory specs after any accident.', icon:'car', media:clip('/media/ai-images/alfa-romeo-bumper.mp4','/media/showcase/bodywork-door-repair.jpg','Collision repair')},
   {title:'Paint & refinishing', description:'Computer colour matching and a showroom finish.', icon:'paint', media:still('/media/ai-images/promo-bg.jpg','Paint and refinishing')},
@@ -182,8 +186,8 @@ function migratePainItem(item:BlockItem,index:number):BlockItem {
 const storyReel=['/media/ai-images/mountain-sports-car.mp4','/media/ai-images/mirror-camera.mp4','/media/ai-images/alfa-romeo-bumper.mp4'];
 export function storyHeroMedia(content:BlockContent):Pick<BlockContent,'media'|'slides'> {
   const road='/media/ai-images/driving_in_winding_mountain_road.mp4',known=legacyMedia(content.media.src)||['/media/showcase/highway-suv.jpg','/media/ai-images/mountain-sports-car.mp4'].includes(content.media.src);
-  const saved=(content.slides||[]).filter(slide=>slide.src&&slide.src!==road&&!storyReel.includes(slide.src));
-  return {media:known?clip(road,'/media/showcase/mountain-road.jpg','Driving a winding mountain road'):content.media,slides:saved.length?content.slides:storyReel.map((src,i)=>clip(src,['/media/showcase/mountain-road.jpg','/media/showcase/driver-cockpit.jpg','/media/showcase/bodywork-door-repair.jpg'][i],['Sports car on a mountain road','Mirror camera','Bumper repair'][i]))};
+  const slides=(content.slides||[]).filter(slide=>slide.src);
+  return {media:known?clip(road,'/media/showcase/mountain-road.jpg','Driving a winding mountain road'):content.media,slides:slides.length?content.slides:storyReel.map((src,i)=>clip(src,['/media/showcase/mountain-road.jpg','/media/showcase/driver-cockpit.jpg','/media/showcase/bodywork-door-repair.jpg'][i],['Sports car on a mountain road','Mirror camera','Bumper repair'][i]))};
 }
 const reasonCopy:Record<string,string>={'Transparent process':'You see the estimate, the photos, and each update before any work starts.','Quality craftsmanship':'Panels, paint, and fit are checked before the car comes back to you.','People-first service':'One shop explains the repair in plain language and stays easy to reach.','Written estimates':'The price is written down, and extra work waits for your yes.','Paint matched to your car':'The colour is compared with your car before the panels go back on.','A day to collect it':'After the inspection you get a pickup day, and we call if parts change it.'};
 const starterReasons=['Transparent process','Quality craftsmanship','People-first service'];

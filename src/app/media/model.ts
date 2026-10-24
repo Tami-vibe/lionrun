@@ -1,14 +1,27 @@
+export type PlaybackMode = 'loop' | 'once' | 'restart';
 export type MediaSettings = {
   src: string; kind: 'image' | 'video' | 'social'; alt: string; title: string; description: string;
   poster: string; captions: string; captionLanguage: string; uploadDate: string;
   zoom: number; x: number; y: number; ratio: string; fit: 'cover' | 'contain';
-  autoplay: boolean; muted: boolean; loop: boolean; controls: boolean;
+  autoplay: boolean; muted: boolean; loop: boolean; controls: boolean; playback: PlaybackMode; clickToPlay: boolean;
   mobile: 'same' | 'poster' | 'hide'; consent: boolean;
 };
 export const mediaDefaults: MediaSettings = {
   src: '', kind: 'image', alt: '', title: '', description: '', poster: '', captions: '', captionLanguage: 'en', uploadDate: '',
-  zoom: 1, x: 50, y: 50, ratio: '16/9', fit: 'cover', autoplay: false, muted: true, loop: true, controls: true, mobile: 'same', consent: true,
+  zoom: 1, x: 50, y: 50, ratio: '16/9', fit: 'cover', autoplay: false, muted: true, loop: true, controls: true, playback: 'loop', clickToPlay: false, mobile: 'same', consent: true,
 };
+export function videoPlan(value: Partial<MediaSettings>) {
+  const playback: PlaybackMode = value.playback === 'once' || value.playback === 'restart' || value.playback === 'loop' ? value.playback : value.loop === false ? 'once' : 'loop';
+  const controls = value.controls !== false;
+  const clickToPlay = value.clickToPlay === true;
+  return {playback, loop: playback === 'loop', muted: value.muted !== false, autoplay: value.autoplay === true, controls, clickToPlay, customClick: !controls && (clickToPlay || playback === 'restart')};
+}
+export function videoClick(video: {paused: boolean; ended: boolean; currentTime: number}, plan: ReturnType<typeof videoPlan>) {
+  if (plan.controls || !plan.customClick) return 'ignore' as const;
+  if (video.ended) return plan.playback === 'restart' ? 'restart' as const : 'ignore' as const;
+  if (video.paused) return plan.clickToPlay || video.currentTime < 0.05 ? 'play' as const : 'ignore' as const;
+  return plan.clickToPlay ? 'pause' as const : 'ignore' as const;
+}
 export function https(value: string): string {
   try { const u = new URL(value); return u.protocol === 'https:' && !u.username && !u.password ? u.href : ''; } catch { return ''; }
 }
@@ -18,11 +31,12 @@ export function mediaURL(value: string): string {
 export function normalizeMedia(value: Partial<MediaSettings>): MediaSettings {
   const n = (v: unknown, base: number, min: number, max: number) => typeof v === 'number' && Number.isFinite(v) ? Math.max(min, Math.min(max, v)) : base;
   const s = { ...mediaDefaults, ...value };
+  const playback: PlaybackMode = value.playback === 'once' || value.playback === 'restart' || value.playback === 'loop' ? value.playback : value.loop === false ? 'once' : 'loop';
   return { ...s, src: typeof s.src==='string'?s.src.slice(0,10000):'', poster:typeof s.poster==='string'?s.poster.slice(0,10000):'', captions:typeof s.captions==='string'?s.captions.slice(0,10000):'',
     kind: ['image','video','social'].includes(s.kind) ? s.kind : 'image', zoom: n(s.zoom,1,0.25,4), x:n(s.x,50,0,100), y:n(s.y,50,0,100),
     ratio: ['16/9','4/3','1/1','9/16','21/9'].includes(s.ratio) ? s.ratio : '16/9', fit:s.fit === 'contain' ? 'contain':'cover',
     mobile:['same','poster','hide'].includes(s.mobile) ? s.mobile:'same', autoplay:s.autoplay === true, muted:s.muted !== false,
-    loop:s.loop === true, controls:s.controls !== false, consent:s.consent !== false,
+    playback, loop: playback === 'loop', clickToPlay:value.clickToPlay === true, controls:s.controls !== false, consent:s.consent !== false,
   };
 }
 export function socialEmbed(value: string, settings = mediaDefaults): { provider: string; src: string; url: string } {
