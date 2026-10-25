@@ -22,6 +22,12 @@ export function moveItem<T>(items: T[], from: number, to: number) {
   next.splice(to, 0, item);
   return next;
 }
+export function slideAdvancePlan(input: {autoplay: boolean; count: number; reducedMotion: boolean; advance: string; kind: string; seconds: number}) {
+  if (!input.autoplay || input.count < 2 || input.reducedMotion) return {mode: "off" as const, seconds: 0};
+  const seconds = Number.isFinite(input.seconds) && input.seconds > 0 ? input.seconds : 5;
+  if (input.advance === "end" && input.kind === "video") return {mode: "end" as const, seconds};
+  return {mode: "timer" as const, seconds};
+}
 export function slideIndexAllowed(index: number | undefined, count: number) {
   return index === undefined || (Number.isInteger(index) && index >= 0 && (count === 0 ? index === 0 : index < count));
 }

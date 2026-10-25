@@ -144,6 +144,69 @@ test('hero collection accepts a direct media file and rejects a web page', async
   assert.equal(heroSlides({media: {src: 'a'}, slides: [{src: 'b'}, {src: 'c'}, {src: 'd'}, {src: 'e'}]}).length, 5);
 });
 
+test('editor and exported slideshows use the same advance rules', async () => {
+  const {slideAdvancePlan} = await import('../src/app/editor/hero-collection.ts');
+  const {slideshowRuntime} = await import('../src/app/media/export.ts');
+  const cases = [
+    {autoplay: true, count: 3, reducedMotion: false, advance: 'time', kind: 'image', seconds: 5, mode: 'timer'},
+    {autoplay: true, count: 3, reducedMotion: false, advance: 'end', kind: 'video', seconds: 8, mode: 'end'},
+    {autoplay: true, count: 3, reducedMotion: true, advance: 'time', kind: 'image', seconds: 5, mode: 'off'},
+    {autoplay: false, count: 3, reducedMotion: false, advance: 'time', kind: 'image', seconds: 5, mode: 'off'},
+    {autoplay: true, count: 1, reducedMotion: false, advance: 'end', kind: 'video', seconds: 5, mode: 'off'},
+  ];
+  for (const item of cases) assert.equal(slideAdvancePlan(item).mode, item.mode);
+  assert.equal(slideAdvancePlan(cases[0]).seconds, 5);
+  assert.equal(slideAdvancePlan({...cases[1], seconds: 0}).seconds, 5);
+
+  const run = ({reduced, advance, seconds, start, withVideo}) => {
+    const videos = [0, 1, 2].map(() => ({
+      paused: false,
+      listener: null,
+      getAttribute(name) { return name === 'data-autoplay' ? 'true' : null; },
+      pause() { this.paused = true; },
+      play() { this.paused = false; return Promise.resolve(); },
+      addEventListener(type, fn) { if (type === 'ended') this.listener = fn; },
+      removeEventListener() { this.listener = null; },
+    }));
+    const slides = [0, 1, 2].map(i => ({
+      hidden: i !== start,
+      querySelector(sel) { return sel === 'video' && withVideo ? videos[i] : null; },
+    }));
+    const label = {textContent: ''};
+    const timers = [];
+    const box = {
+      getAttribute(name) { return name === 'data-slide-advance' ? advance : name === 'data-slide-seconds' ? String(seconds) : null; },
+      querySelectorAll(sel) { return sel === '[data-slide]' ? slides : []; },
+      querySelector(sel) { return sel === '[aria-live]' ? label : null; },
+      closest() { return {querySelectorAll() { return []; }}; },
+    };
+    const document = {querySelectorAll(sel) { return sel === '[data-slide-autoplay=true]' ? [box] : []; }};
+    const window = {clearTimeout() {}, setTimeout(fn, ms) { timers.push({fn, ms}); return timers.length; }};
+    new Function('document', 'window', 'matchMedia', slideshowRuntime)(document, window, () => ({matches: reduced}));
+    return {slides, videos, timers, label};
+  };
+
+  const timed = run({reduced: false, advance: 'time', seconds: 5, start: 2, withVideo: false});
+  assert.equal(timed.slides[2].hidden, false);
+  assert.equal(timed.timers[0].ms, 5000);
+  timed.timers[0].fn();
+  assert.equal(timed.slides[0].hidden, false);
+  assert.equal(timed.label.textContent, '1 / 3');
+
+  const ended = run({reduced: false, advance: 'end', seconds: 8, start: 0, withVideo: true});
+  assert.equal(ended.timers.length, 0);
+  assert.equal(ended.videos[1].paused, true);
+  ended.videos[0].listener();
+  assert.equal(ended.slides[1].hidden, false);
+  assert.equal(ended.videos[0].paused, true);
+
+  const reduced = run({reduced: true, advance: 'time', seconds: 5, start: 1, withVideo: true});
+  assert.equal(reduced.timers.length, 0);
+  assert.equal(reduced.slides[1].hidden, false);
+  assert.equal(reduced.videos[0].paused, true);
+  assert.equal(reduced.videos[1].paused, false);
+});
+
 test('removal undo puts the item back without replacing later collection edits', async () => {
   const {removalStart, restoreRemoved} = await import('../src/app/editor/hero-collection.ts');
   const removed = {item: 'b', index: 1, slideIndex: 2};
