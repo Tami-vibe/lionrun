@@ -4,6 +4,7 @@ import {Block,Site,contentForLayout,settingsForLayout,blockLayouts} from '../sit
 import {reviewLayout,reviewLayoutName,type ReviewLayout} from '../site/reviews';
 import {menuButtons} from './workspace';
 import {ContentBrowser,Choice,Destination,Field,useEditScope} from './fields';
+import {ProofStyle} from './proof-style';
 import {LayoutControls,TypographyControls} from './inspector';
 import {HeroLayouts,PageEntry} from './navigation';
 import {FooterColumn,SectionSettings,defaultColumns,equalWidths} from './settings';
@@ -26,6 +27,7 @@ export function SectionEditor({view,group,onGroup,site,pages,block,used,footerDe
     changeSettings(value);
   };
   if(view==='Content')return <ContentBrowser block={block} site={site} pages={pages} update={update} change={change} footerDefaults={footerDefaults} used={used} group={group} onOpen={onGroup} home={home}/>;
+  if(block.type==='proof')return <ProofStyle block={block} onResetLayout={()=>changeBlock({layout:'Text and photo',settings:{...settings,columns:2,widths:equalWidths(2)},content:{...block.content,buttonCount:undefined,headAlign:undefined,photoSide:undefined}})} changeLayout={layout=>changeBlock({layout})} changeSettings={changeSettings} change={change}/>;
   const singleLayout=['Price list','Promise band','One message','One large quote','Accordion','Scrolling row','Heading and slider','Signals'].includes(block.layout);
   const gridSection=!singleLayout&&!['header','hero','promo'].includes(block.type);
   const media=block.content.media;
@@ -66,11 +68,6 @@ export function SectionEditor({view,group,onGroup,site,pages,block,used,footerDe
       <RangeField label="Fade width" min={0} max={100} value={Math.round(block.content.fadeWidth??35)} onChange={fadeWidth=>change({fadeWidth})}/>
       <RangeField label="Fade strength" min={0} max={100} value={Math.round(block.content.fadeStrength??100)} onChange={fadeStrength=>change({fadeStrength})}/>
       <RangeField label="Gradient" min={0} max={80} value={block.content.darkness??64} onChange={darkness=>change({darkness})}/>
-    </>}
-    {block.type==='proof'&&block.layout==='Photo and reasons'&&<>
-      <Choice label="Buttons" value={String(block.content.buttonCount??2)} onChange={v=>change({buttonCount:Number(v) as 0|1|2})} options={[{value:'2',label:'Both'},{value:'1',label:'One'},{value:'0',label:'None'}]}/>
-      <Choice label="Intro alignment" value={block.content.headAlign||'center'} onChange={v=>change({headAlign:v as 'top'|'center'|'bottom'})} options={[{value:'top',label:'Top'},{value:'center',label:'Center'},{value:'bottom',label:'Bottom'}]}/>
-      <Choice label="Photo side" value={block.content.photoSide||'left'} onChange={v=>change({photoSide:v as 'left'|'right'})} options={[{value:'left',label:'Left'},{value:'right',label:'Right'}]}/>
     </>}
     <TypographyControls value={settings} change={changeSettings} target={textTarget} setTarget={setTextTarget}/>
     {!['header','hero','footer'].includes(block.type)&&<p className="helper-text">Use the type settings above for text. Keep one clear main action for visitors.</p>}

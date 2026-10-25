@@ -2,6 +2,7 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { ACCEPT, assetStore, Asset, LIMITS, validateUpload } from './store';
 import { mediaDefaults, MediaSettings, mediaURL, normalizeMedia, socialEmbed, https, videoPlan, videoClick } from './model';
+import {mountMediaSequence, sequenceItems, type MediaMode} from './sequence';
 const LibraryContext=createContext<{assets:Asset[];resolve:(src:string)=>string;reload:()=>Promise<void>;error:string}>({assets:[],resolve:()=>'',reload:async()=>{},error:''});
 export function MediaProvider({children}:{children:React.ReactNode}){
   const [assets,setAssets]=useState<Asset[]>([]),[urls,setUrls]=useState<Record<string,string>>({}),[error,setError]=useState('');
@@ -13,6 +14,15 @@ export function MediaProvider({children}:{children:React.ReactNode}){
   return <LibraryContext.Provider value={{assets,resolve,reload,error}}>{children}</LibraryContext.Provider>;
 }
 export const useMediaLibrary=()=>useContext(LibraryContext);
+export function MediaSequence({content,editable=false,index=0}:{content:{media:MediaSettings;slides?:MediaSettings[];mediaMode?:MediaMode;slideAutoplay?:boolean;slideSeconds?:number;slideLoop?:boolean;slideIndex?:number};editable?:boolean;index?:number}) {
+  const root=useRef<HTMLDivElement>(null),items=sequenceItems({...content,slideIndex:editable?index:content.slideIndex}),key=JSON.stringify([items,content.slideAutoplay,content.slideSeconds,content.slideLoop,editable,index]);
+  useEffect(()=>{if(root.current)return mountMediaSequence(root.current);},[key]);
+  const current=Math.min(Math.max(0,editable?index:content.slideIndex??0),Math.max(0,items.length-1));
+  return <div ref={root} className="media-sequence" role={items.length>1?'region':undefined} aria-roledescription={items.length>1?'carousel':undefined} aria-label={items.length>1?'Why choose us media':undefined} data-media-sequence data-sequence-autoplay={!editable&&content.mediaMode==='slideshow'&&!!content.slideAutoplay?'true':'false'} data-sequence-loop={content.slideLoop!==false?'true':'false'} data-sequence-seconds={content.slideSeconds??5}>
+    {items.length?items.map((item,i)=><div key={`${item.src}-${i}`} data-sequence-slide hidden={i!==current}><MediaView value={item} editable={editable}/></div>):<p className="media-fallback">Add media in the editor.</p>}
+    {items.length>1&&<div className="sequence-actions"><button type="button" data-sequence-step="-1" aria-label="Previous slide">‹</button><span data-sequence-count aria-live={content.slideAutoplay&&!editable?'off':'polite'}>{current+1} / {items.length}</span><button type="button" data-sequence-step="1" aria-label="Next slide">›</button>{content.slideAutoplay&&!editable&&<button type="button" data-sequence-toggle aria-pressed="false">Pause slideshow</button>}</div>}
+  </div>;
+}
 export function MediaView({value,background=false,editable=false,repeat,fill=false,className=''}:{value:Partial<MediaSettings>;background?:boolean;editable?:boolean;repeat?:number;fill?:boolean;className?:string}){
   const m=normalizeMedia(value),plan=videoPlan(m),{resolve}=useMediaLibrary(),[allowed,setAllowed]=useState(false),[failedSource,setFailedSource]=useState(''),[playing,setPlaying]=useState(false),[ended,setEnded]=useState(false);
   const src=resolve(m.src),poster=resolve(m.poster),embed=socialEmbed(m.src,m),failed=failedSource===src&&!!src,videoKey=`${src}|${plan.playback}|${plan.controls}|${plan.clickToPlay}|${plan.muted}|${plan.autoplay}`;
@@ -53,7 +63,7 @@ export function MediaPicker({label,imagesOnly=false,onSelect,onClose}:{label:str
   const {assets,reload,error}=useMediaLibrary(),[query,setQuery]=useState(''),[notice,setNotice]=useState(''),[busy,setBusy]=useState(false),dialog=useRef<HTMLDivElement>(null),close=useRef(onClose);
   const rows=assets.filter(asset=>asset.kind!=='captions'&&(!imagesOnly||asset.kind==='image')&&asset.name.toLowerCase().includes(query.toLowerCase()));
   useEffect(()=>{close.current=onClose;},[onClose]);
-  useEffect(()=>{const node=dialog.current;const previously=document.activeElement as HTMLElement|null;node?.querySelector('input')?.focus();const keys=(event:KeyboardEvent)=>{if(event.key==='Escape'){event.preventDefault();close.current();}};document.addEventListener('keydown',keys);return()=>{document.removeEventListener('keydown',keys);previously?.focus();};},[]);
+  useEffect(()=>{const node=dialog.current;const previously=document.activeElement as HTMLElement|null;node?.querySelector('input')?.focus();const keys=(event:KeyboardEvent)=>{if(event.key==='Escape'){event.preventDefault();close.current();}if(event.key==='Tab'){const controls=Array.from(node?.querySelectorAll<HTMLElement>('button:not(:disabled),input:not(:disabled),select:not(:disabled),[tabindex="0"]')||[]),first=controls[0],last=controls.at(-1);if(event.shiftKey&&document.activeElement===first){event.preventDefault();last?.focus();}else if(!event.shiftKey&&document.activeElement===last){event.preventDefault();first?.focus();}}};document.addEventListener('keydown',keys);return()=>{document.removeEventListener('keydown',keys);previously?.focus();};},[]);
   return <div className="media-picker" role="dialog" aria-modal="true" aria-label={label} ref={dialog}>
     <div className="list-actions"><strong>{label}</strong><button type="button" onClick={onClose}>Close</button></div>
     {(error||notice)&&<p role="status" className="helper-text">{error||notice}</p>}

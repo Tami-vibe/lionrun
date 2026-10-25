@@ -405,3 +405,11 @@
 .site-preview .hero[data-align=left] .hero-copy { text-align:left; }
 .site-preview .hero[data-align=left] .hero-copy > p { margin-inline:0; }
 .site-preview .hero[data-align=left] :is(.hero-buttons,.hero-facts) { justify-content:flex-start; }
+
+.site-preview .media-sequence { position:relative; min-width:0; }
+.site-preview .media-sequence [hidden] { display:none!important; }
+.site-preview .sequence-actions { display:flex; align-items:center; justify-content:center; gap:12px; margin-top:8px; font-size:13px; }
+.site-preview .sequence-actions button { min-width:32px; min-height:32px; padding:4px 8px; border:1px solid currentColor; border-radius:6px; color:inherit; background:transparent; cursor:pointer; }
+.site-preview .proof-reasons>.proof-stage>.media-sequence { position:absolute; inset:0; }
+.site-preview .proof-stage .media-sequence :is([data-sequence-slide],.media-view) { height:100%; min-height:100%; }
+.site-preview .proof-stage .sequence-actions { position:absolute; top:12px; left:12px; z-index:2; margin:0; padding:4px; border-radius:8px; color:#202532; background:#fff; }

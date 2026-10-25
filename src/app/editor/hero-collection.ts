@@ -1,4 +1,4 @@
-import {mediaURL, type MediaSettings} from "../media/model";
+import {mediaDefaults, mediaURL, normalizeMedia, type MediaSettings} from "../media/model";
 
 export const HERO_ADD_LIMIT = 3;
 
@@ -14,6 +14,10 @@ export function directMediaLink(value: string): {ok: true; src: string; kind: "i
 }
 export function heroSlides(content: {media?: MediaSettings; slides?: MediaSettings[]}) {
   return [content.media, ...(content.slides || [])].filter((item): item is MediaSettings => !!item?.src);
+}
+export function collectionPatch(items:MediaSettings[],start?:number) {
+  const filled=items.filter(item=>item.src).map(normalizeMedia);
+  return {media:filled[0]||{...mediaDefaults},slides:filled.slice(1),slideIndex:publishedStart(start,filled.length)};
 }
 export function moveItem<T>(items: T[], from: number, to: number) {
   if (from === to || from < 0 || to < 0 || from >= items.length || to >= items.length) return items;

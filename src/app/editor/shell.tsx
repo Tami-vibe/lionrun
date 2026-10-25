@@ -1,6 +1,6 @@
 "use client";
 import {useId,useState,type ReactNode} from 'react';
-import {ArrowLeft,Check,ChevronDown,ChevronRight,EllipsisVertical,Eye,EyeOff,FileText,House,Plus} from 'lucide-react';
+import {ArrowLeft,Check,ChevronDown,ChevronRight,EllipsisVertical,Eye,EyeOff,RotateCcw,FileText,House,Plus} from 'lucide-react';
 import {stages} from '../site/catalog';
 
 export type EditorLocation = 'pages' | 'sections' | 'inspector' | 'page-settings' | 'business' | 'create-page' | 'add-section';
@@ -32,7 +32,7 @@ export function EditorShell({location,setLocation,view,setView,open,preview,page
   return <div id="premium-studio" className={preview?'is-preview':''}>
     {toolbar}
     <div className={`premium-workspace${open?'':' is-collapsed'}`}>
-      {!preview && <aside className="panel" aria-label="Website editor">
+      {!preview && <aside className="panel" aria-label="Website editor" data-refined={sectionName==='Why choose us'||undefined}>
         <div className="paneltop">
           {location==='sections' && <div className="panel-heading">
             <h2>All sections</h2>
@@ -84,10 +84,10 @@ export function EditorShell({location,setLocation,view,setView,open,preview,page
           {location!=='pages'&&location!=='sections'&&children}
         </div>
         <footer className="panelbottom">
-          <span className="save-status" role={saveError?'alert':'status'} data-error={saveError||undefined}><i aria-hidden="true"/>{saveLabel}</span>
+          <span className="save-status" role={saveError?'alert':'status'} data-error={saveError||undefined}><i aria-hidden="true"/>{sectionName==='Why choose us'&&saveLabel==='Saved in this browser'?'Saved':saveLabel}</span>
           <div className="grow"/>
           <button type="button" className="quiet" onClick={onBusiness}>Business</button>
-          <button type="button" className="quiet" onClick={onReset}>Reset page</button>
+          <button type="button" className="quiet reset-page" title="Reset page" aria-label="Reset page" onClick={onReset}>{sectionName==='Why choose us'?<RotateCcw aria-hidden="true"/>:'Reset page'}</button>
         </footer>
       </aside>}
       {canvas}
