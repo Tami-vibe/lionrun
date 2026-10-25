@@ -6,10 +6,9 @@ import {mediaDefaults, normalizeMedia, type MediaSettings} from "../media/model"
 import {ACCEPT} from "../media/store";
 import type {BlockContent} from "../site/blocks";
 import {useEditScope} from "./fields";
-import {directMediaLink, heroSlides, moveItem, publishedStart, removalStart, reorderStart, restoreRemoved} from "./hero-collection";
+import {HERO_ADD_LIMIT, directMediaLink, heroSlides, moveItem, publishedStart, removalStart, reorderStart, restoreRemoved} from "./hero-collection";
 import {useHeroFocus} from "./hero-focus";
 
-const SLIDES = 5;
 const fileName = (src: string, names: Map<string, string>) => {
   if (src.startsWith("media:")) return names.get(src.slice(6)) || "Uploaded file";
   const leaf = src.split("/").pop() || src;
@@ -24,6 +23,7 @@ export function HeroMediaEditor({content, layout, blockId, onChange}:{content: B
   const items = heroSlides(content);
   const [index, setIndex] = useState(() => publishedStart(content.slideIndex, heroSlides(content).length));
   const selected = items.length ? Math.min(Math.max(0, index), items.length - 1) : -1;
+  const limitNote = items.length > HERO_ADD_LIMIT ? `This hero already has ${items.length} items, and they all stay. New items stop at ${HERO_ADD_LIMIT}.` : `This hero holds ${HERO_ADD_LIMIT} items.`;
   useEffect(() => { setFocus(selected < 0 ? null : {blockId, index: selected}); }, [blockId, selected, setFocus]);
   useEffect(() => () => setFocus(null), [setFocus]);
   const media = selected >= 0 ? normalizeMedia(items[selected]) : null;
@@ -44,7 +44,7 @@ export function HeroMediaEditor({content, layout, blockId, onChange}:{content: B
   const select = (i: number) => setIndex(i);
   const writeSelected = (patch: Partial<MediaSettings>) => { if (selected < 0) return; writeItems(items.map((item, i) => i === selected ? {...item, ...patch} : item)); };
   const addItem = (item: MediaSettings) => {
-    if (items.length >= SLIDES) { setNotice(`This hero holds ${SLIDES} slides.`); return false; }
+    if (items.length >= HERO_ADD_LIMIT) { setNotice(limitNote); return false; }
     writeItems([...items, item]);
     setIndex(items.length);
     setNotice("");
@@ -56,8 +56,8 @@ export function HeroMediaEditor({content, layout, blockId, onChange}:{content: B
     if (addItem({...mediaDefaults, src: result.src, kind: result.kind, title: fileName(result.src, names)})) { setLink(""); setLinking(false); }
   };
   const addFiles = async (files: File[]) => {
-    const room = SLIDES - items.length;
-    if (room <= 0) { setNotice(`This hero holds ${SLIDES} slides.`); return; }
+    const room = HERO_ADD_LIMIT - items.length;
+    if (room <= 0) { setNotice(limitNote); return; }
     const batch = [...files].slice(0, room);
     const next = [...items];
     const errors: string[] = [];
@@ -69,7 +69,7 @@ export function HeroMediaEditor({content, layout, blockId, onChange}:{content: B
         next.push(normalizeMedia({...mediaDefaults, src: `media:${asset.id}`, kind: asset.kind, title: asset.name}));
       } catch (reason) { errors.push(reason instanceof Error ? reason.message : String(reason)); }
     }
-    if (files.length > batch.length) errors.push(`This hero holds ${SLIDES} slides. Extra files were not added.`);
+    if (files.length > batch.length) errors.push(`${limitNote} Extra files were not added.`);
     setProgress("");
     if (next.length > items.length) { writeItems(next); setIndex(items.length); }
     setNotice(errors.join(" "));
@@ -104,7 +104,7 @@ export function HeroMediaEditor({content, layout, blockId, onChange}:{content: B
     setOver(false);
     if (event.dataTransfer.types.includes("application/x-hero-index")) return;
     const files = [...event.dataTransfer.files];
-    if (files.length) { void addFiles(files); return; }
+    if (files.length) { if (items.length >= HERO_ADD_LIMIT) setNotice(limitNote); else void addFiles(files); return; }
     const text = event.dataTransfer.getData("text/uri-list") || event.dataTransfer.getData("text/plain");
     if (text.trim()) addLink(text);
   };
@@ -114,15 +114,15 @@ export function HeroMediaEditor({content, layout, blockId, onChange}:{content: B
       <p>{items.length ? "Drop files or a media link" : "Drop images or videos here"}</p>
       {!items.length && <p className="helper-text">From your computer or a direct media link.</p>}
       <div className="hero-drop-actions">
-        <label className="hero-upload"><Upload size={16} aria-hidden="true"/>Upload files<input type="file" accept={ACCEPT} multiple onChange={event => { const files = event.target.files; event.target.value = ""; if (files?.length) void addFiles([...files]); }}/></label>
-        <button type="button" className="hero-link" onClick={() => setLinking(open => !open)}><Link2 size={16} aria-hidden="true"/>Add link</button>
+        <label className="hero-upload"><Upload size={16} aria-hidden="true"/>Upload files<input type="file" accept={ACCEPT} multiple disabled={items.length >= HERO_ADD_LIMIT} onChange={event => { const files = event.target.files; event.target.value = ""; if (files?.length) void addFiles([...files]); }}/></label>
+        <button type="button" className="hero-link" disabled={items.length >= HERO_ADD_LIMIT} onClick={() => setLinking(open => !open)}><Link2 size={16} aria-hidden="true"/>Add link</button>
       </div>
     </div>
     {linking && <form onSubmit={event => { event.preventDefault(); addLink(link); }}>
       <label className="field"><span>Direct media link</span><input aria-label="Direct media link" inputMode="url" value={link} onChange={event => { setLink(event.target.value); setNotice(""); }} placeholder="https://example.com/photo.jpg"/></label>
       <button type="submit" disabled={!link.trim()}>Add to hero</button>
     </form>}
-    {(progress || notice) && <p className="helper-text" role={notice ? "alert" : "status"}>{progress || notice}</p>}
+    {(progress || notice || items.length >= HERO_ADD_LIMIT) && <p className="helper-text" role={notice ? "alert" : "status"}>{progress || notice || limitNote}</p>}
     {!items.length && <p className="helper-text">Only media added to this Hero appears here.</p>}
     {!!items.length && <div className="hero-grid" role="list" aria-label="Hero media">
       {items.map((item, i) => {

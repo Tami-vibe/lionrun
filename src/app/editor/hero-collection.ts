@@ -1,5 +1,7 @@
 import {mediaURL, type MediaSettings} from "../media/model";
 
+export const HERO_ADD_LIMIT = 3;
+
 export function directMediaLink(value: string): {ok: true; src: string; kind: "image" | "video"} | {ok: false; error: string} {
   const src = mediaURL(value.trim());
   if (!src) return {ok: false, error: "Use an HTTPS address or a file in this site’s media folder."};
@@ -19,6 +21,9 @@ export function moveItem<T>(items: T[], from: number, to: number) {
   const [item] = next.splice(from, 1);
   next.splice(to, 0, item);
   return next;
+}
+export function slideIndexAllowed(index: number | undefined, count: number) {
+  return index === undefined || (Number.isInteger(index) && index >= 0 && (count === 0 ? index === 0 : index < count));
 }
 export function publishedStart(index: number | undefined, count: number) {
   if (count <= 0 || !Number.isInteger(index) || index! < 0) return 0;

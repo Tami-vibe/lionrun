@@ -3,6 +3,7 @@ import type {SectionId} from './catalog';
 import {contactHours} from './contact-hours';
 import {defaultColumns,equalWidths,normalizeSettings,headerLook,pageSlug} from '../editor/settings';
 import type {SectionSettings,FooterColumn} from '../editor/settings';
+import {heroSlides, slideIndexAllowed} from '../editor/hero-collection';
 import {mediaDefaults,socialEmbed} from '../media/model';
 import type {MediaSettings} from '../media/model';
 export type BlockItem = {title:string;description:string;icon:IconName;media?:MediaSettings;price?:string;pageId?:string;caption?:string;group?:string;tag?:string;value?:string;note?:string;when?:string;source?:string;stars?:number};
@@ -339,7 +340,7 @@ export function syncServicePages<T extends {id:string;name:string;slug?:string;s
   }
   return next;
 }
-function slideTiming(c:BlockContent){return (c.slideSeconds===undefined||typeof c.slideSeconds==='number'&&c.slideSeconds>=1&&c.slideSeconds<=30)&&(c.slideFade===undefined||typeof c.slideFade==='number'&&c.slideFade>=0&&c.slideFade<=2000)&&(c.slideAdvance===undefined||c.slideAdvance==='time'||c.slideAdvance==='end')&&(c.slideAutoplay===undefined||typeof c.slideAutoplay==='boolean')&&(c.slideIndex===undefined||Number.isInteger(c.slideIndex)&&c.slideIndex>=0&&c.slideIndex<8);}
+function slideTiming(c:BlockContent){return (c.slideSeconds===undefined||typeof c.slideSeconds==='number'&&c.slideSeconds>=1&&c.slideSeconds<=30)&&(c.slideFade===undefined||typeof c.slideFade==='number'&&c.slideFade>=0&&c.slideFade<=2000)&&(c.slideAdvance===undefined||c.slideAdvance==='time'||c.slideAdvance==='end')&&(c.slideAutoplay===undefined||typeof c.slideAutoplay==='boolean')&&slideIndexAllowed(c.slideIndex,heroSlides(c).length);}
 export function validBlocks(value:unknown):value is Block[] {
   if(!Array.isArray(value)||value.length>80)return false;
   const ids=new Set<string>(),shared=new Set<string>();

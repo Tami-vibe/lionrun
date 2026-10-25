@@ -124,7 +124,7 @@ test('rating summary uses only a valid entered score and count', async () => {
 });
 
 test('hero collection accepts a direct media file and rejects a web page', async () => {
-  const {directMediaLink, heroSlides, moveItem, publishedStart, reorderStart} = await import('../src/app/editor/hero-collection.ts');
+  const {HERO_ADD_LIMIT, directMediaLink, heroSlides, moveItem, publishedStart, reorderStart, slideIndexAllowed} = await import('../src/app/editor/hero-collection.ts');
   assert.deepEqual(directMediaLink('https://cdn.example.com/road.jpg'), {ok: true, src: 'https://cdn.example.com/road.jpg', kind: 'image'});
   assert.equal(directMediaLink('https://example.com/about').ok, false);
   assert.match(directMediaLink('https://example.com/about').error, /web page/);
@@ -137,6 +137,11 @@ test('hero collection accepts a direct media file and rejects a web page', async
   assert.equal(reorderStart(0, 2, 0, 3), 2);
   assert.equal(reorderStart(2, 0, 0, 3), 1);
   assert.equal(reorderStart(1, 2, 0, 3), 0);
+  assert.equal(HERO_ADD_LIMIT, 3);
+  assert.equal(slideIndexAllowed(2, 3), true);
+  assert.equal(slideIndexAllowed(8, 3), false);
+  assert.equal(slideIndexAllowed(4, 5), true);
+  assert.equal(heroSlides({media: {src: 'a'}, slides: [{src: 'b'}, {src: 'c'}, {src: 'd'}, {src: 'e'}]}).length, 5);
 });
 
 test('removal undo puts the item back without replacing later collection edits', async () => {
