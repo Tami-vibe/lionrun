@@ -138,3 +138,14 @@ test('hero collection accepts a direct media file and rejects a web page', async
   assert.equal(reorderStart(2, 0, 0, 3), 1);
   assert.equal(reorderStart(1, 2, 0, 3), 0);
 });
+
+test('removal undo puts the item back without replacing later collection edits', async () => {
+  const {removalStart, restoreRemoved} = await import('../src/app/editor/hero-collection.ts');
+  const removed = {item: 'b', index: 1, slideIndex: 2};
+  const afterRemoval = ['a', 'c', 'd'];
+  const afterLaterEdit = afterRemoval.map(item => item === 'c' ? 'c-edited' : item);
+  assert.equal(removalStart(removed.index, removed.slideIndex, 4), 1);
+  assert.deepEqual(restoreRemoved(afterLaterEdit, removed.item, removed.index), ['a', 'b', 'c-edited', 'd']);
+  assert.equal(removalStart(0, 0, 3), 0);
+  assert.equal(removalStart(2, 2, 3), 1);
+});

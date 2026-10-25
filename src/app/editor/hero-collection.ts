@@ -24,6 +24,18 @@ export function publishedStart(index: number | undefined, count: number) {
   if (count <= 0 || !Number.isInteger(index) || index! < 0) return 0;
   return Math.min(index!, count - 1);
 }
+export function removalStart(removedAt: number, index: number | undefined, countBefore: number) {
+  const start = publishedStart(index, countBefore);
+  if (countBefore <= 1 || removedAt < 0 || removedAt >= countBefore) return start;
+  if (removedAt < start) return start - 1;
+  if (removedAt > start) return start;
+  return Math.min(removedAt, countBefore - 2);
+}
+export function restoreRemoved<T>(items: readonly T[], item: T, index: number) {
+  const next = items.slice();
+  next.splice(Math.min(Math.max(0, index), next.length), 0, item);
+  return next;
+}
 export function reorderStart(from: number, to: number, index: number | undefined, count: number) {
   const start = publishedStart(index, count);
   if (from === to || from < 0 || to < 0 || from >= count || to >= count) return start;

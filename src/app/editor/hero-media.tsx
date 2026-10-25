@@ -6,7 +6,7 @@ import {mediaDefaults, normalizeMedia, type MediaSettings} from "../media/model"
 import {ACCEPT} from "../media/store";
 import type {BlockContent} from "../site/blocks";
 import {useEditScope} from "./fields";
-import {directMediaLink, heroSlides, moveItem, publishedStart, reorderStart} from "./hero-collection";
+import {directMediaLink, heroSlides, moveItem, publishedStart, removalStart, reorderStart, restoreRemoved} from "./hero-collection";
 import {useHeroFocus} from "./hero-focus";
 
 const SLIDES = 5;
@@ -33,7 +33,7 @@ export function HeroMediaEditor({content, layout, blockId, onChange}:{content: B
   const [progress, setProgress] = useState("");
   const [over, setOver] = useState(false);
   const [poster, setPoster] = useState(false);
-  const [removed, setRemoved] = useState<null | {items: MediaSettings[]; index: number}>(null);
+  const [removed, setRemoved] = useState<null | {item: MediaSettings; index: number; slideIndex: number | undefined}>(null);
   useEffect(() => { if (!removed) return; const id = window.setTimeout(() => setRemoved(null), 8000); return () => window.clearTimeout(id); }, [removed]);
   const writeItems = (next: MediaSettings[], slideIndex?: number) => {
     const filled = next.filter(item => item.src).map(item => normalizeMedia(item));
@@ -75,12 +75,11 @@ export function HeroMediaEditor({content, layout, blockId, onChange}:{content: B
     setNotice(errors.join(" "));
   };
   const removeAt = (i: number) => {
-    const snapshot = items.map(item => normalizeMedia(item));
-    const next = snapshot.filter((_, n) => n !== i);
+    const next = items.filter((_, n) => n !== i);
     const focus = next.length ? Math.min(i, next.length - 1) : 0;
-    setRemoved({items: snapshot, index: i});
+    setRemoved({item: normalizeMedia(items[i]), index: i, slideIndex: content.slideIndex});
     setIndex(next.length ? focus : -1);
-    writeItems(next);
+    writeItems(next, removalStart(i, content.slideIndex, items.length));
   };
   const reorder = (from: number, to: number) => {
     const next = moveItem(items, from, to);
@@ -88,7 +87,16 @@ export function HeroMediaEditor({content, layout, blockId, onChange}:{content: B
     writeItems(next, reorderStart(from, to, content.slideIndex, items.length));
     setIndex(Math.max(0, focus));
   };
-  const undo = () => { if (!removed) return; writeItems(removed.items); setIndex(removed.index); setRemoved(null); }
+  const undo = () => {
+    if (!removed) return;
+    const current = heroSlides(content);
+    const next = restoreRemoved(current, removed.item, removed.index);
+    const adjusted = removalStart(removed.index, removed.slideIndex, next.length);
+    const slideIndex = publishedStart(content.slideIndex, current.length) === adjusted ? removed.slideIndex : undefined;
+    writeItems(next, slideIndex);
+    setIndex(next.length ? Math.min(removed.index, next.length - 1) : -1);
+    setRemoved(null);
+  };
   const shade = content.fade ? "bottom" : (content.darkness ?? 36) === 0 ? "none" : "solid";
   const color = /^#[0-9a-f]{6}$/i.test(content.background || "") ? content.background! : "#0b1420";
   const drop = (event: React.DragEvent) => {
