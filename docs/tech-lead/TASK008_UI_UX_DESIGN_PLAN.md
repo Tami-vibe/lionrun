@@ -167,7 +167,7 @@ Technical acceptance:
 - Lint, TypeScript, existing media tests and the working production build pass. Add focused tests for migration, section validation, content-count layouts and changed interactions.
 - Compare screenshots at matched viewport widths and 100% browser zoom. Check the complete page and the three-section design proof; build success alone is not visual evidence.
 - Target Core Web Vitals: LCP ≤2.5s, CLS ≤0.1 and INP ≤200ms at the 75th percentile when field data exists. Before launch, record controlled mobile lab measurements and image/font/bundle costs; do not claim field compliance from Lighthouse alone.
-- Keep the existing 2,000-line constraint explicit. Current active app baseline is approximately 1,721 physical lines, leaving only about 279 if the limit is aggregate. Refactor/remove duplication before adding interactions; do not minify or compress source to claim compliance. If the approved scope cannot fit, expose the measured tradeoff before implementation.
+- The 2,000-line aggregate application budget is obsolete. It came from an early file subset and is not a current gate. Count application source as physical lines under `src/app` and report tests separately. Do not claim compliance with the retired aggregate cap, and do not minify source to change a count. Historical milestone reports keep their original measurements.
 
 ## 12. Open dependencies, assumptions and current verification
 

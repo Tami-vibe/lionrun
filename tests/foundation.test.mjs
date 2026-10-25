@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {historyReducer} from '../src/app/editor/history.ts';
-import {contentForLayout, initial, migrateSite, settingsForLayout, validBlocks} from '../src/app/site/blocks.ts';
+import {buttonIconSide, contentForLayout, initial, migrateSite, settingsForLayout, validBlocks} from '../src/app/site/blocks.ts';
 import {loadableWorkspace, preRecoveryKey, schemaBackupKey, unreadableWorkspaceKey, workspaceKey, writeWorkspace} from '../src/app/editor/workspace.ts';
 import {pageAddresses} from '../src/app/editor/settings.ts';
 import {mediaURL} from '../src/app/media/model.ts';
@@ -84,6 +84,21 @@ test('column counts follow the layout and keep custom widths at the same count',
   const kept = settingsForLayout('proof', 'Text and photo', {columns: 2, widths: [40, 60], gap: 12, padding: 64});
   assert.equal(kept.columns, 2);
   assert.deepEqual(kept.widths, [40, 60]);
+});
+
+test('a missing button icon position stays on the right', () => {
+  const blocks = structuredClone(initial.blocks);
+  const hero = blocks.find(block => block.type === 'hero');
+  assert.equal(hero.content.buttons[0].iconPosition, undefined);
+  assert.equal(buttonIconSide(hero.content.buttons[0]), 'right');
+  assert.equal(validBlocks(blocks), true);
+  hero.content.buttons[0] = {...hero.content.buttons[0], iconPosition: 'left'};
+  assert.equal(buttonIconSide(hero.content.buttons[0]), 'left');
+  assert.equal(validBlocks(blocks), true);
+  hero.content.buttons[0] = {...hero.content.buttons[0], iconPosition: 'right'};
+  assert.equal(validBlocks(blocks), true);
+  hero.content.buttons[0] = {...hero.content.buttons[0], iconPosition: 'center'};
+  assert.equal(validBlocks(blocks), false);
 });
 
 test('review stars outside 1 to 5 are rejected', () => {

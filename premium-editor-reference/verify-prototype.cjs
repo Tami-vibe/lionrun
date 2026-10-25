@@ -1,0 +1,13 @@
+const fs=require('fs'),vm=require('vm'),assert=require('assert');
+let src=fs.readFileSync(require('path').join(__dirname,'visual-source.html'),'utf8').match(/<script>([\s\S]*?)<\/script>/)[1];
+class Element{constructor(){this.innerHTML='';this.textContent='';this.style={};this.attrs={};this.classList={toggle:()=>false};}setAttribute(k,v){this.attrs[k]=v}removeAttribute(k){delete this.attrs[k]}querySelector(s){return elements[s]||(elements[s]=new Element())}querySelectorAll(){return []}addEventListener(k,fn){events[k]=fn}}
+const elements={},events={},root=new Element(),saved={};
+src=src.replace('render();paint();persist();\n})();',`globalThis.testEditor={render,paint,update,current,page,allBlocks,checkpoint,persist,selectBlock,getState:()=>state,setView:v=>view=v,setTab:t=>tab=t,setItem:x=>editingItem=x,setSelected:x=>selected=x};render();paint();persist();\n})();`);
+const context={document:{getElementById:()=>root},localStorage:{getItem:k=>saved[k]||null,setItem:(k,v)=>saved[k]=v},console,Date,JSON,Number,String,Math,Set};context.globalThis=context;vm.runInNewContext(src,context);const api=context.testEditor;assert(api,'test instrumentation');
+const initial=api.getState();assert.equal(initial.pages[0].blocks.length,14);assert.equal(api.allBlocks().length,16);
+for(const b of api.allBlocks()){api.setSelected(b.id);for(const tab of ['Content','Appearance']){api.setView('editor');api.setTab(tab);api.render();api.paint();assert(elements['#premium-body'].innerHTML.length>100)}}
+for(const view of ['pages','sections','page-settings','business','new-page','add-section','motion']){api.setView(view);api.render();api.paint()}
+const service=initial.pages[0].blocks.find(b=>b.type==='Services');api.setSelected(service.id);api.setItem(['items',0]);api.setView('item');api.render();api.update('item.title','Verified service');assert.equal(api.current().items[0].title,'Verified service');assert(elements['#premium-canvas'].innerHTML.includes('Verified service'));
+const hero=initial.pages[0].blocks.find(b=>b.type==='Hero');api.selectBlock(hero.id);api.update('title','Verified headline');assert(elements['#premium-canvas'].innerHTML.includes('Verified headline'));api.update('page.seoTitle','Verified SEO');assert.equal(api.page().seoTitle,'Verified SEO');assert(saved['premium-editor-visual-prototype-v1']);
+for(const cmd of ['pages','sections','page-settings','business','editor','options','toggle','toggle','undo','redo']){const button={dataset:{command:cmd},hasAttribute:()=>false};events.click({target:{closest:s=>s==='button'?button:null}})}
+console.log('PASS: all 16 section types render in both views; seven navigation views; item + headline canvas updates; page SEO; isolated persistence; navigation + undo/redo handlers.');

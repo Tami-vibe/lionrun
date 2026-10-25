@@ -18,7 +18,10 @@
 .media-content { position:absolute; inset:0; overflow:hidden; }
 .media-image,.media-content>video { width:100%; height:100%; object-fit:var(--media-fit); object-position:var(--media-x) var(--media-y); background-size:var(--media-fit); background-repeat:no-repeat; background-position:var(--media-x) var(--media-y); transform:scale(var(--media-zoom)); transform-origin:var(--media-x) var(--media-y); }
 .media-background { position:absolute; inset:0; height:100%; aspect-ratio:auto!important; }
-.hero:not([data-layout=short]):not([data-layout=story]):not(:has(.hero-business)):has(.media-background) { min-height:0; aspect-ratio:var(--hero-ratio,16/9); }
+.hero:not([data-layout=short]):not([data-layout=split]):not([data-layout=story]):not(:has(.hero-business)):has(.media-background) { overflow:visible; aspect-ratio:auto; }
+.hero:not([data-layout=short]):not([data-layout=split]):not([data-layout=story]):not(:has(.hero-business)):has(.media-background)::before { content:""; grid-column:1/-1; grid-row:1; width:100%; aspect-ratio:var(--hero-ratio,16/9); pointer-events:none; }
+.hero:not([data-layout=short]):not([data-layout=split]):not([data-layout=story]):not(:has(.hero-business)):has(.media-background) .hero-inner { grid-row:1; }
+.hero[data-layout=split]:has(.media-background) { min-height:0; aspect-ratio:var(--hero-ratio,16/9); }
 .hero-shade { position:absolute; inset:0; pointer-events:none; z-index:1; }
 .hero-inner { z-index:2; pointer-events:none; }
 .hero-inner a { pointer-events:auto; }

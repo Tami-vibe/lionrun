@@ -1,5 +1,6 @@
 import {useState} from 'react';
 import {fonts,normalizeSettings,resizeWidth,equalWidths,SectionSettings,TextStyle} from './settings';
+import {useEditScope} from './fields';
 export function LayoutControls({value,change,max=5,min=1,legend='Columns'}:{value:SectionSettings;change:(s:SectionSettings)=>void;max?:number;min?:number;legend?:string}) {
   const s=normalizeSettings(value),count=Math.max(min,Math.min(max,s.columns||min));
   return <><p className="settings-hint">{max>1?"Choose a layout, then adjust its widths. All items are kept when you change the column count.":"Adjust the space around this section. Its available layout choices appear below."}</p>
@@ -11,12 +12,14 @@ export function LayoutControls({value,change,max=5,min=1,legend='Columns'}:{valu
   </>;
 }
 function NumberField({label,value,min,max,step=1,change}:{label:string;value:number;min:number;max:number;step?:number;change:(n:number)=>void}) {
-  return <label className="field"><span>{label}</span><input type="number" min={min} max={max} step={step} value={value} onChange={e=>{if(e.target.value!=='')change(Math.max(min,Math.min(max,Number(e.target.value))));}}/></label>;
+  const scope=useEditScope();
+  return <label className="field"><span>{label}</span><input type="number" min={min} max={max} step={step} value={value} {...scope} onChange={e=>{if(e.target.value!=='')change(Math.max(min,Math.min(max,Number(e.target.value))));}}/></label>;
 }
 function ColorField({color,change}:{color?:string;change:(value:string|undefined)=>void}) {
   const [draft,setDraft]=useState(color||'');
+  const scope=useEditScope();
   const valid=!draft||/^#[0-9a-f]{6}$/i.test(draft);
-  return <div className="field"><span>Text color</span><div className="color-input"><input aria-label="Text color picker" type="color" value={color||'#f3f6fc'} onInput={e=>change(e.currentTarget.value)} onChange={e=>change(e.target.value)}/><input aria-label="Text color hex" placeholder="Theme default" value={draft} maxLength={7} aria-invalid={!valid} onChange={e=>{const next=e.target.value;setDraft(next);if(!next||/^#[0-9a-f]{6}$/i.test(next))change(next||undefined);}}/></div><small>{valid?(color||'Using theme color'):'Enter # and six color digits, such as #ccbb99.'}</small></div>;
+  return <div className="field"><span>Text color</span><div className="color-input"><input aria-label="Text color picker" type="color" value={color||'#f3f6fc'} {...scope} onInput={e=>change(e.currentTarget.value)} onChange={e=>change(e.target.value)}/><input aria-label="Text color hex" placeholder="Theme default" value={draft} maxLength={7} aria-invalid={!valid} {...scope} onChange={e=>{const next=e.target.value;setDraft(next);if(!next||/^#[0-9a-f]{6}$/i.test(next))change(next||undefined);}}/></div><small>{valid?(color||'Using theme color'):'Enter # and six color digits, such as #ccbb99.'}</small></div>;
 }
 export function TypographyControls({value,change,target,setTarget}:{value:SectionSettings;change:(s:SectionSettings)=>void;target:'heading'|'body';setTarget:(s:'heading'|'body')=>void}) {
   const s=normalizeSettings(value),t=s[target]!,update=(patch:TextStyle)=>change({...value,[target]:{...t,...patch}});

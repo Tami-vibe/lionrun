@@ -29,6 +29,22 @@ test('undo and redo do nothing when that direction is empty', () => {
   assert.equal(historyReducer(state, {type: 'redo'}), state);
 });
 
+test('repeated text edits in one field share a single undo step', () => {
+  let state = {past: [], present: 'a', future: [9]};
+  state = historyReducer(state, {type: 'set', next: 'ab', group: 'title'});
+  state = historyReducer(state, {type: 'set', next: 'abc', group: 'title'});
+  assert.equal(state.past.length, 1);
+  assert.equal(state.present, 'abc');
+  assert.deepEqual(state.future, []);
+  state = historyReducer(state, {type: 'set', next: 'z', group: 'note'});
+  assert.equal(state.past.length, 2);
+  assert.equal(state.past.at(-1), 'abc');
+  state = historyReducer(state, {type: 'undo'});
+  assert.equal(state.present, 'abc');
+  state = historyReducer(state, {type: 'undo'});
+  assert.equal(state.present, 'a');
+});
+
 test('history records a change, restores it, and caps the past', () => {
   let state = {past: [], present: 0, future: []};
   state = historyReducer(state, {type: 'set', next: 1});
@@ -70,6 +86,9 @@ test('unreadable workspace values are rejected', () => {
   assert.equal(validSite(initial), true);
   assert.equal(validSite({...initial, nav: ['1', '2', '3', '4', '5', '6']}), false);
   assert.equal(validSite({...initial, headerButtons: [{label: 'A', href: '#contact', icon: 'nope'}]}), false);
+  assert.equal(validSite({...initial, headerButtons: [{label: 'A', href: '#contact', icon: 'arrow'}]}), true);
+  assert.equal(validSite({...initial, headerButtons: [{label: 'A', href: '#contact', icon: 'arrow', iconPosition: 'left'}]}), true);
+  assert.equal(validSite({...initial, headerButtons: [{label: 'A', href: '#contact', icon: 'arrow', iconPosition: 'up'}]}), false);
   const cleared = {...initial, blocks: initial.blocks.map(block => block.id === initial.blocks[0].id ? {...block, content: {...block.content, media: {...block.content.media, src: ''}}} : block)};
   assert.equal(validSite(cleared), true);
   assert.equal(legacySite({brand: 'Nope'}, initial), null);

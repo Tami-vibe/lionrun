@@ -41,18 +41,34 @@ export function MediaView({value,background=false,editable=false,repeat,fill=fal
     {videoMeta&&<script type="application/ld+json" data-video-metadata dangerouslySetInnerHTML={{__html:JSON.stringify(videoMeta).replace(/</g,'\\u003c')}}/>}
   </div>;
 }
+export async function publishAsset(file:File,reload:()=>Promise<void>,caption=false){
+  const checked=await validateUpload(file);
+  if(caption&&checked.kind!=='captions')throw Error('Choose a WebVTT (.vtt) caption file.');
+  if(!caption&&checked.kind==='captions')throw Error('Use the captions upload for WebVTT files.');
+  const rows=await assetStore('list');if(rows.reduce((n,a)=>n+a.size,0)+file.size>LIMITS.total)throw Error('Library limit is 250 MB. Remove unused files first.');
+  const asset:Asset={id:crypto.randomUUID(),name:file.name,kind:checked.kind,mime:checked.mime,size:checked.blob.size,created:new Date().toISOString(),blob:checked.blob};
+  await assetStore('put',asset);await reload();return asset;
+}
+export function MediaPicker({label,imagesOnly=false,onSelect,onClose}:{label:string;imagesOnly?:boolean;onSelect:(src:string,kind:'image'|'video')=>void;onClose:()=>void}){
+  const {assets,reload,error}=useMediaLibrary(),[query,setQuery]=useState(''),[notice,setNotice]=useState(''),[busy,setBusy]=useState(false),dialog=useRef<HTMLDivElement>(null),close=useRef(onClose);
+  const rows=assets.filter(asset=>asset.kind!=='captions'&&(!imagesOnly||asset.kind==='image')&&asset.name.toLowerCase().includes(query.toLowerCase()));
+  useEffect(()=>{close.current=onClose;},[onClose]);
+  useEffect(()=>{const node=dialog.current;const previously=document.activeElement as HTMLElement|null;node?.querySelector('input')?.focus();const keys=(event:KeyboardEvent)=>{if(event.key==='Escape'){event.preventDefault();close.current();}};document.addEventListener('keydown',keys);return()=>{document.removeEventListener('keydown',keys);previously?.focus();};},[]);
+  return <div className="media-picker" role="dialog" aria-modal="true" aria-label={label} ref={dialog}>
+    <div className="list-actions"><strong>{label}</strong><button type="button" onClick={onClose}>Close</button></div>
+    {(error||notice)&&<p role="status" className="helper-text">{error||notice}</p>}
+    <label className="field"><span>Search library</span><input type="search" value={query} onChange={event=>setQuery(event.target.value)}/></label>
+    <label className="upload-media">{busy?'Saving…':'Upload image or video'}<input disabled={busy} type="file" accept={imagesOnly?'image/jpeg,image/png,image/webp,image/gif':ACCEPT} onChange={event=>{const file=event.target.files?.[0];event.target.value='';if(!file)return;setBusy(true);setNotice('');void publishAsset(file,reload).then(asset=>{if(asset.kind==='captions'||(imagesOnly&&asset.kind!=='image'))throw Error('Choose an image.');onSelect(`media:${asset.id}`,asset.kind==='video'?'video':'image');}).catch(reason=>setNotice(String(reason))).finally(()=>setBusy(false));}}/></label>
+    <div className="asset-list" role="listbox" aria-label="Library files">{rows.map(asset=><button type="button" key={asset.id} onClick={()=>onSelect(`media:${asset.id}`,asset.kind==='video'?'video':'image')}><strong>{asset.name}</strong><small>{asset.kind}</small></button>)}{!rows.length&&<p className="helper-text">No matching files in this browser’s library.</p>}</div>
+  </div>;
+}
 export function MediaManager({value,onChange,used}:{value:Partial<MediaSettings>;onChange:(m:MediaSettings)=>void;used:string}){
   const m=normalizeMedia(value),{assets,reload,error}=useMediaLibrary();
   const [busy,setBusy]=useState(false),[notice,setNotice]=useState(''),[search,setSearch]=useState('');
   const update=(patch:Partial<MediaSettings>)=>onChange(normalizeMedia({...m,...patch}));
   const field=(label:string,key:'src'|'alt'|'title'|'description'|'poster'|'captions'|'uploadDate'|'captionLanguage')=><label className="field"><span>{label}</span><input value={m[key]} onChange={e=>update({[key]:e.target.value})}/></label>;
   async function upload(file:File,caption=false){setBusy(true);setNotice('');try{
-    const checked=await validateUpload(file);
-    if(caption&&checked.kind!=='captions')throw Error('Choose a WebVTT (.vtt) caption file.');
-    if(!caption&&checked.kind==='captions')throw Error('Use the captions upload for WebVTT files.');
-    const rows=await assetStore('list');if(rows.reduce((n,a)=>n+a.size,0)+file.size>LIMITS.total)throw Error('Library limit is 250 MB. Remove unused files first.');
-    const asset:Asset={id:crypto.randomUUID(),name:file.name,kind:checked.kind,mime:checked.mime,size:checked.blob.size,created:new Date().toISOString(),blob:checked.blob};
-    await assetStore('put',asset);await reload();
+    const asset=await publishAsset(file,reload,caption);
     if(caption)update({captions:`media:${asset.id}`});else update({src:`media:${asset.id}`,kind:asset.kind as 'image'|'video',title:m.title||file.name,uploadDate:asset.created});
     setNotice('Saved to your media library.');
   }catch(e){setNotice(String(e));}finally{setBusy(false);}}

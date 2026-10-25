@@ -1,0 +1,22 @@
+import {mediaURL, type MediaSettings} from "../media/model";
+
+export function directMediaLink(value: string): {ok: true; src: string; kind: "image" | "video"} | {ok: false; error: string} {
+  const src = mediaURL(value.trim());
+  if (!src) return {ok: false, error: "Use an HTTPS address or a file in this site’s media folder."};
+  if (src.startsWith("media:")) return {ok: false, error: "Upload that file with Upload files. A library id is not a direct media link."};
+  if (src.startsWith("data:image/")) return {ok: true, src, kind: "image"};
+  const path = src.split("?")[0].split("#")[0].toLowerCase();
+  if (/\.(mp4|webm|mov)$/.test(path)) return {ok: true, src, kind: "video"};
+  if (/\.(jpg|jpeg|png|webp|avif|svg)$/.test(path)) return {ok: true, src, kind: "image"};
+  return {ok: false, error: "That address is a web page, not an image or video file. Paste a direct file address ending in .jpg, .png, .webp, .mp4, or .webm."};
+}
+export function heroSlides(content: {media?: MediaSettings; slides?: MediaSettings[]}) {
+  return [content.media, ...(content.slides || [])].filter((item): item is MediaSettings => !!item?.src);
+}
+export function moveItem<T>(items: T[], from: number, to: number) {
+  if (from === to || from < 0 || to < 0 || from >= items.length || to >= items.length) return items;
+  const next = [...items];
+  const [item] = next.splice(from, 1);
+  next.splice(to, 0, item);
+  return next;
+}

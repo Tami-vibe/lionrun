@@ -1,6 +1,6 @@
 import type {PageEntry} from "./navigation";
 import {bindMenu, headerLook, pageAddresses} from "./settings";
-import {icons, migrateSite, validBlocks, type ButtonData, type Site} from "../site/blocks";
+import {migrateSite, validBlocks, validButton, type ButtonData, type Site} from "../site/blocks";
 
 export const workspaceKey = "business-builder-workspace-v2";
 export const unreadableWorkspaceKey = "business-builder-workspace-v2-unreadable";
@@ -57,7 +57,7 @@ export function validSite(value: unknown): value is Site {
     if([v.headerSticky,v.headerOverlay,v.headerBackground].some(x=>x!==undefined&&typeof x!=="boolean"))return false;
     if(v.ownerName!==undefined&&typeof v.ownerName!=="string")return false;
     if(v.headerButtonCount!==undefined&&![0,1,2].includes(v.headerButtonCount))return false;
-    if(v.headerButtons&&(!Array.isArray(v.headerButtons)||v.headerButtons.length>2||!v.headerButtons.every(b=>b&&typeof b.label==="string"&&typeof b.href==="string"&&icons.includes(b.icon))))return false;
+    if(v.headerButtons&&(!Array.isArray(v.headerButtons)||v.headerButtons.length>2||!v.headerButtons.every(validButton)))return false;
     if(v.navPageIds&&(!Array.isArray(v.navPageIds)||v.navPageIds.length>5||!v.navPageIds.every(id=>id===null||typeof id==="string")))return false;
     if(v.navChildren&&(!Array.isArray(v.navChildren)||v.navChildren.length>5||!v.navChildren.every(rows=>Array.isArray(rows)&&rows.length<=24&&rows.every(l=>l&&typeof l.label==="string"&&typeof l.href==="string"&&(l.pageId===undefined||typeof l.pageId==="string")))))return false;
     if(v.sectionSettings&&(!Object.values(v.sectionSettings).every(s=>s&&typeof s==="object")))return false;

@@ -1,192 +1,231 @@
 "use client";
 import {flushSync} from "react-dom";
-import { MediaProvider } from "./media/library";
-import { Navigation, EditorIcon, PageEntry, HeroLayouts, PagePlacement } from "./editor/navigation";
-import { Account, AccountDetails } from "./editor/account";
-import {activePage,autosavedPages,legacySite,legacyWorkspaceKey,loadableWorkspace,menuButtons,mergedPages,pageSnapshot,retainFailedWorkspace,sharedMenu,storedPages,syncableWorkspace,upgradeSchema2,workspaceKey,writeWorkspace} from "./editor/workspace";
-import {ContentFields,Field,MediaFields,Toggle} from "./editor/fields";
-import { LayoutControls, TypographyControls } from "./editor/inspector";
-import { SectionSettings, FooterColumn, defaultColumns, equalWidths, pageSlug, headerLook, bindMenu, linkedPage, pageLocation, placePage } from "./editor/settings";
-import { Suspense, use, useEffect, useEffectEvent, useLayoutEffect, useReducer, useRef, useState } from "react";
+import {ArrowLeft,ChevronDown,Ellipsis,Monitor,Moon,Redo2,Settings,Smartphone,Sun,Tablet,Undo2} from "lucide-react";
+import {MediaProvider} from "./media/library";
+import {PageEntry,PagePlacement,PageSettings,CreatePageForm,AddSectionForm,SectionMenu,sectionIcons,placementLabel} from "./editor/navigation";
+import {Account,AccountDetails,SettingsDialog} from "./editor/account";
+import {displayZoom,frameSize,previewZooms,regionForBlock,selectionForRegion,type EditorRegion} from "./editor/scope";
+import {activePage,autosavedPages,legacySite,legacyWorkspaceKey,loadableWorkspace,mergedPages,pageSnapshot,retainFailedWorkspace,sharedMenu,storedPages,syncableWorkspace,upgradeSchema2,workspaceKey,writeWorkspace} from "./editor/workspace";
+import {EditScope,EditScopeApi,EditScopeContext,contentGroups} from "./editor/fields";
+import {EditorShell,EditorLocation} from "./editor/shell";
+import {PreviewFrame} from "./editor/preview-frame";
+import {SectionEditor} from "./editor/section-editor";
+import {SectionSettings,FooterColumn,pageSlug,headerLook,bindMenu,linkedPage,pageLocation,placePage} from "./editor/settings";
+import {Suspense,use,useEffect,useEffectEvent,useLayoutEffect,useReducer,useRef,useState} from "react";
 import {catalog,SectionId} from "./site/catalog";
-import {reviewLayout,reviewLayoutName,type ReviewLayout} from "./site/reviews";
 import {historyReducer} from "./editor/history";
 import {SitePreview} from "./site/preview";
 import {downloadFile,packageWebsite} from "./export/package";
-import {icons} from "./site/sections/elements";
-import {Site,IconName,ButtonData,initial,Block,BlockContent,makeBlock,blockLayouts,duplicateBlock,fixedBlockOrder,starterBlocks,syncServicePages,contentForLayout,settingsForLayout} from "./site/blocks";
-// Home owns these fields; page content and page SEO remain independent.
+import {Site,initial,makeBlock,duplicateBlock,fixedBlockOrder,starterBlocks,syncServicePages} from "./site/blocks";
+
 function footerContent(site:Site):FooterColumn[] {
-    return site.footerColumns||[{title:site.brand,text:'Good work. Good people. A better way forward.',links:[]},{title:'Explore',text:'',links:sections.filter(s=>!site.hidden.includes(s.id)&&['services','proof','about','contact'].includes(s.id)).map(s=>({label:s.label,href:`#${s.id}`}))},{title:'Get in touch',text:[site.address,site.phone,site.email].join('\n'),links:[]}];
+  return site.footerColumns||[{title:site.brand,text:'Good work. Good people. A better way forward.',links:[]},{title:'Explore',text:'',links:sections.filter(s=>!site.hidden.includes(s.id)&&['services','proof','about','contact'].includes(s.id)).map(s=>({label:s.label,href:`#${s.id}`}))},{title:'Get in touch',text:[site.address,site.phone,site.email].join('\n'),links:[]}];
 }
 const sections = catalog;
-function DeviceIcon({ type }: {
-    type: "desktop" | "tablet" | "mobile";
-}) {
-    return <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true">{type === "desktop" ? <><rect x="2" y="4" width="20" height="14" rx="2"/><path d="M8 22h8M12 18v4"/></> : type === "tablet" ? <><rect x="5" y="2" width="14" height="20" rx="2"/><path d="M11 19h2"/></> : <><rect x="7" y="2" width="10" height="20" rx="2"/><path d="M11 19h2"/></>}</svg>;
-}
-function Choice<T extends string>({ label, value, options, onChange }: {
-    label: string;
-    value: T;
-    options: {
-        value: T;
-        label: string;
-    }[];
-    onChange: (v: T) => void;
-}) {
-    return <div className="field" role="group" aria-label={label}><span>{label}</span><div className="choice-group">{options.map(o => <button type="button" key={o.value} className={value === o.value ? "choice-active" : ""} aria-pressed={value===o.value} onClick={() => onChange(o.value)}>{o.label}</button>)}</div></div>;
-}
 type RequestQuery=Promise<{[key:string]:string|string[]|undefined}>;
 export default function Home({searchParams}:{searchParams:RequestQuery}) { return <Suspense fallback={<div className="preview-loading"/>}><RequestedEditor searchParams={searchParams}/></Suspense>; }
 function RequestedEditor({searchParams}:{searchParams:RequestQuery}) { const query=use(searchParams);return <MediaProvider><Editor initialPreview={query.preview==='1'} requestedPage={typeof query.page==='string'?query.page:undefined}/></MediaProvider>; }
 function Editor({initialPreview,requestedPage}:{initialPreview:boolean;requestedPage?:string}) {
-    const [history, dispatch] = useReducer(historyReducer, { past: [], present: initial, future: [] });
-    const site = history.present;
-    const [pages,setPages]=useState<PageEntry<Site>[]>([{id:"home",name:"Home",slug:"home",site:initial}]);
-    const [activeId,setActiveId]=useState(requestedPage||"home");
-    const [navigationMode,setNavigationMode]=useState<"layouts"|"pages">("layouts");
-    const [saveError,setSaveError]=useState("");
-    const [dirty,setDirty]=useState(false);
-    const homeId=pages.find(p=>p.id==="home")?.id||pages[0].id;
-    const snapshot=()=>pageSnapshot(pages,activeId,site);
-    const mergeWorkspace=()=>mergedPages(localStorage.getItem(workspaceKey),snapshot());
-    const saveWorkspace=()=>{writeWorkspace(localStorage,activeId,mergeWorkspace());setDirty(false);};
-    const [selected, setSelected] = useState<string>("hero");
-    const [tab, setTab] = useState<"content" | "design" | "typography" | "actions" | "media">("content");
-    const [textTarget,setTextTarget]=useState<"heading"|"body">("heading");
-    const [device, setDevice] = useState<"desktop" | "tablet" | "mobile">("desktop");
-    const [availableWidth, setAvailableWidth] = useState(1000);
-    const [canvasWidth, setCanvasWidth] = useState(1100);
-    const [preview, setPreview] = useState(initialPreview);
-    const [accountOpen,setAccountOpen]=useState(false);
-    const [exportOpen, setExportOpen] = useState(false);
-    const [exportBusy, setExportBusy] = useState(false);
-    const [exportPages,setExportPages]=useState<PageEntry<Site>[]>([]);
-    const [sidebarOpen, setSidebarOpen] = useState(true);
-    const [ready, setReady] = useState(false);
-    const [pendingHash,setPendingHash]=useState<string|null>(null);
-    const [navigation,setNavigation]=useState(0);
-    const canvasRef = useRef<HTMLDivElement>(null);
-    useEffect(() => {
-        const root = canvasRef.current;
-        if (!root)
-            return;
-        const observer = new ResizeObserver(([entry]) => setAvailableWidth(Math.max(160, entry.contentRect.width)));
-        observer.observe(root);
-        return () => observer.disconnect();
-    }, [ready]);
-    const [notice, setNotice] = useState("");
-
-    useEffect(()=>{const timer=window.setTimeout(()=>{try{
-      setSidebarOpen(window.innerWidth>1100);
-      if(window.innerWidth<=700)setDevice("mobile");
-      const raw=localStorage.getItem(workspaceKey);
-      if(raw){const workspace=JSON.parse(raw);if(loadableWorkspace(workspace)){const list=storedPages(workspace.pages);const page=activePage(list,requestedPage||workspace.activeId);if(workspace.schemaVersion===2)upgradeSchema2(localStorage,raw,page.id,list);setPages(list);setActiveId(page.id);setSelected(page.site.blocks.find(b=>b.type==="hero")?.id||page.site.blocks[0]?.id||"");dispatch({type:"load",next:bindMenu(sharedMenu({...initial,...page.site},(list.find(p=>p.id==="home")||list[0]).site),list)});setReady(true);return;}const failure=retainFailedWorkspace(localStorage);if(failure.error)setSaveError(failure.error);setActiveId("home");setReady(true);return;}
-      setActiveId("home");setDirty(!initialPreview);
-      const legacy=localStorage.getItem(legacyWorkspaceKey);if(legacy){const next=legacySite(JSON.parse(legacy),initial);if(next){setPages([{id:"home",name:"Home",slug:"home",site:sharedMenu(next,next)}]);dispatch({type:"load",next:sharedMenu(next,next)});}}
-    }catch{try{const failure=retainFailedWorkspace(localStorage);if(failure.error)setSaveError(failure.error);else setDirty(!initialPreview);}catch{}setActiveId("home");}setReady(true);},0);return()=>window.clearTimeout(timer);},[requestedPage,initialPreview]);
-    useEffect(()=>{if(!ready||saveError||!dirty)return;const timer=window.setTimeout(()=>{try{writeWorkspace(localStorage,activeId,autosavedPages(localStorage.getItem(workspaceKey),pageSnapshot(pages,activeId,site)));setDirty(false);}catch{setSaveError("Changes could not be saved. Export your project as a backup.");}},250);return()=>window.clearTimeout(timer);},[site,pages,activeId,homeId,ready,saveError,dirty]);
-    useEffect(()=>{const sync=(e:StorageEvent)=>{if(e.key!==workspaceKey||!e.newValue)return;try{const saved=JSON.parse(e.newValue);if(syncableWorkspace(saved))setPages(old=>storedPages(saved.pages).map((p:PageEntry<Site>)=>p.id===activeId?old.find(v=>v.id===activeId)||p:p));}catch{}};window.addEventListener("storage",sync);return()=>window.removeEventListener("storage",sync);},[activeId]);
-    useEffect(()=>{if(!ready||saveError)return;const next=syncServicePages(pageSnapshot(pages,activeId,site),homeId);if(!next)return;const home=next.find(p=>p.id===homeId)!;const linked=next.map(p=>p.id===homeId?p:{...p,site:sharedMenu(p.site,home.site)});const timer=window.setTimeout(()=>{setPages(linked);dispatch({type:'sync',next:(linked.find(p=>p.id===activeId)||home).site});setDirty(true);},0);return()=>window.clearTimeout(timer);},[ready,saveError,site,pages,activeId,homeId]);
-    const switchPage=(id:string,hash='',push=true)=>{const list=mergeWorkspace(),page=list.find(p=>p.id===id);if(!page)return;
-      if(preview){setNavigation(n=>n+1);setPendingHash(hash);if(push)window.history.pushState(null,'',`?preview=1&page=${encodeURIComponent(id)}${hash}`);}
-      if(id===activeId)return;if(window.innerWidth<=1100)setSidebarOpen(false);if(dirty)saveWorkspace();setDirty(!preview);setPages(list);setActiveId(id);dispatch({type:'load',next:bindMenu(sharedMenu(page.site,(list.find(p=>p.id===homeId)||list[0]).site),list)});setSelected(page.site.blocks.find(b=>b.type==='hero')?.id||page.site.blocks[0]?.id||'');setTab('content');canvasRef.current?.scrollTo({top:0,behavior:'instant'});
-    };
-    const scrollPreview=useEffectEvent((hash:string)=>{const root=canvasRef.current;if(!root)return;const target=hash?root.querySelector<HTMLElement>(`[id="${CSS.escape(hash.slice(1))}"]`):null;root.scrollTo({top:target?target.getBoundingClientRect().top-root.getBoundingClientRect().top+root.scrollTop:0,behavior:'instant'});});
-    useLayoutEffect(()=>{if(preview&&ready)scrollPreview(pendingHash??window.location.hash);},[activeId,pendingHash,preview,ready,navigation]);
-    const restorePreview=useEffectEvent(()=>{const query=new URLSearchParams(window.location.search);switchPage(query.get('page')||homeId,window.location.hash,false);});
-    useEffect(()=>{if(!preview||!ready)return;window.addEventListener('popstate',restorePreview);return()=>window.removeEventListener('popstate',restorePreview);},[preview,ready]);
-    const addPage=(name:string,placement:PagePlacement)=>{
-      if(pages.length>=30||saveError)return;
-      const list=mergeWorkspace(),home=list.find(p=>p.id===homeId)!,id=crypto.randomUUID(),slug=pageSlug(name,list.map(p=>p.slug||pageSlug(p.name)));
-      const shared=placePage({...home.site,footerColumns:footerContent(home.site)},{id,name,slug},placement.where,placement.parent);
-      shared.hidden=shared.hidden.filter(section=>section!==(pageLocation(shared,{id,name,slug}).where==='bottom'?'footer':'header'));
-      const next=sharedMenu({...site,blocks:starterBlocks(placement.kind||'service',name,shared),theme:site.theme,accent:site.accent,headline:name,seoTitle:placement.title.trim()||`${name} | ${shared.brand}`,seoDescription:placement.description.trim(),hidden:sections.map(s=>s.id).filter(id=>!['header','hero','about','contact','footer'].includes(id))},shared);
-      setDirty(true);setPages([...list.map(p=>p.id===homeId?{...p,site:shared}:p),{id,name,slug,site:next}]);setActiveId(id);dispatch({type:'load',next});setSelected(next.blocks.find(b=>b.type==='hero')?.id||next.blocks[0]?.id||'');setTab('content');canvasRef.current?.scrollTo({top:0});if(window.innerWidth<=1100)setSidebarOpen(false);
-    };
-    const placeCurrent=(where:'top'|'bottom'|'under'|'none',parent:number)=>{const page=pages.find(p=>p.id===activeId)!;const shared=placePage({...site,footerColumns:footerContent(site)},page,where,parent);shared.hidden=shared.hidden.filter(id=>id!==(where==='bottom'?'footer':'header'));update(shared);};
-    const renamePage=(name:string)=>{const old=pages.find(p=>p.id===activeId)!;const seoTitle=site.seoTitle===`${old.name} | ${site.brand}`?`${name} | ${site.brand}`:site.seoTitle===old.name?name:site.seoTitle;const next={...site,seoTitle,blocks:site.blocks.map(b=>b.type==='hero'&&b.content.title===old.name?{...b,content:{...b.content,title:name}}:b)};setDirty(true);dispatch({type:'set',next});setPages(snapshot().map(p=>p.id===activeId?{...p,name,site:next}:p));};
-    const update = (patch: Partial<Site>) => {if(patch.footerColumns)patch.footerColumns=patch.footerColumns.map(c=>({...c,links:c.links.map(l=>({...l,pageId:linkedPage(pages,l.href)?.id}))}));if(patch.navTargets)patch.navPageIds=patch.navTargets.map(href=>linkedPage(pages,href)?.id||null);setDirty(true);dispatch({ type: "set", next: { ...site, ...patch, blocks:fixedBlockOrder(patch.blocks||site.blocks).map(b=>b.type==='header'?{...b,layout:headerLook(patch.headerStyle||site.headerStyle)}:b.type==='footer'?{...b,layout:patch.footerStyle||site.footerStyle}:b) } });};
-    const saveAccount=(next:AccountDetails)=>{const apply=(source:Site):Site=>({...source,ownerName:next.ownerName,brand:next.brand,address:next.address,phone:next.phone,email:next.email,blocks:source.blocks.map(b=>b.type==='contact'?{...b,content:{...b.content,address:next.address,phone:next.phone,email:next.email,hours:next.hours}}:b)});setDirty(true);setPages(list=>list.map(p=>({...p,site:apply(p.id===activeId?site:p.site)})));dispatch({type:"set",next:apply(site)});};
-    const extraUpdate = (id:string,patch:Partial<BlockContent>) => update({blocks:site.blocks.map(b=>b.id===id?{...b,content:{...b.content,...patch}}:b)});
-    const buttonUpdate = (which:"primary"|"secondary",patch:Partial<ButtonData>)=>extraUpdate(selected,{buttons:selectedBlock.content.buttons.map((b,i)=>i===(which==="primary"?0:1)?{...b,...patch}:b)});
-    const flash = (message: string) => { setNotice(message); };
-    const chooseSection = (id:string) => {
-        setSelected(id);
-        if(window.innerWidth<=1100)setSidebarOpen(false);
-        setTab("content");
-        setPreview(false);
-        requestAnimationFrame(() => {
-            const root = canvasRef.current;
-            const target = root?.querySelector<HTMLElement>(`[data-section="${CSS.escape(id)}"]`);
-            if (root && target)
-                root.scrollTo({ top: target.getBoundingClientRect().top - root.getBoundingClientRect().top + root.scrollTop - 18 - (site.headerSticky&&id!==site.blocks.find(b=>b.type==='header')?.id?(root.querySelector('.menu-frame')?.getBoundingClientRect().height||0):0), behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth" });
-        });
-    };
-    const openPreview = () => { if(saveError){flash(saveError);return;}try{saveWorkspace();window.open(`${window.location.origin}/?preview=1&page=${encodeURIComponent(activeId)}`,"_blank","noopener,noreferrer");}catch{flash("Preview could not be saved. Check browser storage permissions.");} };
-    const exportConfig=()=>{const records=mergeWorkspace(),home=records.find(p=>p.id===homeId)!;downloadFile(new Blob([JSON.stringify({schemaVersion:3,activeId,pages:records.map(p=>({...p,site:sharedMenu(p.site,home.site)}))},null,2)],{type:'application/json'}),'business-website-config.json');flash('Configuration exported');};
-    const exportPackage=async(format:'html'|'wordpress')=>{
-      setExportOpen(false);const records=mergeWorkspace(),home=records.find(p=>p.id===homeId)!;
-      const prepared=records.map(p=>({...p,site:sharedMenu(p.site,home.site)}));
-      try{flushSync(()=>{setExportBusy(true);setExportPages(prepared);});downloadFile(await packageWebsite(prepared,format),`business-${format==='html'?'website':'wordpress-theme'}.zip`);flash(`${format.toUpperCase()} website exported`);}
-      catch(error){flash(`Export failed: ${String(error)}`);}
-      finally{setExportBusy(false);setExportPages([]);}
-    };
-    const changeSectionSettings=(id:string,value:SectionSettings)=>update({blocks:site.blocks.map(b=>b.id===id?{...b,settings:value}:b)});
-    const footerDefaults=footerContent({...site,hidden:activeId===homeId?site.hidden:pages.find(p=>p.id===homeId)!.site.hidden});
-    const selectedBlock=site.blocks.find(b=>b.id===selected)||site.blocks[0],selectedType=selectedBlock?.type||'hero';
-    const changeLayout=(value:SectionSettings)=>{if(selectedType==='footer'){const columns=site.footerColumns||footerDefaults;update({footerStyle:'columns',blocks:site.blocks.map(b=>b.id===selected?{...b,settings:value}:b),footerColumns:Array.from({length:Math.max(columns.length,value.columns||3)},(_,i)=>columns[i]||{title:`Column ${i+1}`,text:'',links:[]})});return;}if(selectedType==='solutions'&&selectedBlock?.layout==='Numbered steps'){const count=Math.min(5,Math.max(3,value.columns||5)),items=selectedBlock.content.items,next=items.length>=count?items:[...items,...Array.from({length:count-items.length},()=>({title:'',description:'',icon:'check' as const}))];update({blocks:site.blocks.map(b=>b.id===selected?{...b,settings:{...value,columns:count,widths:equalWidths(count)},content:{...b.content,items:next}}:b)});return;}changeSectionSettings(selected,value);};
-    const settings=selectedBlock?.settings||{columns:defaultColumns(selectedType)};
-    const singleLayout=['Price list','Promise band','One message','One large quote','Accordion','Scrolling row','Heading and slider','Signals'].includes(selectedBlock?.layout||'');
-    const gridSection=!singleLayout&&!['header','hero','promo'].includes(selectedType);
-    const section=sections.find(s=>s.id===selectedType)!;
-    const changeBlock=(patch:Partial<Block>)=>{if(patch.layout){const next=contentForLayout(selectedBlock,patch.layout);if(next!==selectedBlock.content)patch.content=next;patch.settings=settingsForLayout(selectedType,patch.layout,settings);}update({blocks:site.blocks.map(b=>b.id===selected?{...b,...patch}:b)});};
-    const editBlocks=(operation:'add'|'duplicate'|'delete'|'visibility',id:string,type?:SectionId)=>{const block=site.blocks.find(b=>b.id===id),index=site.blocks.findIndex(b=>b.id===id);if(!block&&operation!=='add')return;if(block&&['header','footer'].includes(block.type)&&operation==='delete'&&!window.confirm('Delete this shared section from every page?'))return;
-      if(operation==='visibility'){update({blocks:site.blocks.map(b=>b.id===id?{...b,hidden:!b.hidden}:b)});return;}if(operation==='delete'){update({blocks:site.blocks.filter(b=>b.id!==id)});setSelected(site.blocks.find(b=>b.id!==id)?.id||'');return;}
-      if(site.blocks.length>=80)return;const added=operation==='duplicate'?duplicateBlock(block!):makeBlock(type!);if(['header','footer'].includes(added.type)&&site.blocks.some(b=>b.type===added.type))return;const next=[...site.blocks];next.splice(Math.max(0,index+1),0,added);update({blocks:next});setSelected(added.id);setTab('content');
-    };
-    if(preview&&!ready)return <div className="preview-loading"/>;
-    return <main className={`builder-shell studio-editor ${sidebarOpen ? "" : "sidebar-collapsed"} ${preview ? "standalone-preview" : ""}`}>
-    {accountOpen ? <Account value={{ownerName:(activeId===homeId?site:pages.find(p=>p.id===homeId)?.site||site).ownerName||'',email:(activeId===homeId?site:pages.find(p=>p.id===homeId)?.site||site).email,brand:(activeId===homeId?site:pages.find(p=>p.id===homeId)?.site||site).brand,address:(activeId===homeId?site:pages.find(p=>p.id===homeId)?.site||site).address,phone:(activeId===homeId?site:pages.find(p=>p.id===homeId)?.site||site).phone,hours:((activeId===homeId?site:pages.find(p=>p.id===homeId)?.site||site).blocks.find(b=>b.type==='contact')?.content.hours)||''}} onClose={()=>setAccountOpen(false)} onSave={saveAccount}/> : <Navigation site={site} pages={pages} activeId={activeId} mode={navigationMode} setMode={setNavigationMode} sections={site.blocks.map(b=>({id:b.id,label:catalog.find(s=>s.id===b.type)!.label}))} blocks={site.blocks} editBlocks={editBlocks} hidden={site.blocks.filter(b=>b.hidden).map(b=>b.id)} selected={selected} choose={chooseSection} switchPage={switchPage} addPage={addPage} renamePage={renamePage} editSEO={update} placeCurrent={placeCurrent}/>}
-    <div className="workspace"><div className="workspace-toolbar"><button className="navigation-toggle" aria-expanded={sidebarOpen} onClick={()=>setSidebarOpen(v=>!v)}>☰ <span>Pages & sections</span></button><select className="mobile-sections" aria-label="Select section" value={selected} onChange={e => chooseSection(e.target.value as SectionId)}>{site.blocks.map(b=><option key={b.id} value={b.id}>{catalog.find(s=>s.id===b.type)!.label}</option>)}</select><div className="toolbar-left"><span className="breadcrumb">My website</span><span className="crumb-separator">/</span><strong>{pages.find(p=>p.id===activeId)?.name||"Home"}</strong><span className="draft-badge">Draft</span></div><div className="toolbar-middle" role="group" aria-label="Preview size"><button className={device === "desktop" ? "tool-active" : ""} onClick={() => setDevice("desktop")} title="Desktop" aria-label="Desktop preview"><DeviceIcon type="desktop"/></button><button className={device === "tablet" ? "tool-active" : ""} onClick={() => setDevice("tablet")} title="Tablet" aria-label="Tablet preview"><DeviceIcon type="tablet"/></button><button className={device === "mobile" ? "tool-active" : ""} onClick={() => setDevice("mobile")} title="Mobile" aria-label="Mobile preview"><DeviceIcon type="mobile"/></button></div><label className="canvas-width"><span title="Canvas scales to fit the workspace">{Math.round(Math.min(1, availableWidth / (device === "desktop" ? canvasWidth : device === "tablet" ? 768 : 390)) * 100)}% · </span>Canvas <input aria-label="Canvas width" type="number" min="320" max="1920" step="10" value={canvasWidth} onChange={e => { setCanvasWidth(Math.max(320, Math.min(1920, Number(e.target.value) || 320))); setDevice("desktop"); }}/> px</label><div className="theme-switch" role="group" aria-label="Page appearance"><button aria-pressed={site.theme==="paper"} title="Light website theme" onClick={()=>update({theme:"paper"})}><EditorIcon name="sun"/><span>Light</span></button><button aria-pressed={site.theme!=="paper"} title="Dark website theme" onClick={()=>update({theme:"midnight"})}><EditorIcon name="moon"/><span>Dark</span></button></div><div className="toolbar-right"><button className="account-button" type="button" aria-pressed={accountOpen} aria-label="Account" title="Account" onClick={()=>{setSidebarOpen(true);setAccountOpen(v=>!v);}}><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9c.3.6.9 1 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1Z"/></svg></button><button onClick={() => {setDirty(true);dispatch({ type: "undo" });}} disabled={!history.past.length} title="Undo">↶</button><button onClick={() => {setDirty(true);dispatch({ type: "redo" });}} disabled={!history.future.length} title="Redo">↷</button><button onClick={openPreview} className="preview-toggle">Live preview ↗</button><div className="export-menu" onKeyDown={e => { if (e.key === "Escape")
-        setExportOpen(false); }}><button className="publish-btn" aria-expanded={exportOpen} aria-haspopup="menu" disabled={exportBusy} onClick={() => setExportOpen(v => !v)}>{exportBusy ? 'Preparing…' : 'Export ▾'}</button>{exportOpen && <div className="export-options" role="menu"><button role="menuitem" onClick={() => void exportPackage('html')}>HTML website (.zip)</button><button role="menuitem" onClick={() => void exportPackage('wordpress')}>WordPress website theme (.zip)</button><button role="menuitem" onClick={() => { setExportOpen(false); exportConfig(); }}>All pages (.json)</button></div>}</div></div></div>
-      <div ref={canvasRef} className={`canvas-area ${preview ? "canvas-preview" : ""}`}><div className={`canvas-frame frame-${device}`} style={{ width: `${device === "desktop" ? canvasWidth : device === "tablet" ? 768 : 390}px`, maxWidth: "none", zoom: preview ? 1 : Math.min(1, availableWidth / (device === "desktop" ? canvasWidth : device === "tablet" ? 768 : 390)) }}><div className="canvas-top"><span className="canvas-live-dot"/> {pages.find(p=>p.id===activeId)?.name||"Home"}<span className="canvas-url">northline.example</span></div><SitePreview selectPage={switchPage} site={site} selected={selected} select={chooseSection} editable={!preview} changeSettings={changeSectionSettings} pages={pages} activeId={activeId}/></div></div>
+  const [history, dispatch] = useReducer(historyReducer, { past: [], present: initial, future: [] });
+  const site = history.present;
+  const [pages,setPages]=useState<PageEntry<Site>[]>([{id:"home",name:"Home",slug:"home",site:initial}]);
+  const [activeId,setActiveId]=useState(requestedPage||"home");
+  const [saveError,setSaveError]=useState("");
+  const [dirty,setDirty]=useState(false);
+  const homeId=pages.find(p=>p.id==="home")?.id||pages[0].id;
+  const snapshot=()=>pageSnapshot(pages,activeId,site);
+  const mergeWorkspace=()=>mergedPages(localStorage.getItem(workspaceKey),snapshot());
+  const saveWorkspace=()=>{writeWorkspace(localStorage,activeId,mergeWorkspace());setDirty(false);};
+  const [selected, setSelected] = useState<string>("hero");
+  const [location,setLocation]=useState<EditorLocation>("sections");
+  const [view,setView]=useState<"Content"|"Appearance">("Content");
+  const [group,setGroup]=useState<string|null>(null);
+  const [sectionQuery,setSectionQuery]=useState("");
+  const [addAnchor,setAddAnchor]=useState<string|null>(null);
+  const scope=useRef<EditScope>({});
+  const [editScope]=useState<EditScopeApi>(()=>({claim(id){scope.current.id=id;},release(id){if(scope.current.id===id)scope.current.id=undefined;}}));
+  const [device, setDevice] = useState<"desktop" | "tablet" | "mobile">("desktop");
+  const [availableWidth, setAvailableWidth] = useState(1000);
+  const [canvasWidth, setCanvasWidth] = useState(1440);
+  const [zoom, setZoom] = useState<"fit" | number>("fit");
+  const [scrollTick, setScrollTick] = useState(0);
+  const [region, setRegion] = useState<EditorRegion>("page");
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [menu, setMenu] = useState<"" | "zoom" | "export" | "more">("");
+  const [preview, setPreview] = useState(initialPreview);
+  const [exportBusy, setExportBusy] = useState(false);
+  const [exportPages,setExportPages]=useState<PageEntry<Site>[]>([]);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [ready, setReady] = useState(false);
+  const [pendingHash,setPendingHash]=useState<string|null>(null);
+  const [navigation,setNavigation]=useState(0);
+  const canvasRef = useRef<HTMLDivElement>(null);
+  const frameRef = useRef<HTMLIFrameElement>(null);
+  const scrolls = useRef<Record<EditorRegion, number>>({header: 0, page: 0, footer: 0});
+  const scrollRequest = useRef<string | null>(null);
+  const restoreScroll = useRef<number | null>(null);
+  const requestScroll = (id: string) => { scrollRequest.current = id; setScrollTick(tick => tick + 1); };
+  useEffect(() => {
+    const root = canvasRef.current;
+    if (!root) return;
+    const observer = new ResizeObserver(() => setAvailableWidth(current => { const styles = getComputedStyle(root); const next = Math.max(160, Math.round(root.clientWidth - parseFloat(styles.paddingLeft) - parseFloat(styles.paddingRight))); return Math.abs(current - next) < 1 ? current : next; }));
+    observer.observe(root);
+    return () => observer.disconnect();
+  }, [ready,preview,sidebarOpen]);
+  const [notice, setNotice] = useState("");
+  useEffect(()=>{const timer=window.setTimeout(()=>{try{
+    setSidebarOpen(true);
+    const raw=localStorage.getItem(workspaceKey);
+    if(raw){const workspace=JSON.parse(raw);if(loadableWorkspace(workspace)){const list=storedPages(workspace.pages);const page=activePage(list,requestedPage||workspace.activeId);if(workspace.schemaVersion===2)upgradeSchema2(localStorage,raw,page.id,list);setPages(list);setActiveId(page.id);setSelected(page.site.blocks.find(b=>b.type==="hero")?.id||page.site.blocks[0]?.id||"");dispatch({type:"load",next:bindMenu(sharedMenu({...initial,...page.site},(list.find(p=>p.id==="home")||list[0]).site),list)});setReady(true);return;}const failure=retainFailedWorkspace(localStorage);if(failure.error)setSaveError(failure.error);setActiveId("home");setReady(true);return;}
+    setActiveId("home");setDirty(!initialPreview);
+    const legacy=localStorage.getItem(legacyWorkspaceKey);if(legacy){const next=legacySite(JSON.parse(legacy),initial);if(next){setPages([{id:"home",name:"Home",slug:"home",site:sharedMenu(next,next)}]);dispatch({type:"load",next:sharedMenu(next,next)});}}
+  }catch{try{const failure=retainFailedWorkspace(localStorage);if(failure.error)setSaveError(failure.error);else setDirty(!initialPreview);}catch{}setActiveId("home");}setReady(true);},0);return()=>window.clearTimeout(timer);},[requestedPage,initialPreview]);
+  useEffect(()=>{if(!ready||saveError||!dirty)return;const timer=window.setTimeout(()=>{try{writeWorkspace(localStorage,activeId,autosavedPages(localStorage.getItem(workspaceKey),pageSnapshot(pages,activeId,site)));setDirty(false);}catch{setSaveError("Changes could not be saved. Export your project as a backup.");}},250);return()=>window.clearTimeout(timer);},[site,pages,activeId,homeId,ready,saveError,dirty]);
+  useEffect(()=>{const sync=(e:StorageEvent)=>{if(e.key!==workspaceKey||!e.newValue)return;try{const saved=JSON.parse(e.newValue);if(syncableWorkspace(saved))setPages(old=>storedPages(saved.pages).map((p:PageEntry<Site>)=>p.id===activeId?old.find(v=>v.id===activeId)||p:p));}catch{}};window.addEventListener("storage",sync);return()=>window.removeEventListener("storage",sync);},[activeId]);
+  useEffect(()=>{if(!ready||saveError)return;const next=syncServicePages(pageSnapshot(pages,activeId,site),homeId);if(!next)return;const home=next.find(p=>p.id===homeId)!;const linked=next.map(p=>p.id===homeId?p:{...p,site:sharedMenu(p.site,home.site)});const timer=window.setTimeout(()=>{setPages(linked);dispatch({type:'sync',next:(linked.find(p=>p.id===activeId)||home).site});setDirty(true);},0);return()=>window.clearTimeout(timer);},[ready,saveError,site,pages,activeId,homeId]);
+  const switchPage=(id:string,hash='',push=true)=>{const list=mergeWorkspace(),page=list.find(p=>p.id===id);if(!page)return;
+    if(preview){setNavigation(n=>n+1);setPendingHash(hash);if(push)window.history.pushState(null,'',`?preview=1&page=${encodeURIComponent(id)}${hash}`);}
+    if(id===activeId)return;if(dirty)saveWorkspace();setDirty(!preview);setPages(list);setActiveId(id);dispatch({type:'load',next:bindMenu(sharedMenu(page.site,(list.find(p=>p.id===homeId)||list[0]).site),list)});setSelected(page.site.blocks.find(b=>b.type==='hero')?.id||page.site.blocks[0]?.id||'');setLocation('sections');setGroup(null);setView('Content');frameRef.current?.contentDocument?.scrollingElement?.scrollTo({top:0,behavior:'instant'});canvasRef.current?.scrollTo({top:0,behavior:'instant'});
+  };
+  const scrollPreview=useEffectEvent((hash:string)=>{const root=canvasRef.current;if(!root)return;const target=hash?root.querySelector<HTMLElement>(`[id="${CSS.escape(hash.slice(1))}"]`):null;root.scrollTo({top:target?target.getBoundingClientRect().top-root.getBoundingClientRect().top+root.scrollTop:0,behavior:'instant'});});
+  useLayoutEffect(()=>{if(preview&&ready)scrollPreview(pendingHash??window.location.hash);},[activeId,pendingHash,preview,ready,navigation]);
+  const restorePreview=useEffectEvent(()=>{const params=new URLSearchParams(window.location.search);switchPage(params.get('page')||homeId,window.location.hash,false);});
+  useEffect(()=>{if(!preview||!ready)return;window.addEventListener('popstate',restorePreview);return()=>window.removeEventListener('popstate',restorePreview);},[preview,ready]);
+  const addPage=(name:string,placement:PagePlacement)=>{
+    if(pages.length>=30||saveError)return;
+    const list=mergeWorkspace(),home=list.find(p=>p.id===homeId)!,id=crypto.randomUUID(),slug=pageSlug(name,list.map(p=>p.slug||pageSlug(p.name)));
+    const shared=placePage({...home.site,footerColumns:footerContent(home.site)},{id,name,slug},placement.where,placement.parent);
+    shared.hidden=shared.hidden.filter(section=>section!==(pageLocation(shared,{id,name,slug}).where==='bottom'?'footer':'header'));
+    const next=sharedMenu({...site,blocks:starterBlocks(placement.kind||'service',name,shared),theme:site.theme,accent:site.accent,headline:name,seoTitle:placement.title.trim()||`${name} | ${shared.brand}`,seoDescription:placement.description.trim(),hidden:sections.map(s=>s.id).filter(section=>!['header','hero','about','contact','footer'].includes(section))},shared);
+    setDirty(true);setPages([...list.map(p=>p.id===homeId?{...p,site:shared}:p),{id,name,slug,site:next}]);setActiveId(id);dispatch({type:'load',next});setSelected(next.blocks.find(b=>b.type==='hero')?.id||next.blocks[0]?.id||'');setLocation('sections');setGroup(null);setView('Content');frameRef.current?.contentDocument?.scrollingElement?.scrollTo({top:0});canvasRef.current?.scrollTo({top:0});
+  };
+  const placeCurrent=(where:'top'|'bottom'|'under'|'none',parent:number)=>{const page=pages.find(p=>p.id===activeId)!;const shared=placePage({...site,footerColumns:footerContent(site)},page,where,parent);shared.hidden=shared.hidden.filter(id=>id!==(where==='bottom'?'footer':'header'));update(shared);};
+  const renamePage=(name:string)=>{const old=pages.find(p=>p.id===activeId)!;const seoTitle=site.seoTitle===`${old.name} | ${site.brand}`?`${name} | ${site.brand}`:site.seoTitle===old.name?name:site.seoTitle;const next={...site,seoTitle,blocks:site.blocks.map(b=>b.type==='hero'&&b.content.title===old.name?{...b,content:{...b.content,title:name}}:b)};setDirty(true);dispatch({type:'set',next});setPages(snapshot().map(p=>p.id===activeId?{...p,name,site:next}:p));};
+  const update = (patch: Partial<Site>) => {if(patch.footerColumns)patch.footerColumns=patch.footerColumns.map(c=>({...c,links:c.links.map(l=>({...l,pageId:linkedPage(pages,l.href)?.id}))}));if(patch.navTargets)patch.navPageIds=patch.navTargets.map(href=>linkedPage(pages,href)?.id||null);setDirty(true);const next={ ...site, ...patch, blocks:fixedBlockOrder(patch.blocks||site.blocks).map(b=>b.type==='header'?{...b,layout:headerLook(patch.headerStyle||site.headerStyle)}:b.type==='footer'?{...b,layout:patch.footerStyle||site.footerStyle}:b) };const typing=document.activeElement instanceof HTMLInputElement||document.activeElement instanceof HTMLTextAreaElement;const groupId=typing?scope.current.id:undefined;dispatch(groupId?{type:"set",next,group:groupId}:{type:"set",next});};
+  const saveAccount=(next:AccountDetails)=>{const apply=(source:Site):Site=>({...source,ownerName:next.ownerName,brand:next.brand,address:next.address,phone:next.phone,email:next.email,blocks:source.blocks.map(b=>b.type==='contact'?{...b,content:{...b.content,address:next.address,phone:next.phone,email:next.email,hours:next.hours}}:b)});setDirty(true);setPages(list=>list.map(p=>({...p,site:apply(p.id===activeId?site:p.site)})));dispatch({type:"set",next:apply(site)});};
+  const flash = (message: string) => { setNotice(message); };
+  const chooseSection = (id:string) => {
+    const block=site.blocks.find(b=>b.id===id);
+    const nextRegion=block?regionForBlock(block.type):region;
+    if(nextRegion!==region){const scroller=frameRef.current?.contentDocument?.scrollingElement;if(scroller)scrolls.current[region]=scroller.scrollTop;setRegion(nextRegion);}
+    setSelected(id);setLocation("inspector");setPreview(false);setSidebarOpen(true);
+    if(id!==selected){setView("Content");setGroup(block?contentGroups(block,site,footerContent(site))[0]?.id??null:null);}
+    if(block?.type==="hero"||id!==selected)requestScroll(id);
+  };
+  const showRegion = (next:EditorRegion) => {
+    if(next===region)return;
+    const scroller=frameRef.current?.contentDocument?.scrollingElement;
+    if(scroller)scrolls.current[region]=scroller.scrollTop;
+    restoreScroll.current=scrolls.current[next];
+    scrollRequest.current=null;
+    const id=selectionForRegion(next,site.blocks,selected);
+    const block=site.blocks.find(b=>b.id===id);
+    setRegion(next);setSelected(id);setLocation("inspector");setPreview(false);
+    if(id!==selected){setView("Content");setGroup(block?contentGroups(block,site,footerContent(site))[0]?.id??null:null);}
+  };
+  useEffect(()=>{
+    const scroller=frameRef.current?.contentDocument?.scrollingElement;
+    if(!scroller)return;
+    if(restoreScroll.current!=null){const top=restoreScroll.current;restoreScroll.current=null;scrollRequest.current=null;scroller.scrollTo({top,behavior:"instant"});return;}
+    const id=scrollRequest.current;
+    if(!id)return;
+    scrollRequest.current=null;
+    const doc=frameRef.current?.contentDocument;
+    const target=doc?.querySelector(`[data-section="${CSS.escape(id)}"]:not(.editor-context)`) as HTMLElement | null;
+    if(!target)return;
+    const hero=target.getAttribute("data-block-type")==="hero";
+    const menu=hero||region==="header"?0:doc?.querySelector(".menu-frame")?.getBoundingClientRect().height||0;
+    scroller.scrollTo({top:Math.max(0,target.getBoundingClientRect().top+scroller.scrollTop-(hero?0:18+menu)),behavior:"instant"});
+  },[region,scrollTick]);
+  const openPreview = () => { if(saveError){flash(saveError);return;}try{saveWorkspace();window.open(`${window.location.origin}/?preview=1&page=${encodeURIComponent(activeId)}`,"_blank","noopener,noreferrer");}catch{flash("Preview could not be saved. Check browser storage permissions.");} };
+  const exportConfig=()=>{const records=mergeWorkspace(),home=records.find(p=>p.id===homeId)!;downloadFile(new Blob([JSON.stringify({schemaVersion:3,activeId,pages:records.map(p=>({...p,site:sharedMenu(p.site,home.site)}))},null,2)],{type:'application/json'}),'business-website-config.json');flash('Configuration exported');};
+  const exportPackage=async(format:'html'|'wordpress')=>{
+    setMenu("");const records=mergeWorkspace(),home=records.find(p=>p.id===homeId)!;
+    const prepared=records.map(p=>({...p,site:sharedMenu(p.site,home.site)}));
+    try{flushSync(()=>{setExportBusy(true);setExportPages(prepared);});downloadFile(await packageWebsite(prepared,format),`business-${format==='html'?'website':'wordpress-theme'}.zip`);flash(`${format.toUpperCase()} website exported`);}
+    catch(error){flash(`Export failed: ${String(error)}`);}
+    finally{setExportBusy(false);setExportPages([]);}
+  };
+  const changeSectionSettings=(id:string,value:SectionSettings)=>update({blocks:site.blocks.map(b=>b.id===id?{...b,settings:value}:b)});
+  const footerDefaults=footerContent({...site,hidden:activeId===homeId?site.hidden:pages.find(p=>p.id===homeId)!.site.hidden});
+  const selectedBlock=site.blocks.find(b=>b.id===selected)||site.blocks[0];
+  const editBlocks=(operation:'add'|'duplicate'|'delete'|'visibility',id:string,type?:SectionId)=>{const block=site.blocks.find(b=>b.id===id),index=site.blocks.findIndex(b=>b.id===id);if(!block&&operation!=='add')return;if(block&&['header','footer'].includes(block.type)&&operation==='delete'&&!window.confirm('Delete this shared section from every page?'))return;
+    if(operation==='visibility'){update({blocks:site.blocks.map(b=>b.id===id?{...b,hidden:!b.hidden}:b)});return;}if(operation==='delete'){update({blocks:site.blocks.filter(b=>b.id!==id)});setSelected(site.blocks.find(b=>b.id!==id)?.id||'');setLocation('sections');setGroup(null);return;}
+    if(site.blocks.length>=80)return;const added=operation==='duplicate'?duplicateBlock(block!):makeBlock(type!);if(['header','footer'].includes(added.type)&&site.blocks.some(b=>b.type===added.type))return;const next=[...site.blocks];next.splice(Math.max(0,index+1),0,added);update({blocks:next});setSelected(added.id);setLocation('inspector');setView('Content');setGroup(contentGroups(added,site,footerContent(site))[0]?.id??null);
+  };
+  const homeSite=activeId===homeId?site:pages.find(p=>p.id===homeId)?.site||site;
+  const openAdd=(anchor:string)=>{setAddAnchor(anchor);setLocation('add-section');setSidebarOpen(true);};
+  const previewWidth=device==="desktop"?canvasWidth:device==="tablet"?768:390;
+  const previewFrame=frameSize(device,previewWidth);
+  const frameScale=displayZoom(zoom,availableWidth,previewFrame.width);
+  const zoomLabel=zoom==="fit"?`Fit ${Math.round(frameScale*100)}%`:`${Math.round(frameScale*100)}%`;
+  if(preview&&!ready)return <div className="preview-loading"/>;
+  const pageName=pages.find(p=>p.id===activeId)?.name||"Home";
+  const accountValue={ownerName:homeSite.ownerName||"",email:homeSite.email,brand:homeSite.brand,address:homeSite.address,phone:homeSite.phone,hours:homeSite.blocks.find(b=>b.type==="contact")?.content.hours||""};
+  const showPages=()=>{setLocation("pages");setSidebarOpen(true);setMenu("");};
+  const chooseZoom=(mode:"fit"|number)=>{setZoom(mode);setMenu("");};
+  const darkTheme=site.theme==="midnight";
+  const zoomChoices=<div className="export-options" role="menu">
+    <button type="button" role="menuitem" onClick={()=>chooseZoom("fit")}>Fit</button>
+    {previewZooms.map(value=><button type="button" role="menuitem" key={value} onClick={()=>chooseZoom(value)}>{Math.round(value*100)}%</button>)}
+  </div>;
+  const toolbar=<header className="topbar workspace-toolbar">
+    <div className="toolbar-group toolbar-identity">
+      <button type="button" className="icon-button" aria-label="Back to projects" onClick={showPages}><ArrowLeft aria-hidden="true"/></button>
+      <p className="toolbar-identity-text"><strong>{site.brand}</strong><span className="identity-sep" aria-hidden="true">/</span><button type="button" onClick={showPages}>{pageName}</button></p>
     </div>
-    {!preview && <aside className="inspector"><div className="inspector-top"><div><span className="inspector-overline">EDIT SECTION</span><h2>{section.label}</h2>{["header","footer"].includes(selectedType)&&<small>Shared across all pages</small>}</div><span className="inspector-status">● Live</span></div><div className="inspector-tabs" role="group" aria-label="Section settings">{([{id:"content",label:"Content",icon:"content"},{id:"design",label:"Layout",icon:"layouts"},{id:"typography",label:"Typography",icon:"content"},{id:"actions",label:"Actions",icon:"buttons"},{id:"media",label:"Media",icon:"media"}] as const).map(t=><button key={t.id} aria-pressed={tab===t.id} className={tab===t.id?"tab-active":""} onClick={()=>setTab(t.id)}><EditorIcon name={t.icon}/><span>{t.label}</span></button>)}</div>
-      <div className="inspector-body" key={`${selected}-${tab}`}>
-        <label className="visibility-toggle"><span>Show this section</span><input type="checkbox" checked={!selectedBlock?.hidden} onChange={e=>changeBlock({hidden:!e.target.checked})}/></label>
-        {selectedBlock&&tab==='media'&&<MediaFields key={selected} block={selectedBlock} used={JSON.stringify({history,pages:snapshot()})} change={patch=>extraUpdate(selected,patch)}/>}
-        {selectedBlock&&tab==='content'&&<ContentFields block={selectedBlock} site={site} pages={pages} update={update} change={patch=>extraUpdate(selected,patch)} footerDefaults={footerDefaults}/>}
-        {tab === "typography" && <TypographyControls value={settings} change={s=>changeSectionSettings(selected,s)} target={textTarget} setTarget={setTextTarget}/>}
-        {tab === "design" && <>
-          {selectedType === "header" && <>
-            <Choice label="Menu look" value={site.headerStyle} onChange={headerStyle=>update({headerStyle})} options={[{value:'pill',label:'Rounded menu'},{value:'rounded',label:'Soft corners'},{value:'standard',label:'Standard bar'}]}/>
-            <Choice label="Stays on screen" value={site.headerSticky?'yes':'no'} onChange={v=>update({headerSticky:v==='yes'})} options={[{value:'yes',label:'Yes'},{value:'no',label:'No'}]}/>
-            <Choice label="Photo behind the menu" value={site.headerOverlay?'yes':'no'} onChange={v=>update({headerOverlay:v==='yes'})} options={[{value:'yes',label:'Yes'},{value:'no',label:'No'}]}/>
-            <Choice label="Menu background" value={site.headerBackground!==false?'yes':'no'} onChange={v=>update({headerBackground:v==='yes'})} options={[{value:'yes',label:'Yes'},{value:'no',label:'No'}]}/>
-            <Choice label="Extra buttons" value={String(site.headerButtonCount??1)} onChange={v=>update({headerButtonCount:Number(v) as 0|1|2})} options={[{value:'0',label:'None'},{value:'1',label:'One'},{value:'2',label:'Two'}]}/>
-            {site.headerStyle!=='standard'&&<Choice label="Where those buttons sit" value={site.headerButtonPlace||'inside'} onChange={headerButtonPlace=>update({headerButtonPlace})} options={[{value:'inside',label:'Inside the menu'},{value:'beside',label:'Beside the menu'}]}/>}
-            {menuButtons(site).slice(0,site.headerButtonCount??1).map((button,i)=><div className="action-editor" key={i}><h3>Extra button {i+1}</h3><Field label={`Button ${i+1} text`} value={button.label} onChange={label=>update({headerButtons:menuButtons(site).map((b,j)=>i===j?{...b,label}:b)})}/><Field label={`Button ${i+1} destination`} value={button.href} onChange={href=>update({headerButtons:menuButtons(site).map((b,j)=>i===j?{...b,href}:b)})}/></div>)}
-            <p className="helper-text">Photo behind the menu puts the menu over the hero. Turn off Menu background to let the photo show through.</p>
-          </>}
-{selectedType!=="header"&&<><LayoutControls value={settings} change={changeLayout} max={gridSection?(["proof","contact","quote"].includes(selectedType)?2:5):1} min={selectedType==='solutions'&&selectedBlock?.layout==='Numbered steps'?3:1} legend={selectedType==='solutions'&&selectedBlock?.layout==='Numbered steps'?'Steps':'Columns'}/><button className="reset-style" onClick={()=>changeSectionSettings(selected,{columns:singleLayout?1:['proof','contact','quote','closing'].includes(selectedType)?2:defaultColumns(selectedType)})}>Reset section layout</button><div className="editor-divider"/></>}{["header","footer"].includes(selectedType)&&activeId!==homeId&&<p className="helper-text">Menu colors come from Home. Page appearance below changes this page only.</p>}<Choice label="Page appearance" value={site.theme ?? "midnight"} onChange={theme => update({ theme })} options={[{ value: "paper", label: "Light" }, { value: "midnight", label: "Dark" }]}/><label className="field"><span>Page accent</span><div className="color-input"><input type="color" value={/^#[0-9a-f]{6}$/i.test(site.accent) ? site.accent : "#5878f5"} onChange={e => update({ accent: e.target.value })}/><code>{site.accent}</code></div></label>
-          {selectedType === "footer" && <Choice label="Footer style" value={site.footerStyle} onChange={footerStyle => update({ footerStyle,blocks:site.blocks.map(b=>b.id===selected?{...b,settings:{...settings,columns:footerStyle==='minimal'?1:3,widths:footerStyle==='minimal'?[100]:[100/3,100/3,100/3]}}:b) })} options={[{ value: "columns", label: "Columns" }, { value: "minimal", label: "Minimal" }]}/>}
-          {selectedBlock&&selectedType==='hero'&&<><HeroLayouts site={{...site,layout:selectedBlock.layout as 'split'|'center'|'image'|'short'|'story'}} change={layout=>changeBlock({layout})}/><Choice label="Height" value={selectedBlock.content.height||'standard'} onChange={height=>extraUpdate(selected,{height})} options={[{value:'standard',label:'Standard'},{value:'full',label:'Full screen'}]}/><Choice label="Text alignment" value={selectedBlock.content.align||'left'} onChange={align=>extraUpdate(selected,{align})} options={[{value:'left',label:'Left'},{value:'center',label:'Center'}]}/>{selectedBlock.id==='hero'&&activeId===homeId&&<Choice label="Business details" value={selectedBlock.content.showBusiness?'bottom':'off'} onChange={v=>extraUpdate(selected,{showBusiness:v==='bottom'})} options={[{value:'off',label:'Off'},{value:'bottom',label:'Bottom'}]}/>}<label className="field"><span>Image darkness</span><input aria-label="Image darkness" type="range" min="0" max="80" value={selectedBlock.content.darkness??36} onChange={e=>extraUpdate(selected,{darkness:Number(e.target.value)})}/></label></>}
-          {selectedBlock&&selectedType==='reviews'&&<><Choice label="Layout" value={reviewLayout(selectedBlock.layout)} onChange={(value:ReviewLayout)=>changeBlock({layout:reviewLayoutName(value)})} options={[{value:'featured',label:'Featured'},{value:'grid',label:'Grid'},{value:'carousel',label:'Carousel'},{value:'auto',label:'Auto'}]}/><Choice label="Review text" value={selectedBlock.content.reviewText==='full'?'full':'excerpt'} onChange={value=>extraUpdate(selected,{reviewText:value as 'full'|'excerpt'})} options={[{value:'excerpt',label:'Excerpt'},{value:'full',label:'Full'}]}/><Choice label="Avatars" value={selectedBlock.content.avatar||'circle'} onChange={value=>extraUpdate(selected,{avatar:value as 'off'|'circle'|'square'})} options={[{value:'circle',label:'Circles'},{value:'square',label:'Squares'},{value:'off',label:'Hidden'}]}/><Choice label="Names" value={selectedBlock.content.namePrivacy?'initials':'full'} onChange={value=>extraUpdate(selected,{namePrivacy:value==='initials'})} options={[{value:'full',label:'Full name'},{value:'initials',label:'Initials'}]}/><Choice label="Card surface" value={selectedBlock.content.cardFace==='plain'?'plain':'filled'} onChange={value=>extraUpdate(selected,{cardFace:value as 'filled'|'plain'})} options={[{value:'filled',label:'Filled'},{value:'plain',label:'Plain'}]}/><Choice label="Card padding" value={selectedBlock.content.cardPad==='compact'?'compact':'comfortable'} onChange={value=>extraUpdate(selected,{cardPad:value as 'comfortable'|'compact'})} options={[{value:'comfortable',label:'Comfortable'},{value:'compact',label:'Compact'}]}/><Toggle label="Show stars" checked={selectedBlock.content.showRating!==false} change={showRating=>extraUpdate(selected,{showRating})}/><Toggle label="Show date" checked={selectedBlock.content.showDate!==false} change={showDate=>extraUpdate(selected,{showDate})}/><Toggle label="Show service" checked={selectedBlock.content.showService!==false} change={showService=>extraUpdate(selected,{showService})}/><Toggle label="Show source" checked={selectedBlock.content.showSource!==false} change={showSource=>extraUpdate(selected,{showSource})}/><p className="helper-text">Column count and spacing are above. Text size and color are in Typography. A wide layout steps down to two cards, then one, when the section gets narrow. Five columns scroll sideways instead of squeezing.</p></>}
-          {selectedBlock&&selectedType!=='header'&&selectedType!=='footer'&&selectedType!=='hero'&&selectedType!=='reviews'&&<label className="field"><span>Section layout</span><select aria-label="Section layout" value={selectedBlock.layout} onChange={e=>changeBlock({layout:e.target.value})}>{blockLayouts[selectedType].map(layout=><option key={layout}>{layout}</option>)}</select></label>}
-          {selectedBlock&&selectedType==='services'&&selectedBlock.layout==='Photo cards'&&<><label className="field"><span>Gradient</span><input aria-label="Gradient" type="range" min="0" max="80" value={selectedBlock.content.darkness??64} onChange={e=>extraUpdate(selected,{darkness:Number(e.target.value)})}/></label><Choice label="Arrow" value={selectedBlock.content.arrowCircle===false?'plain':'circle'} onChange={v=>extraUpdate(selected,{arrowCircle:v==='circle'})} options={[{value:'circle',label:'Circle'},{value:'plain',label:'Plain'}]}/></>}
-          {selectedBlock&&selectedType==='logos'&&selectedBlock.layout==='Heading and slider'&&<Choice label="Heading" value={selectedBlock.content.showHeading===false?'hide':'show'} onChange={v=>extraUpdate(selected,{showHeading:v==='show'})} options={[{value:'show',label:'Show'},{value:'hide',label:'Hide'}]}/>}
-          {selectedBlock&&selectedType==='trust'&&selectedBlock.layout==='Signals'&&<><Choice label="Background" value={selectedBlock.content.showMedia===false?'none':(selectedBlock.content.showMedia||selectedBlock.content.media.src)?'photo':'none'} onChange={v=>extraUpdate(selected,{showMedia:v==='photo'})} options={[{value:'none',label:'None'},{value:'photo',label:'Photo'}]}/><Choice label="Photo side" value={selectedBlock.content.photoSide==='left'?'left':'right'} onChange={v=>extraUpdate(selected,{photoSide:v as 'left'|'right'})} options={[{value:'right',label:'Right'},{value:'left',label:'Left'}]}/></>}
-          {selectedBlock&&selectedType==='trust'&&selectedBlock.layout==='Signals'&&selectedBlock.content.showMedia!==false&&(!!selectedBlock.content.showMedia||!!selectedBlock.content.media.src)&&<><Choice label="Fit" value={selectedBlock.content.media.fit==='contain'?'contain':'cover'} onChange={v=>extraUpdate(selected,{media:{...selectedBlock.content.media,fit:v as 'cover'|'contain'}})} options={[{value:'cover',label:'Cover'},{value:'contain',label:'Contain'}]}/><label className="field"><span>Image position, horizontal: {selectedBlock.content.media.x??50}%</span><input aria-label="Image position, horizontal" type="range" min="0" max="100" value={selectedBlock.content.media.x??50} onChange={e=>extraUpdate(selected,{media:{...selectedBlock.content.media,x:Number(e.target.value)}})}/></label><label className="field"><span>Image position, vertical: {selectedBlock.content.media.y??50}%</span><input aria-label="Image position, vertical" type="range" min="0" max="100" value={selectedBlock.content.media.y??50} onChange={e=>extraUpdate(selected,{media:{...selectedBlock.content.media,y:Number(e.target.value)}})}/></label><label className="field"><span>Section color</span><input aria-label="Section color" type="color" value={/^#[0-9a-f]{6}$/i.test(selectedBlock.content.background||'')?selectedBlock.content.background!:'#141922'} onChange={e=>extraUpdate(selected,{background:e.target.value})}/></label><Choice label="Fade" value={selectedBlock.content.fade===false?'off':'on'} onChange={v=>extraUpdate(selected,{fade:v==='on'})} options={[{value:'on',label:'On'},{value:'off',label:'Off'}]}/><Choice label="Direction" value={selectedBlock.content.fadeDirection==='rtl'?'rtl':'ltr'} onChange={v=>extraUpdate(selected,{fadeDirection:v as 'ltr'|'rtl'})} options={[{value:'ltr',label:'Left to right'},{value:'rtl',label:'Right to left'}]}/><label className="field"><span>Fade width: {Math.round(selectedBlock.content.fadeWidth??35)}%</span><input aria-label="Fade width" type="range" min="0" max="100" value={selectedBlock.content.fadeWidth??35} onChange={e=>extraUpdate(selected,{fadeWidth:Number(e.target.value)})}/></label><label className="field"><span>Fade strength: {Math.round(selectedBlock.content.fadeStrength??100)}%</span><input aria-label="Fade strength" type="range" min="0" max="100" value={selectedBlock.content.fadeStrength??100} onChange={e=>extraUpdate(selected,{fadeStrength:Number(e.target.value)})}/></label><label className="field"><span>Gradient</span><input aria-label="Gradient" type="range" min="0" max="80" value={selectedBlock.content.darkness??64} onChange={e=>extraUpdate(selected,{darkness:Number(e.target.value)})}/></label></>}
-          {selectedBlock&&selectedType==='proof'&&selectedBlock.layout==='Photo and reasons'&&<><Choice label="Buttons" value={String(selectedBlock.content.buttonCount??2)} onChange={v=>extraUpdate(selected,{buttonCount:Number(v) as 0|1|2})} options={[{value:'2',label:'Both'},{value:'1',label:'One'},{value:'0',label:'None'}]}/><Choice label="Intro alignment" value={selectedBlock.content.headAlign||'center'} onChange={v=>extraUpdate(selected,{headAlign:v as 'top'|'center'|'bottom'})} options={[{value:'top',label:'Top'},{value:'center',label:'Center'},{value:'bottom',label:'Bottom'}]}/><Choice label="Photo side" value={selectedBlock.content.photoSide||'left'} onChange={v=>extraUpdate(selected,{photoSide:v as 'left'|'right'})} options={[{value:'left',label:'Left'},{value:'right',label:'Right'}]}/></>}
-
-          {!["header", "hero", "footer"].includes(selectedType) && <p className="helper-text">Use Typography to style text. Keep one clear main action for visitors.</p>}
-        </>}
-        {tab==='actions'&&selectedBlock&&<>{selectedType==='hero'&&['short','center'].includes(selectedBlock.layout)&&<Toggle label="Show secondary button" checked={selectedBlock.content.showSecondary!==false} change={showSecondary=>extraUpdate(selected,{showSecondary})}/>}{!selectedBlock.content.buttons.length&&<p className="helper-text">{selectedType==='header'?'Edit the menu buttons in Layout.':selectedType==='footer'?'Edit links in Content.':selectedType==='quote'?'Edit the form button in Content.':'This section has no separate buttons.'}</p>}{selectedBlock.content.buttons.filter((_,i)=>i===0||selectedBlock.content.showSecondary!==false).map((button,i)=><div className="action-editor" key={i}><h3>{i?'Secondary button':'Primary button'}</h3><Field label="Button text" value={button.label} onChange={label=>buttonUpdate(i?'secondary':'primary',{label})}/><Field label="Link / phone / email" value={button.href} onChange={href=>buttonUpdate(i?'secondary':'primary',{href})}/><label className="field"><span>Optional button icon</span><select value={button.icon} onChange={e=>buttonUpdate(i?'secondary':'primary',{icon:e.target.value as IconName})}>{icons.map(icon=><option key={icon}>{icon}</option>)}</select></label></div>)}</>}
-      </div><div className="inspector-bottom"><span role="status">{saveError||(dirty?"Saving…":"✓ Saved in this browser")}</span><button onClick={() => { if (window.confirm("Reset this page to its starter content? Other pages and uploaded media will remain."))
-            update(sharedMenu({...initial,brand:site.brand,theme:site.theme},site)); }}>Reset page</button></div>
-    </aside>}
+    <div className="toolbar-group toolbar-center">
+      <div className="toolbar-middle" role="group" aria-label="Preview size">
+        <button type="button" className={`icon-button${device==="desktop"?" tool-active":""}`} onClick={()=>setDevice("desktop")} aria-label="Desktop preview"><Monitor aria-hidden="true"/></button>
+        <button type="button" className={`icon-button${device==="tablet"?" tool-active":""}`} onClick={()=>setDevice("tablet")} aria-label="Tablet preview"><Tablet aria-hidden="true"/></button>
+        <button type="button" className={`icon-button${device==="mobile"?" tool-active":""}`} onClick={()=>setDevice("mobile")} aria-label="Mobile preview"><Smartphone aria-hidden="true"/></button>
+      </div>
+      <label className="canvas-width"><input aria-label="Preview width" type="number" min="320" max="1920" step="10" value={previewWidth} onChange={e=>{setCanvasWidth(Math.max(320,Math.min(1920,Number(e.target.value)||320)));setDevice("desktop");}}/> px</label>
+      <div className="zoom-menu" onKeyDown={e=>{if(e.key==="Escape")setMenu("");}}>
+        <button type="button" aria-haspopup="menu" aria-expanded={menu==="zoom"} onClick={()=>setMenu(current=>current==="zoom"?"":"zoom")}>{zoomLabel}<ChevronDown aria-hidden="true"/></button>
+        {menu==="zoom"&&zoomChoices}
+      </div>
+    </div>
+    <div className="toolbar-group toolbar-actions">
+      <button type="button" className="icon-button" onClick={()=>{setDirty(true);dispatch({type:"undo"});}} disabled={!history.past.length} aria-label="Undo"><Undo2 aria-hidden="true"/></button>
+      <button type="button" className="icon-button" onClick={()=>{setDirty(true);dispatch({type:"redo"});}} disabled={!history.future.length} aria-label="Redo"><Redo2 aria-hidden="true"/></button>
+      <button type="button" className="icon-button theme-toggle is-secondary" aria-pressed={darkTheme} aria-label={darkTheme?"Switch to light website theme":"Switch to dark website theme"} onClick={()=>update({theme:darkTheme?"paper":"midnight"})}><Moon className="is-moon" size={18} strokeWidth={1.75} aria-hidden="true"/><Sun className="is-sun" size={18} strokeWidth={1.75} aria-hidden="true"/></button>
+      <button type="button" onClick={openPreview} className="preview-toggle is-secondary">Live preview</button>
+      <div className="export-menu" onKeyDown={e=>{if(e.key==="Escape")setMenu("");}}>
+        <button type="button" aria-expanded={menu==="export"} aria-haspopup="menu" disabled={exportBusy} onClick={()=>setMenu(current=>current==="export"?"":"export")}>{exportBusy?"Preparing…":"Export"}<ChevronDown aria-hidden="true"/></button>
+        {menu==="export"&&<div className="export-options" role="menu"><button type="button" role="menuitem" onClick={()=>void exportPackage("html")}>HTML website (.zip)</button><button type="button" role="menuitem" onClick={()=>void exportPackage("wordpress")}>WordPress website theme (.zip)</button><button type="button" role="menuitem" onClick={()=>{setMenu("");exportConfig();}}>All pages (.json)</button></div>}
+      </div>
+      <span className="toolbar-divider is-secondary" aria-hidden="true"/>
+      <button type="button" className="icon-button is-secondary" aria-haspopup="dialog" aria-label="Settings" onClick={()=>setSettingsOpen(true)}><Settings aria-hidden="true"/></button>
+    </div>
+    <div className="toolbar-more" onKeyDown={e=>{if(e.key==="Escape")setMenu("");}}>
+      <button type="button" className="icon-button" aria-haspopup="menu" aria-expanded={menu==="more"} aria-label="More" onClick={()=>setMenu(current=>current==="more"?"":"more")}><Ellipsis aria-hidden="true"/></button>
+      {menu==="more"&&<div className="export-options" role="menu" aria-label="More actions">
+        <button type="button" role="menuitem" onClick={()=>{update({theme:darkTheme?"paper":"midnight"});setMenu("");}}>{darkTheme?"Light website theme":"Dark website theme"}</button>
+        <button type="button" role="menuitem" onClick={()=>{setMenu("");openPreview();}}>Live preview</button>
+        <button type="button" className="more-export" role="menuitem" onClick={()=>{setMenu("");void exportPackage("html");}}>HTML website (.zip)</button>
+        <button type="button" className="more-export" role="menuitem" onClick={()=>{setMenu("");void exportPackage("wordpress");}}>WordPress website theme (.zip)</button>
+        <button type="button" className="more-export" role="menuitem" onClick={()=>{setMenu("");exportConfig();}}>All pages (.json)</button>
+        <button type="button" role="menuitem" onClick={()=>{setMenu("");setSettingsOpen(true);}}>Settings</button>
+      </div>}
+    </div>
+  </header>;
+  const siteView=<SitePreview selectPage={switchPage} site={site} selected={selected} select={chooseSection} editable={!preview} changeSettings={changeSectionSettings} pages={pages} activeId={activeId} region={preview?"live":region}/>;
+  const canvas=preview
+    ? <div ref={canvasRef} className="canvas-area canvas-preview"><div className="canvas-frame" style={{width:"100%"}}>{siteView}</div></div>
+    : <PreviewFrame areaRef={canvasRef} frameRef={frameRef} device={device} width={previewWidth} scale={frameScale} zoomLabel={zoomLabel} address={`/${pages.find(p=>p.id===activeId)?.slug||"home"}`} selectedId={selectedBlock?.id||""} sectionName={catalog.find(s=>s.id===selectedBlock?.type)?.label||"Section"} region={region} onRegion={showRegion}>{siteView}</PreviewFrame>;
+  return <main className={`builder-shell studio-editor${sidebarOpen?"":" sidebar-collapsed"}${preview?" standalone-preview":""}`}>
+    <EditScopeContext.Provider value={editScope}>
+      <EditorShell location={location} setLocation={setLocation} view={view} setView={setView} open={sidebarOpen} preview={preview} pageName={pageName} sectionName={catalog.find(s=>s.id===selectedBlock?.type)?.label||"Section"} shared={!!selectedBlock&&["header","footer"].includes(selectedBlock.type)} saveLabel={saveError||(dirty?"Saving…":"Saved in this browser")} saveError={!!saveError} onReset={()=>{if(window.confirm("Reset this page to its starter content? Other pages and uploaded media will remain."))update(sharedMenu({...initial,brand:site.brand,theme:site.theme},site));}} pages={pages.map(p=>({id:p.id,name:p.name,placement:placementLabel(pageLocation(p.id===activeId?site:p.site,p).where)}))} pageId={activeId} onSelectPage={id=>{switchPage(id);setLocation("sections");}} sections={site.blocks.map((block,index)=>{const Icon=sectionIcons[block.type];const entry=catalog.find(s=>s.id===block.type)!;return {id:block.id,name:entry.label,hidden:!!block.hidden,shared:block.type==="header"||block.type==="footer",stage:entry.stage,icon:<Icon size={16} strokeWidth={1.75} aria-hidden="true"/>,menu:<SectionMenu block={block} index={index} blocks={site.blocks} editBlocks={editBlocks} onAdd={openAdd}/>};})} sectionId={selectedBlock?.id||""} onSelectSection={chooseSection} onToggleHidden={id=>editBlocks("visibility",id)} homeStages={activeId===homeId} query={sectionQuery} setQuery={setSectionQuery} canAddSection={site.blocks.length<80} onAddSection={()=>openAdd(selected)} onPageSettings={()=>{setLocation("page-settings");setSidebarOpen(true);}} onBusiness={()=>setSettingsOpen(true)} sectionMenu={selectedBlock?<SectionMenu block={selectedBlock} index={site.blocks.findIndex(b=>b.id===selectedBlock.id)} blocks={site.blocks} editBlocks={editBlocks} onAdd={openAdd}/>:null} toolbar={toolbar} canvas={canvas}>
+        {location==="inspector"&&selectedBlock&&<SectionEditor view={view} group={group} onGroup={setGroup} site={site} pages={pages} block={selectedBlock} used={JSON.stringify({history,pages:snapshot()})} footerDefaults={footerDefaults} home={activeId===homeId} update={update}/>}
+        {location==="page-settings"&&<PageSettings site={site} pages={pages} activeId={activeId} renamePage={renamePage} placeCurrent={placeCurrent} editSEO={update} onTheme={theme=>update({theme})} onAccent={accent=>update({accent})} home={activeId===homeId}/>}
+        {location==="business"&&<Account value={accountValue} onClose={()=>setLocation("sections")} onSave={saveAccount}/>}
+        {location==="create-page"&&<CreatePageForm site={site} pages={pages} disabled={pages.length>=30||!!saveError} addPage={addPage}/>}
+        {location==="add-section"&&<AddSectionForm blocks={site.blocks} onAdd={type=>editBlocks("add",addAnchor||selected,type)}/>}
+      </EditorShell>
+    </EditScopeContext.Provider>
     {exportPages.length>0&&<div className="export-stage" data-editor-only="true">{exportPages.map(page=><div key={page.id} data-export-page={page.id}><SitePreview site={page.site} pages={exportPages} activeId={page.id} editable={false} selected="" select={()=>{}}/></div>)}</div>}
-    {notice && <div className="toast" role="status">{notice}<button onClick={() => setNotice("")} aria-label="Dismiss notification">×</button></div>}
+    {settingsOpen&&<SettingsDialog value={accountValue} onClose={()=>setSettingsOpen(false)} onSave={next=>{saveAccount(next);setSettingsOpen(false);}}/>}
+    {notice&&<div className="toast" role="status">{notice}<button type="button" onClick={()=>setNotice("")} aria-label="Dismiss notification">×</button></div>}
   </main>;
 }

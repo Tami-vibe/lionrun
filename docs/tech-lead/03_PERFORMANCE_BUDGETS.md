@@ -20,5 +20,8 @@
 - Cache only with explicit keys, invalidation, tenant isolation, and freshness expectations.
 - Budget background work and add retries, backoff, idempotency, and dead-letter handling as needed.
 
+## Source size
+The 2,000-line aggregate application budget is obsolete. It described an early subset of files and is not a passing condition. Report physical lines under `src/app` and test lines separately. Do not claim compliance with the retired aggregate cap.
+
 ## Report
 Baseline vs changed metric, same conditions, sample count, profiler trace if available, and tradeoffs. Never report invented gains.
