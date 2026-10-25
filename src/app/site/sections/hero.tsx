@@ -1,4 +1,6 @@
 import {useEffect, useRef, useState, type CSSProperties} from 'react';
+import {heroSlides, publishedStart} from '../../editor/hero-collection';
+import {useHeroFocus} from '../../editor/hero-focus';
 import {MediaView} from '../../media/library';
 import {SectionButtons,Icon,safeHref} from './elements';
 import type {SectionProps} from './index';
@@ -11,8 +13,8 @@ function heroShade(content: {darkness?: number; fade?: boolean; fadeWidth?: numb
   return {opacity: 1, background: `linear-gradient(to top, ${color}${alpha}, transparent ${height}%)`};
 }
 export function HeroSection({block,site,editable,link,labelFor,pages,homeId,activeId,parentIndex}:SectionProps) {
-  const c=block.content,story=block.layout==='story',slides=[c.media,...(c.slides||[])].filter(media=>!!media?.src),focus=Number.isInteger(c.slideIndex)?Math.min(c.slideIndex as number,Math.max(0,slides.length-1)):0,[chosen,setChosen]=useState(focus),[seen,setSeen]=useState(focus),[playing,setPlaying]=useState(false);
-  if(focus!==seen){setSeen(focus);setChosen(focus);}
+  const c=block.content,story=block.layout==='story',slides=heroSlides(c),editorFocus=useHeroFocus().focus,published=publishedStart(c.slideIndex,slides.length),driven=editable&&editorFocus?.blockId===block.id?publishedStart(editorFocus.index,slides.length):null,[chosen,setChosen]=useState(driven??published),[seen,setSeen]=useState(driven),[playing,setPlaying]=useState(false);
+  if(driven!==null&&driven!==seen){setSeen(driven);setChosen(driven);}
   const current=Math.min(chosen,Math.max(0,slides.length-1)),root=useRef<HTMLDivElement>(null),count=slides.length,activeKind=slides[current]?.kind;
   useEffect(()=>{if(!c.slideAutoplay||count<2||playing)return;const motion=window.matchMedia('(prefers-reduced-motion: reduce)');if(motion.matches)return;let timer=0;const advance=()=>setChosen(i=>(Math.min(i,count-1)+1)%count);const video=c.slideAdvance==='end'&&activeKind==='video'?root.current?.querySelectorAll<HTMLElement>('[data-slide]')[current]?.querySelector('video'):null;if(video){video.addEventListener('ended',advance);return()=>video.removeEventListener('ended',advance);}timer=window.setTimeout(advance,(c.slideSeconds??5)*1000);return()=>window.clearTimeout(timer);},[c.slideAutoplay,c.slideAdvance,c.slideSeconds,current,playing,count,activeKind]);
   const home=pages.find(p=>p.id===homeId),services=home?.site.blocks.find(b=>b.type==='services'),catalog=pages.find(p=>p.id===services?.content.catalogPageId),onService=!!services?.content.items.some(item=>item.pageId===activeId),onCatalog=catalog?.id===activeId,crumb=block.id!=='hero'&&(onService||onCatalog||parentIndex>=0);

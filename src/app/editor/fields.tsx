@@ -322,7 +322,7 @@ export function ContentBrowser({block,site,pages,update,change,footerDefaults,us
     const write=(index:number,patch:Partial<BlockItem>)=>{const blank:BlockItem={title:'',description:'',icon:'none'};const items=Array.from({length:Math.max(3,c.items.length)},(_,i)=>c.items[i]||blank);items[index]={...items[index],...patch};change({items});};
     return <StatEditor items={c.items} onChange={write}/>;
   }
-  if(current==='media'&&type==='hero')return <HeroMediaEditor content={c} layout={block.layout} onChange={change}/>;
+  if(current==='media'&&type==='hero')return <HeroMediaEditor content={c} layout={block.layout} blockId={block.id} onChange={change}/>;
   if(current==='story')return <><Field label="Story button" value={c.note} onChange={note=>change({note})}/><Field label="Story length" value={c.badge||''} onChange={badge=>change({badge})}/><MediaSlot label="Story video" value={c.story||mediaDefaults} used={used} onChange={story=>change({story})} hint="Plays when a visitor chooses the story button. Playback choices are saved; this player still uses its own play settings."/></>;
   if(current==='rating'&&type==='hero'){
     const rating=c.rating||{score:'',count:'',href:''};

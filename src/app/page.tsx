@@ -7,6 +7,7 @@ import {Account,AccountDetails,SettingsDialog} from "./editor/account";
 import {displayZoom,frameSize,previewZooms,regionForBlock,selectionForRegion,type EditorRegion} from "./editor/scope";
 import {activePage,autosavedPages,legacySite,legacyWorkspaceKey,loadableWorkspace,mergedPages,pageSnapshot,retainFailedWorkspace,sharedMenu,storedPages,syncableWorkspace,upgradeSchema2,workspaceKey,writeWorkspace} from "./editor/workspace";
 import {EditScope,EditScopeApi,EditScopeContext,contentGroups} from "./editor/fields";
+import {HeroFocus,HeroFocusProvider} from "./editor/hero-focus";
 import {EditorShell,EditorLocation} from "./editor/shell";
 import {PreviewFrame} from "./editor/preview-frame";
 import {SectionEditor} from "./editor/section-editor";
@@ -73,6 +74,7 @@ function Editor({initialPreview,requestedPage}:{initialPreview:boolean;requested
     return () => observer.disconnect();
   }, [ready,preview,sidebarOpen]);
   const [notice, setNotice] = useState("");
+  const [heroFocus, setHeroFocus] = useState<HeroFocus>(null);
   useEffect(()=>{const timer=window.setTimeout(()=>{try{
     setSidebarOpen(true);
     const raw=localStorage.getItem(workspaceKey);
@@ -214,7 +216,7 @@ function Editor({initialPreview,requestedPage}:{initialPreview:boolean;requested
   const canvas=preview
     ? <div ref={canvasRef} className="canvas-area canvas-preview"><div className="canvas-frame" style={{width:"100%"}}>{siteView}</div></div>
     : <PreviewFrame areaRef={canvasRef} frameRef={frameRef} device={device} width={previewWidth} scale={frameScale} zoomLabel={zoomLabel} address={`/${pages.find(p=>p.id===activeId)?.slug||"home"}`} selectedId={selectedBlock?.id||""} sectionName={catalog.find(s=>s.id===selectedBlock?.type)?.label||"Section"} region={region} onRegion={showRegion}>{siteView}</PreviewFrame>;
-  return <main className={`builder-shell studio-editor${sidebarOpen?"":" sidebar-collapsed"}${preview?" standalone-preview":""}`}>
+  return <HeroFocusProvider value={{focus: heroFocus, setFocus: setHeroFocus}}><main className={`builder-shell studio-editor${sidebarOpen?"":" sidebar-collapsed"}${preview?" standalone-preview":""}`}>
     <EditScopeContext.Provider value={editScope}>
       <EditorShell location={location} setLocation={setLocation} view={view} setView={setView} open={sidebarOpen} preview={preview} pageName={pageName} sectionName={catalog.find(s=>s.id===selectedBlock?.type)?.label||"Section"} shared={!!selectedBlock&&["header","footer"].includes(selectedBlock.type)} saveLabel={saveError||(dirty?"Saving…":"Saved in this browser")} saveError={!!saveError} onReset={()=>{if(window.confirm("Reset this page to its starter content? Other pages and uploaded media will remain."))update(sharedMenu({...initial,brand:site.brand,theme:site.theme},site));}} pages={pages.map(p=>({id:p.id,name:p.name,placement:placementLabel(pageLocation(p.id===activeId?site:p.site,p).where)}))} pageId={activeId} onSelectPage={id=>{switchPage(id);setLocation("sections");}} sections={site.blocks.map((block,index)=>{const Icon=sectionIcons[block.type];const entry=catalog.find(s=>s.id===block.type)!;return {id:block.id,name:entry.label,hidden:!!block.hidden,shared:block.type==="header"||block.type==="footer",stage:entry.stage,icon:<Icon size={16} strokeWidth={1.75} aria-hidden="true"/>,menu:<SectionMenu block={block} index={index} blocks={site.blocks} editBlocks={editBlocks} onAdd={openAdd}/>};})} sectionId={selectedBlock?.id||""} onSelectSection={chooseSection} onToggleHidden={id=>editBlocks("visibility",id)} homeStages={activeId===homeId} query={sectionQuery} setQuery={setSectionQuery} canAddSection={site.blocks.length<80} onAddSection={()=>openAdd(selected)} onPageSettings={()=>{setLocation("page-settings");setSidebarOpen(true);}} onBusiness={()=>setSettingsOpen(true)} sectionMenu={selectedBlock?<SectionMenu block={selectedBlock} index={site.blocks.findIndex(b=>b.id===selectedBlock.id)} blocks={site.blocks} editBlocks={editBlocks} onAdd={openAdd}/>:null} toolbar={toolbar} canvas={canvas}>
         {location==="inspector"&&selectedBlock&&<SectionEditor view={view} group={group} onGroup={setGroup} site={site} pages={pages} block={selectedBlock} used={JSON.stringify({history,pages:snapshot()})} footerDefaults={footerDefaults} home={activeId===homeId} update={update}/>}
@@ -227,5 +229,5 @@ function Editor({initialPreview,requestedPage}:{initialPreview:boolean;requested
     {exportPages.length>0&&<div className="export-stage" data-editor-only="true">{exportPages.map(page=><div key={page.id} data-export-page={page.id}><SitePreview site={page.site} pages={exportPages} activeId={page.id} editable={false} selected="" select={()=>{}}/></div>)}</div>}
     {settingsOpen&&<SettingsDialog value={accountValue} onClose={()=>setSettingsOpen(false)} onSave={next=>{saveAccount(next);setSettingsOpen(false);}}/>}
     {notice&&<div className="toast" role="status">{notice}<button type="button" onClick={()=>setNotice("")} aria-label="Dismiss notification">×</button></div>}
-  </main>;
+  </main></HeroFocusProvider>;
 }

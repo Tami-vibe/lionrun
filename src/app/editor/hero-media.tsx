@@ -6,7 +6,8 @@ import {mediaDefaults, normalizeMedia, type MediaSettings} from "../media/model"
 import {ACCEPT} from "../media/store";
 import type {BlockContent} from "../site/blocks";
 import {useEditScope} from "./fields";
-import {directMediaLink, heroSlides, moveItem} from "./hero-collection";
+import {directMediaLink, heroSlides, moveItem, publishedStart, reorderStart} from "./hero-collection";
+import {useHeroFocus} from "./hero-focus";
 
 const SLIDES = 5;
 const fileName = (src: string, names: Map<string, string>) => {
@@ -16,15 +17,15 @@ const fileName = (src: string, names: Map<string, string>) => {
 };
 const origin = (src: string) => src.startsWith("media:") ? "Uploaded" : src.startsWith("/") ? "Site file" : "Linked";
 
-export function HeroMediaEditor({content, layout, onChange}:{content: BlockContent; layout: string; onChange:(patch: Partial<BlockContent>)=>void}) {
+export function HeroMediaEditor({content, layout, blockId, onChange}:{content: BlockContent; layout: string; blockId: string; onChange:(patch: Partial<BlockContent>)=>void}) {
   const {assets, reload} = useMediaLibrary();
+  const {setFocus} = useHeroFocus();
   const names = new Map(assets.map(asset => [asset.id, asset.name]));
   const items = heroSlides(content);
-  const stored = Number.isInteger(content.slideIndex) ? content.slideIndex! : 0;
-  const [index, setIndex] = useState(stored);
-  const [seen, setSeen] = useState(stored);
-  if (stored !== seen) { setSeen(stored); setIndex(stored); }
+  const [index, setIndex] = useState(() => publishedStart(content.slideIndex, heroSlides(content).length));
   const selected = items.length ? Math.min(Math.max(0, index), items.length - 1) : -1;
+  useEffect(() => { setFocus(selected < 0 ? null : {blockId, index: selected}); }, [blockId, selected, setFocus]);
+  useEffect(() => () => setFocus(null), [setFocus]);
   const media = selected >= 0 ? normalizeMedia(items[selected]) : null;
   const [linking, setLinking] = useState(false);
   const [link, setLink] = useState("");
@@ -34,15 +35,17 @@ export function HeroMediaEditor({content, layout, onChange}:{content: BlockConte
   const [poster, setPoster] = useState(false);
   const [removed, setRemoved] = useState<null | {items: MediaSettings[]; index: number}>(null);
   useEffect(() => { if (!removed) return; const id = window.setTimeout(() => setRemoved(null), 8000); return () => window.clearTimeout(id); }, [removed]);
-  const writeItems = (next: MediaSettings[], focus: number) => {
+  const writeItems = (next: MediaSettings[], slideIndex?: number) => {
     const filled = next.filter(item => item.src).map(item => normalizeMedia(item));
-    onChange({media: filled[0] || {...mediaDefaults}, slides: filled.slice(1), slideIndex: filled.length ? Math.min(focus, filled.length - 1) : 0});
+    const patch: Partial<BlockContent> = {media: filled[0] || {...mediaDefaults}, slides: filled.slice(1)};
+    if (slideIndex !== undefined && slideIndex !== publishedStart(content.slideIndex, filled.length)) patch.slideIndex = slideIndex;
+    onChange(patch);
   };
-  const select = (i: number) => { setIndex(i); onChange({slideIndex: i}); };
-  const writeSelected = (patch: Partial<MediaSettings>) => { if (selected < 0) return; writeItems(items.map((item, i) => i === selected ? {...item, ...patch} : item), selected); };
+  const select = (i: number) => setIndex(i);
+  const writeSelected = (patch: Partial<MediaSettings>) => { if (selected < 0) return; writeItems(items.map((item, i) => i === selected ? {...item, ...patch} : item)); };
   const addItem = (item: MediaSettings) => {
     if (items.length >= SLIDES) { setNotice(`This hero holds ${SLIDES} slides.`); return false; }
-    writeItems([...items, item], items.length);
+    writeItems([...items, item]);
     setIndex(items.length);
     setNotice("");
     return true;
@@ -68,7 +71,7 @@ export function HeroMediaEditor({content, layout, onChange}:{content: BlockConte
     }
     if (files.length > batch.length) errors.push(`This hero holds ${SLIDES} slides. Extra files were not added.`);
     setProgress("");
-    if (next.length > items.length) { writeItems(next, items.length); setIndex(items.length); }
+    if (next.length > items.length) { writeItems(next); setIndex(items.length); }
     setNotice(errors.join(" "));
   };
   const removeAt = (i: number) => {
@@ -77,15 +80,15 @@ export function HeroMediaEditor({content, layout, onChange}:{content: BlockConte
     const focus = next.length ? Math.min(i, next.length - 1) : 0;
     setRemoved({items: snapshot, index: i});
     setIndex(next.length ? focus : -1);
-    writeItems(next, focus);
+    writeItems(next);
   };
   const reorder = (from: number, to: number) => {
     const next = moveItem(items, from, to);
     const focus = selected === from ? to : selected;
-    writeItems(next, Math.max(0, focus));
+    writeItems(next, reorderStart(from, to, content.slideIndex, items.length));
     setIndex(Math.max(0, focus));
   };
-  const undo = () => { if (!removed) return; writeItems(removed.items, removed.index); setIndex(removed.index); setRemoved(null); };
+  const undo = () => { if (!removed) return; writeItems(removed.items); setIndex(removed.index); setRemoved(null); }
   const shade = content.fade ? "bottom" : (content.darkness ?? 36) === 0 ? "none" : "solid";
   const color = /^#[0-9a-f]{6}$/i.test(content.background || "") ? content.background! : "#0b1420";
   const drop = (event: React.DragEvent) => {

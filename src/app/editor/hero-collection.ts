@@ -20,3 +20,15 @@ export function moveItem<T>(items: T[], from: number, to: number) {
   next.splice(to, 0, item);
   return next;
 }
+export function publishedStart(index: number | undefined, count: number) {
+  if (count <= 0 || !Number.isInteger(index) || index! < 0) return 0;
+  return Math.min(index!, count - 1);
+}
+export function reorderStart(from: number, to: number, index: number | undefined, count: number) {
+  const start = publishedStart(index, count);
+  if (from === to || from < 0 || to < 0 || from >= count || to >= count) return start;
+  if (start === from) return to;
+  if (from < start && to >= start) return start - 1;
+  if (from > start && to <= start) return start + 1;
+  return start;
+}
