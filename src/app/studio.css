@@ -703,6 +703,7 @@
 #premium-studio .hero-upload,#premium-studio .panel .hero-link { display:inline-flex; flex:1 1 0; align-items:center; justify-content:center; gap:6px; min-width:0; min-height:40px; padding:6px 8px; border:1px solid var(--p-line); border-radius:8px; font-family:var(--editor-font); font-size:14px; white-space:nowrap; cursor:pointer; }
 #premium-studio .hero-upload { position:relative; background:var(--p-accent); color:#fff; border-color:var(--p-accent); }
 #premium-studio .hero-upload input { position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); }
+#premium-studio .hero-upload:has(input:disabled) { opacity:.45; pointer-events:none; }
 #premium-studio .panel .hero-link { background:var(--p-bg); color:var(--p-ink); }
 #premium-studio .hero-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
 #premium-studio .hero-tile { position:relative; display:flex; flex-direction:column; gap:4px; min-width:0; padding:4px; border:2px solid transparent; border-radius:8px; background:transparent; text-align:left; cursor:pointer; }
