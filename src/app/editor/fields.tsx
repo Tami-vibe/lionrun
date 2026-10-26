@@ -27,8 +27,14 @@ export function Field({ label, value, onChange, multiline = false, type = "text"
 export function Choice<T extends string>({ label, value, options, onChange }: {label: string; value: T; options: {value: T; label: string}[]; onChange: (v: T) => void}) {
   return <div className="field" role="group" aria-label={label}><span>{label}</span><div className="choice-group">{options.map(o => <button type="button" key={o.value} className={value === o.value ? "choice-active" : ""} aria-pressed={value===o.value} onClick={() => onChange(o.value)}>{o.label}</button>)}</div></div>;
 }
-export function Toggle({label,checked,change}:{label:string;checked:boolean;change:(checked:boolean)=>void}) {
-  return <label className="visibility-toggle"><span>{label}</span><input type="checkbox" checked={checked} onChange={e=>change(e.target.checked)}/></label>;
+export function Toggle({label,checked,change,hint}:{label:string;checked:boolean;change:(checked:boolean)=>void;hint?:string}) {
+  return <label className="visibility-toggle">
+    <div className="toggle-info">
+      <span>{label}</span>
+      {hint && <small>{hint}</small>}
+    </div>
+    <input type="checkbox" role="switch" checked={checked} onChange={e=>change(e.target.checked)}/>
+  </label>;
 }
 export function Fold({icon, label, note, disabled, open, children}:{icon?: ReactNode; label: string; note?: string; disabled?: boolean; open?: boolean; children?: ReactNode}) {
   return (

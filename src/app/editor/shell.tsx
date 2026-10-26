@@ -1,6 +1,6 @@
 "use client";
 import {useId,useMemo,useState,type ReactNode} from 'react';
-import {ArrowLeft,ChevronDown,EllipsisVertical,Eye,EyeOff,RotateCcw,FileText,House,Mail,Plus,Wrench} from 'lucide-react';
+import {ArrowLeft,Building2,ChevronDown,EllipsisVertical,Eye,EyeOff,FileText,FolderClosed,House,Mail,Plus,Search,Wrench} from 'lucide-react';
 import {stages} from '../site/catalog';
 import {classifyPages, type PageGroup} from './settings';
 
@@ -23,19 +23,24 @@ function pageIcon(page:ShellPage,homeId:string,group:PageGroup) {
   return <FileText size={16} strokeWidth={1.75} aria-hidden="true"/>;
 }
 
-function PageMenu({pageId,pageName,onSettings}:{pageId:string;pageName:string;onSettings:(id:string)=>void}) {
+function PageMenu({pageId,pageName,onSettings,onReset,isCurrent}:{pageId:string;pageName:string;onSettings:(id:string)=>void;onReset?:()=>void;isCurrent?:boolean}) {
   const [open,setOpen]=useState(false),menuId=useId();
   return <div className="section-actions" data-menu-for={pageId} onBlur={e=>{if(!e.currentTarget.contains(e.relatedTarget))setOpen(false);}}>
     <button type="button" className="section-more quiet" aria-label={`Actions for ${pageName}`} aria-haspopup="menu" aria-expanded={open} aria-controls={open?menuId:undefined} onClick={e=>{e.stopPropagation();setOpen(v=>!v)}}><EllipsisVertical size={16} strokeWidth={1.75} aria-hidden="true"/></button>
-    {open&&<div className="section-action-menu" id={menuId} role="menu" aria-label={`${pageName} actions`} onKeyDown={e=>{if(e.key==='Escape'){e.preventDefault();setOpen(false);(e.currentTarget.parentElement?.querySelector('button') as HTMLButtonElement|null)?.focus();}}}>
+    {open&&<div className="section-action-menu" id={menuId} role="menu" aria-label={`${pageName} actions`} onKeyDown={e=>{
+      const items=Array.from(e.currentTarget.querySelectorAll<HTMLButtonElement>('button:not(:disabled)')),at=items.indexOf(document.activeElement as HTMLButtonElement);
+      if(['ArrowDown','ArrowUp','Home','End'].includes(e.key)){e.preventDefault();items[e.key==='Home'?0:e.key==='End'?items.length-1:(at+(e.key==='ArrowDown'?1:-1)+items.length)%items.length]?.focus();}
+      if(e.key==='Escape'){e.preventDefault();setOpen(false);(e.currentTarget.parentElement?.querySelector('button') as HTMLButtonElement|null)?.focus();}
+    }}>
       <button type="button" role="menuitem" onClick={()=>{setOpen(false);onSettings(pageId);}}>Page settings</button>
+      {isCurrent&&onReset&&<button type="button" role="menuitem" className="reset-page" onClick={()=>{setOpen(false);onReset();}}>Reset page</button>}
     </div>}
   </div>;
 }
 
-function PageGroupList({group,pages,homeId,pageId,query,expanded,onExpand,onSelectPage,onPageMenu}:{
+function PageGroupList({group,pages,homeId,pageId,query,expanded,onExpand,onSelectPage,onPageMenu,onReset}:{
   group:PageGroup;pages:ShellPage[];homeId:string;pageId:string;query:string;expanded:boolean;onExpand:()=>void;
-  onSelectPage:(id:string)=>void;onPageMenu:(id:string)=>void;
+  onSelectPage:(id:string)=>void;onPageMenu:(id:string)=>void;onReset?:()=>void;
 }) {
   const filtered=pages.filter(page=>page.name.toLowerCase().includes(query.trim().toLowerCase()));
   if(!filtered.length&&query.trim())return null;
@@ -54,18 +59,23 @@ function PageGroupList({group,pages,homeId,pageId,query,expanded,onExpand,onSele
         const at=rows.indexOf(event.currentTarget);
         rows[event.key==='Home'?0:event.key==='End'?rows.length-1:(at+(event.key==='ArrowDown'?1:-1)+rows.length)%rows.length]?.focus();
       }}>{pageIcon(page,homeId,group)}<span className="grow">{page.name}</span></button>
-      <PageMenu pageId={page.id} pageName={page.name} onSettings={onPageMenu}/>
+      <PageMenu pageId={page.id} pageName={page.name} onSettings={onPageMenu} onReset={onReset} isCurrent={page.id===pageId}/>
     </div>)}
     {hidden>0&&<button type="button" className="quiet wide page-show-more" onClick={onExpand}>Show {hidden} more</button>}
   </section>;
 }
 
-function PageSettingsMenu({onOpen}:{onOpen:()=>void}) {
+function PageSettingsMenu({onOpen,onReset}:{onOpen:()=>void;onReset?:()=>void}) {
   const [open,setOpen]=useState(false),menuId=useId();
   return <div className="section-actions heading-menu" onBlur={e=>{if(!e.currentTarget.contains(e.relatedTarget))setOpen(false);}}>
     <button type="button" className="quiet" aria-label="Page settings" aria-haspopup="menu" aria-expanded={open} aria-controls={open?menuId:undefined} onClick={()=>setOpen(v=>!v)}><EllipsisVertical size={16} strokeWidth={1.75} aria-hidden="true"/></button>
-    {open&&<div className="section-action-menu" id={menuId} role="menu" aria-label="Page settings" onKeyDown={e=>{if(e.key==='Escape'){e.preventDefault();setOpen(false);(e.currentTarget.parentElement?.querySelector('button') as HTMLButtonElement | null)?.focus();}}}>
+    {open&&<div className="section-action-menu" id={menuId} role="menu" aria-label="Page settings" onKeyDown={e=>{
+      const items=Array.from(e.currentTarget.querySelectorAll<HTMLButtonElement>('button:not(:disabled)')),at=items.indexOf(document.activeElement as HTMLButtonElement);
+      if(['ArrowDown','ArrowUp','Home','End'].includes(e.key)){e.preventDefault();items[e.key==='Home'?0:e.key==='End'?items.length-1:(at+(e.key==='ArrowDown'?1:-1)+items.length)%items.length]?.focus();}
+      if(e.key==='Escape'){e.preventDefault();setOpen(false);(e.currentTarget.parentElement?.querySelector('button') as HTMLButtonElement | null)?.focus();}
+    }}>
       <button type="button" role="menuitem" onClick={()=>{setOpen(false);onOpen();}}>Page settings</button>
+      {onReset&&<button type="button" role="menuitem" className="reset-page" onClick={()=>{setOpen(false);onReset();}}>Reset page</button>}
     </div>}
   </div>;
 }
@@ -90,49 +100,77 @@ export function EditorShell({location,setLocation,view,setView,open,preview,page
   return <div id="premium-studio" className={preview?'is-preview':''}>
     {toolbar}
     <div className={`premium-workspace${open?'':' is-collapsed'}`}>
-      {!preview && <aside className="panel" aria-label="Website editor" data-refined={sectionName==='Why choose us'||undefined}>
+      {!preview && <aside className="panel" aria-label="Website editor">
         <div className="paneltop">
-          {location==='sections' && <div className="panel-heading">
-            <h2>All sections</h2>
-            <PageSettingsMenu onOpen={onPageSettings}/>
-            <button type="button" className="page-picker" onClick={()=>setLocation('pages')}><span>{pageName}</span><ChevronDown aria-hidden="true"/></button>
-          </div>}
+          {(location==='sections'||location==='pages') && <>
+            <div className="sidebar-switch" role="tablist" aria-label="Editor view">
+              <button type="button" role="tab" className={`switch-tab${location==='pages'?' is-active':''}`} aria-selected={location==='pages'} onClick={()=>setLocation('pages')}>Pages</button>
+              <button type="button" role="tab" className={`switch-tab${location==='sections'?' is-active':''}`} aria-selected={location==='sections'} onClick={()=>setLocation('sections')}>Sections</button>
+            </div>
+            <button type="button" className="sidebar-page-dropdown" onClick={()=>setLocation(location==='pages'?'sections':'pages')} aria-label={`Current page: ${pageName}. Switch page`}>
+              <House size={16} strokeWidth={1.75} aria-hidden="true"/>
+              <span className="page-dropdown-name">{pageName}</span>
+              <ChevronDown size={14} aria-hidden="true"/>
+            </button>
+          </>}
           {location==='pages' && <div className="panel-heading">
             <h2>Pages</h2>
             <button type="button" className="quiet" aria-label="Create page" disabled={pages.length>=30} onClick={()=>setLocation('create-page')}><Plus size={16} strokeWidth={1.75} aria-hidden="true"/></button>
           </div>}
-          {location!=='sections' && location!=='pages' && <button type="button" className="all-sections" onClick={()=>setLocation('sections')}><ArrowLeft aria-hidden="true"/>All sections</button>}
-          {location==='inspector' && <p className="section-index">Section {String(sectionIndex+1).padStart(2,'0')}</p>}
-          {location!=='sections' && location!=='pages' && <div className="paneltitle">
-            <h2>{title}</h2>
-            <div className="grow"/>
-            {location==='inspector' && <>
-              <button type="button" className="quiet" aria-label={`${sections.find(section=>section.id===sectionId)?.hidden?'Show':'Hide'} ${sectionName}`} onClick={()=>onToggleHidden(sectionId)}>{sections.find(section=>section.id===sectionId)?.hidden?<EyeOff aria-hidden="true"/>:<Eye aria-hidden="true"/>}</button>
+          {location==='inspector' && <>
+            <button type="button" className="all-sections" onClick={()=>setLocation('sections')}><ArrowLeft size={16} strokeWidth={1.75} aria-hidden="true"/>All sections</button>
+            <p className="section-index">SECTION {String(sectionIndex+1).padStart(2,'0')}</p>
+            <div className="paneltitle">
+              <span className="section-title-icon" aria-hidden="true">{sections.find(section=>section.id===sectionId)?.icon}</span>
+              <h2>{title}</h2>
+              {shared && <span className="shared-badge">Shared</span>}
+              <div className="grow"/>
+              <button type="button" className="quiet inspector-action-btn" aria-label={`${sections.find(section=>section.id===sectionId)?.hidden?'Show':'Hide'} ${sectionName}`} onClick={()=>onToggleHidden(sectionId)}>{sections.find(section=>section.id===sectionId)?.hidden?<EyeOff size={16} strokeWidth={1.75} aria-hidden="true"/>:<Eye size={16} strokeWidth={1.75} aria-hidden="true"/>}</button>
               {sectionMenu}
-            </>}
-          </div>}
-          {shared && location==='inspector' && <p className="hint">Shared across every page. Changes here show up everywhere.</p>}
-          {location==='inspector' && <div className="tabs" role="tablist" aria-label="Inspector view">
-            <button type="button" role="tab" aria-selected={view==='Content'} aria-controls="editor-inspector" onClick={()=>setView('Content')}>Content</button>
-            <button type="button" role="tab" aria-selected={view==='Appearance'} aria-controls="editor-inspector" onClick={()=>setView('Appearance')}>Style</button>
-          </div>}
+            </div>
+            {shared && <p className="hint shared-hint">Changes appear on every page.</p>}
+            <div className="tabs" role="tablist" aria-label="Inspector view">
+              <button type="button" role="tab" aria-selected={view==='Content'} aria-controls="editor-inspector" onClick={()=>setView('Content')}>Content</button>
+              <button type="button" role="tab" aria-selected={view==='Appearance'} aria-controls="editor-inspector" onClick={()=>setView('Appearance')}>Style</button>
+            </div>
+          </>}
+          {location==='page-settings' && <>
+            <button type="button" className="all-sections" onClick={()=>setLocation('sections')}><ArrowLeft size={16} strokeWidth={1.75} aria-hidden="true"/>All sections</button>
+            <div className="paneltitle">
+              <h2>{title}</h2>
+              <div className="grow"/>
+              <PageSettingsMenu onOpen={onPageSettings} onReset={onReset}/>
+            </div>
+          </>}
+          {(location==='create-page'||location==='add-section'||location==='library') && <>
+            <button type="button" className="all-sections" onClick={()=>setLocation('sections')}><ArrowLeft size={16} strokeWidth={1.75} aria-hidden="true"/>All sections</button>
+            <div className="paneltitle">
+              <h2>{title}</h2>
+            </div>
+          </>}
         </div>
         <div className="panelbody" id="editor-inspector">
           {location==='pages' && <>
-            <input className="section-search" aria-label="Find a page" placeholder="Find a page" value={pageQuery} onChange={e=>setPageQuery(e.target.value)}/>
+            <div className="search-field">
+              <Search size={15} strokeWidth={1.75} className="search-icon" aria-hidden="true"/>
+              <input className="section-search" aria-label="Find a page" placeholder="Find a page" value={pageQuery} onChange={e=>setPageQuery(e.target.value)}/>
+            </div>
             {(['main','service','other'] as PageGroup[]).map(group=>
-              <PageGroupList key={group} group={group} pages={groups[group]} homeId={homeId} pageId={pageId} query={pageQuery} expanded={servicesExpanded} onExpand={()=>setServicesExpanded(true)} onSelectPage={onSelectPage} onPageMenu={onPageMenu}/>
+              <PageGroupList key={group} group={group} pages={groups[group]} homeId={homeId} pageId={pageId} query={pageQuery} expanded={servicesExpanded} onExpand={()=>setServicesExpanded(true)} onSelectPage={onSelectPage} onPageMenu={onPageMenu} onReset={onReset}/>
             )}
             {!Object.values(groups).flat().some(page=>page.name.toLowerCase().includes(pageQuery.trim().toLowerCase()))&&pageQuery.trim()&&<p className="hint">No matching pages.</p>}
             <button type="button" className="wide" disabled={pages.length>=30} onClick={()=>setLocation('create-page')}><Plus aria-hidden="true"/>Create page</button>
             <button type="button" className="quiet wide" onClick={onPageSettings}>Page settings</button>
           </>}
           {location==='sections' && <>
-            <input className="section-search" aria-label="Find a section" placeholder="Find a section" value={query} onChange={e=>setQuery(e.target.value)}/>
+            <div className="search-field">
+              <Search size={15} strokeWidth={1.75} className="search-icon" aria-hidden="true"/>
+              <input className="section-search" aria-label="Find a section" placeholder="Find a section" value={query} onChange={e=>setQuery(e.target.value)}/>
+            </div>
             {stages.map((stage,index)=>{
               const group=visible.filter(section=>section.stage===index);
               if(!homeStages && !group.length) return null;
-              return <section key={stage} aria-label={stage}><h3 className="section-label">{stage}</h3>{!group.length&&!query.trim()&&<p className="hint">Nothing in this group on this page.</p>}{group.map(section=><div key={section.id} className="navrow" data-block-id={section.id} data-hidden={section.hidden||undefined}>
+              return <section key={stage} aria-label={stage}><h3 className="section-label">{stage}</h3>{!group.length&&!query.trim()&&<p className="hint">Nothing in this group on this page.</p>}{group.map(section=><div key={section.id} className={`navrow${section.id===sectionId?' selected':''}`} data-block-id={section.id} data-hidden={section.hidden||undefined}>
                 <button type="button" className="choose" title={section.name} aria-pressed={section.id===sectionId} aria-label={`${section.name}${section.hidden?', hidden':''}${section.shared?', shared':''}`} onClick={()=>onSelectSection(section.id)} onKeyDown={event=>{
                   if(!['ArrowUp','ArrowDown','Home','End'].includes(event.key))return;
                   event.preventDefault();
@@ -140,7 +178,7 @@ export function EditorShell({location,setLocation,view,setView,open,preview,page
                   const at=rows.indexOf(event.currentTarget);
                   rows[event.key==='Home'?0:event.key==='End'?rows.length-1:(at+(event.key==='ArrowDown'?1:-1)+rows.length)%rows.length]?.focus();
                 }}>{section.icon}<span className="grow">{section.name}</span>{section.hidden&&<small>Hidden</small>}{section.shared&&<small>Shared</small>}</button>
-                <button type="button" className="quiet" aria-label={`${section.hidden?'Show':'Hide'} ${section.name}`} onClick={()=>onToggleHidden(section.id)}>{section.hidden?<EyeOff aria-hidden="true"/>:<Eye aria-hidden="true"/>}</button>
+                <button type="button" className="quiet" aria-label={`${section.hidden?'Show':'Hide'} ${section.name}`} onClick={()=>onToggleHidden(section.id)}>{section.hidden?<EyeOff size={16} strokeWidth={1.75} aria-hidden="true"/>:<Eye size={16} strokeWidth={1.75} aria-hidden="true"/>}</button>
                 {section.menu}
               </div>)}</section>;
             })}
@@ -150,11 +188,13 @@ export function EditorShell({location,setLocation,view,setView,open,preview,page
           {location!=='pages'&&location!=='sections'&&children}
         </div>
         <footer className="panelbottom">
-          <span className="save-status" role={saveError?'alert':'status'} data-error={saveError||undefined}><i aria-hidden="true"/>{sectionName==='Why choose us'&&saveLabel==='Saved in this browser'?'Saved':saveLabel}</span>
-          <div className="grow"/>
-          <button type="button" className="quiet" onClick={onLibrary}>Media</button>
-          <button type="button" className="quiet" onClick={onBusiness}>Business</button>
-          <button type="button" className="quiet reset-page" title="Reset page" aria-label="Reset page" onClick={onReset}>{sectionName==='Why choose us'?<RotateCcw aria-hidden="true"/>:'Reset page'}</button>
+          <div className="panelbottom-status">
+            <span className="save-status" role={saveError?'alert':'status'} data-error={saveError||undefined}><i aria-hidden="true"/>{saveLabel}</span>
+          </div>
+          <div className="panelbottom-actions">
+            <button type="button" className="footer-btn" onClick={onLibrary}><FolderClosed size={16} strokeWidth={1.75} aria-hidden="true"/><span>Media</span></button>
+            <button type="button" className="footer-btn" onClick={onBusiness}><Building2 size={16} strokeWidth={1.75} aria-hidden="true"/><span>Business</span></button>
+          </div>
         </footer>
       </aside>}
       {canvas}

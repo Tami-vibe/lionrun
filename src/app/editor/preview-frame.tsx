@@ -139,8 +139,11 @@ export function PreviewFrame({areaRef, frameRef, device, width, scale, zoomLabel
     };
   }, [areaRef, device, frameRef, mount, region, safeScale, selectedId, width]);
   return <div ref={areaRef} className="canvas-area is-scaled">
-    <div className="region-switch" role="group" aria-label="Editing view">
-      {(["header", "page", "footer"] as const).map(item => <button type="button" key={item} aria-pressed={region === item} onClick={() => onRegion(item)}>{item[0].toUpperCase() + item.slice(1)}</button>)}
+    <div className="canvas-header-controls">
+      <div className="region-switch" role="group" aria-label="Editing view">
+        {(["header", "page", "footer"] as const).map(item => <button type="button" key={item} aria-pressed={region === item} onClick={() => onRegion(item)}>{item[0].toUpperCase() + item.slice(1)}</button>)}
+      </div>
+      <span className="canvas-address-pill">{address}</span>
     </div>
     <div className="canvas-stage" style={{width: Math.round(box.width * safeScale), height: Math.round(box.height * safeScale)}}>
       <div className={`device-frame is-${device === "mobile" ? "phone" : "browser"}`} style={{width: box.width, height: box.height, transform: `scale(${safeScale})`, transformOrigin: "top left"}}>

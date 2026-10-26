@@ -1,6 +1,6 @@
 "use client";
 import {useId, useState, type CSSProperties} from 'react';
-import {CheckCircle2,ChevronDown,ChevronRight,FileText,Image as ImageIcon,Plus,Star,X} from 'lucide-react';
+import {Building2,CheckCircle2,ChevronDown,ChevronRight,FileText,HelpCircle,Image as ImageIcon,Link as LinkIcon,MessageSquare,MousePointerClick,Plus,ShieldCheck,Star,X} from 'lucide-react';
 import {Block,BlockContent,BlockItem,ButtonData,Site,IconName,buttonIconSide,icons,servicePreviewCount} from '../site/blocks';
 import {ButtonPreview} from '../site/sections/elements';
 import {catalog as sections} from '../site/catalog';
@@ -20,7 +20,7 @@ import {ServicesContent} from './services-content';
 
 type Change = (patch: Partial<BlockContent>) => void;
 type Group = {id: string; label: string; hint: string};
-const buttonsGroup: Group = {id:'buttons', label:'Buttons', hint:''};
+const buttonsGroup: Group = {id:'buttons', label:'Action buttons', hint:''};
 const CONTACT_STAGE_MODES = ['image', 'video'] as const satisfies readonly MediaMode[];
 
 function MediaSlot({label,value,usage,onChange,onClear,hint}:{label:string;value:MediaSettings;usage:import('../media/usage').MediaUsageIndex;onChange:(media:MediaSettings)=>void;onClear?:()=>void;hint?:string}) {
@@ -32,7 +32,7 @@ function MessageFields({content,change,intro=false,allowBody=true}:{content:Bloc
     <Field label="Headline" value={content.title} multiline onChange={title=>change({title})}/>
     <Field label="Subtext" value={content.description} multiline onChange={description=>change({description})}/>
     {allowBody&&<>
-      <label className="switch-row"><span>Show body text</span><input type="checkbox" role="switch" aria-label="Show body text" checked={!!content.showBody} onChange={event=>change({showBody:event.target.checked})}/></label>
+      <label className="switch-row"><div className="toggle-info"><span>Additional text</span></div><input type="checkbox" role="switch" aria-label="Additional text" checked={!!content.showBody} onChange={event=>change({showBody:event.target.checked})}/></label>
       {content.showBody&&<Field label="Body text" value={content.body||''} multiline onChange={body=>change({body})}/>}
     </>}
   </>;
@@ -157,9 +157,37 @@ function RatingRow({score, count, onScore, onCount}:{score:string; count:string;
     <input aria-label="Review count" inputMode="numeric" value={count} {...countScope} onChange={event => onCount(event.target.value)}/>
   </>;
 }
+function getGroupIcon(id: string, type: string) {
+  if (id === 'links') return <LinkIcon size={16} strokeWidth={1.75} className="group-icon" aria-hidden="true"/>;
+  if (id === 'name' || id === 'details') return <Building2 size={16} strokeWidth={1.75} className="group-icon" aria-hidden="true"/>;
+  if (id === 'buttons') return <MousePointerClick size={16} strokeWidth={1.75} className="group-icon" aria-hidden="true"/>;
+  if (['media', 'photo', 'image', 'gallery', 'logos', 'logo', 'before', 'after'].includes(id)) return <ImageIcon size={16} strokeWidth={1.75} className="group-icon" aria-hidden="true"/>;
+  if (id === 'trust' || id === 'promises') return <ShieldCheck size={16} strokeWidth={1.75} className="group-icon" aria-hidden="true"/>;
+  if (id === 'rating') return <Star size={16} strokeWidth={1.75} className="group-icon" aria-hidden="true"/>;
+  if (id === 'message' || id === 'intro' || id === 'wording' || id === 'promise') return <MessageSquare size={16} strokeWidth={1.75} className="group-icon" aria-hidden="true"/>;
+  if (type === 'faq') return <HelpCircle size={16} strokeWidth={1.75} className="group-icon" aria-hidden="true"/>;
+  return <FileText size={16} strokeWidth={1.75} className="group-icon" aria-hidden="true"/>;
+}
+
+function getGroupCount(id: string, block: Block, site: Site): number | null {
+  const c = block.content;
+  if (id === 'links' && block.type === 'header') return site.nav.length;
+  if (id === 'buttons') return c.buttons?.length || null;
+  if (id === 'media' && block.type === 'hero') {
+    const mediaCount = [c.media, ...(c.slides || [])].filter(item => item?.src).length;
+    return mediaCount || 1;
+  }
+  if (id === 'promises' && block.type === 'proof') return 3;
+  if (id === 'trust' && block.type === 'hero') return c.facts?.filter(Boolean).length || null;
+  if (id === 'services' && block.type === 'services') return c.items.length || null;
+  if (id === 'logos' && block.type === 'logos') return c.items.length || null;
+  if (id === 'gallery' && block.type === 'about') return c.items.length || null;
+  return null;
+}
+
 export function contentGroups(block:Block,site:Site,footerDefaults:FooterColumn[]):Group[] {
   const {type,layout,content:c}=block;
-  const message:Group={id:'message',label:'Message',hint:'Introduction, headline, and description'};
+  const message:Group={id:'message',label:type==='hero'?'Headline & text':'Message',hint:'Introduction, headline, and description'};
   const contract=layoutContract(type as SectionId,layout);
   const withButtons=(groups:Group[])=>{
     if(type==='proof'&&layout==='Photo and reasons')return groups;
@@ -168,7 +196,7 @@ export function contentGroups(block:Block,site:Site,footerDefaults:FooterColumn[
     return groups;
   };
   const messageGroups=(groups:Group[])=>contract.showsTitle||contract.showsSubtext||contract.showsEyebrow||contract.allowsBody?groups:groups.filter(g=>g.id!=='message');
-  if(type==='header')return [{id:'name',label:'Menu name',hint:'The business name in the header. It is shared by every page.'},{id:'links',label:'Links',hint:'Up to five links'},{id:'logo',label:'Logo',hint:'Optional mark beside the name'}];
+  if(type==='header')return [{id:'links',label:'Navigation links',hint:'Up to 5 navigation links'},{id:'name',label:'Business name',hint:'The business name in the header. It is shared by every page.'},{id:'logo',label:'Logo',hint:'Optional mark beside the name'}];
   if(type==='footer'){const columns=site.footerColumns||footerDefaults;return [...(!site.footerColumns?[{id:'details',label:'Business details',hint:'Name, phone, email, and location'}]:[]),...columns.map((column,i)=>({id:`column:${i}`,label:column.title.trim()||`Column ${i+1}`,hint:'Heading, text, and links'})),{id:'copyright',label:'Copyright',hint:'The line under the columns'},{id:'image',label:'Image',hint:'Optional picture above the columns'}];}
   if(type==='hero'){const groups:Group[]=[message,buttonsGroup,{id:'trust',label:'Reasons to trust you',hint:''}];if(layout==='story')groups.push({id:'statistics',label:'Your business in numbers',hint:''});const mediaCount=[c.media,...(c.slides||[])].filter(item=>item?.src).length;groups.push({id:'media',label:'Hero media',hint:mediaCount?`${mediaCount} item${mediaCount===1?'':'s'}`:''});if(layout==='story')groups.push({id:'story',label:'Story video',hint:'Plays when someone uses the story button'});groups.push({id:'rating',label:'Customer rating',hint:''});return groups;}
   if(type==='services')return [{id:'intro',label:'Introduction',hint:layout==='Photo cards'?'Headline and the note beside it':'Headline and the card link'},{id:'services',label:'Services',hint:`${c.items.length} ${c.items.length===1?'item':'items'}`}];
@@ -216,8 +244,8 @@ export function ContentBrowser({block,site,pages,update,change,footerDefaults,us
   if(current==='message')return <MessageFields content={c} change={change} intro={type==='hero'} allowBody={layoutContract(type as SectionId,block.layout).allowsBody}/>;
   if(current==='intro')return <><MessageFields content={c} change={change} allowBody={layoutContract('services',block.layout).allowsBody}/>{block.layout!=='Photo cards'&&<Field label="Link text" value={c.actionLabel||''} onChange={actionLabel=>change({actionLabel})}/>}{block.layout==='Photo cards'&&<Field label="Side note" value={c.note} multiline onChange={note=>change({note})}/>}</>;
   if(current==='buttons')return c.buttons.length?<ButtonFields block={block} change={change} sections={site.blocks} accent={site.accent} theme={site.theme}/>:<p className="helper-text">This section has no separate buttons.</p>;
-  if(current==='name')return <><Field label="Menu name" value={site.brand} onChange={brand=>update({brand})}/><p className="helper-text">This changes the business name on every page.</p></>;
-  if(current==='links'&&type==='header')return <>{site.nav.map((name,i)=><div className="service-editor" key={i}>{linkedPage(pages,site.navTargets?.[i]||'',site.navPageIds?.[i])?<p>Page link: {linkedPage(pages,site.navTargets?.[i]||'',site.navPageIds?.[i])!.name}. Rename it in Page settings.</p>:<Field label={`Menu link ${i+1}`} value={name} onChange={label=>update({nav:site.nav.map((v,j)=>i===j?label:v)})}/>}<label className="field"><span>Where this button goes</span><select value={site.navTargets?.[i]||["#services","#proof","#contact"][i]||"#contact"} onChange={e=>update({navTargets:site.nav.map((_,j)=>i===j?e.target.value:site.navTargets?.[j]||["#services","#proof","#contact"][j]||"#contact")})}>{pages.map(p=><option key={p.id} value={`/${p.slug||pageSlug(p.name)}`}>{p.name} page</option>)}{sections.filter(s=>!["header","footer"].includes(s.id)).map(s=><option key={s.id} value={s.id==="hero"?"#top":`#${s.id}`}>{s.label}{site.hidden.includes(s.id)?" (hidden)":""}</option>)}</select></label><button type="button" className="subtle-action" aria-label={`Remove menu link ${i+1}`} onClick={()=>update({nav:site.nav.filter((_,j)=>i!==j),navChildren:site.nav.map((_,j)=>site.navChildren?.[j]||[]).filter((_,j)=>i!==j),navTargets:site.nav.map((_,j)=>site.navTargets?.[j]||["#services","#proof","#contact"][j]||"#contact").filter((_,j)=>i!==j)})}>Remove link</button></div>)}<button type="button" className="wide" disabled={site.nav.length>=5} onClick={()=>update({nav:[...site.nav,"New link"],navChildren:[...site.nav.map((_,i)=>site.navChildren?.[i]||[]),[]],navTargets:[...site.nav.map((_,i)=>site.navTargets?.[i]||["#services","#proof","#contact"][i]||"#contact"),"#contact"]})}>Add menu link</button>{site.nav.length>=5&&<p className="hint">The top menu has five links. Remove one to add another.</p>}</>;
+  if(current==='name')return <><Field label="Business name" value={site.brand} onChange={brand=>update({brand})}/><p className="helper-text">This changes the business name on every page.</p></>;
+  if(current==='links'&&type==='header')return <>{site.nav.map((name,i)=><div className="service-editor" key={i}>{linkedPage(pages,site.navTargets?.[i]||'',site.navPageIds?.[i])?<p>Page link: {linkedPage(pages,site.navTargets?.[i]||'',site.navPageIds?.[i])!.name}. Rename it in Page settings.</p>:<Field label={`Navigation link ${i+1}`} value={name} onChange={label=>update({nav:site.nav.map((v,j)=>i===j?label:v)})}/>}<label className="field"><span>Where this button goes</span><select value={site.navTargets?.[i]||["#services","#proof","#contact"][i]||"#contact"} onChange={e=>update({navTargets:site.nav.map((_,j)=>i===j?e.target.value:site.navTargets?.[j]||["#services","#proof","#contact"][j]||"#contact")})}>{pages.map(p=><option key={p.id} value={`/${p.slug||pageSlug(p.name)}`}>{p.name} page</option>)}{sections.filter(s=>!["header","footer"].includes(s.id)).map(s=><option key={s.id} value={s.id==="hero"?"#top":`#${s.id}`}>{s.label}{site.hidden.includes(s.id)?" (hidden)":""}</option>)}</select></label><button type="button" className="subtle-action" aria-label={`Remove navigation link ${i+1}`} onClick={()=>update({nav:site.nav.filter((_,j)=>i!==j),navChildren:site.nav.map((_,j)=>site.navChildren?.[j]||[]).filter((_,j)=>i!==j),navTargets:site.nav.map((_,j)=>site.navTargets?.[j]||["#services","#proof","#contact"][j]||"#contact").filter((_,j)=>i!==j)})}>Remove link</button></div>)}<button type="button" className="wide" disabled={site.nav.length>=5} onClick={()=>update({nav:[...site.nav,"New link"],navChildren:[...site.nav.map((_,i)=>site.navChildren?.[i]||[]),[]],navTargets:[...site.nav.map((_,i)=>site.navTargets?.[i]||["#services","#proof","#contact"][i]||"#contact"),"#contact"]})}>Add navigation link</button>{site.nav.length>=5&&<p className="hint">The top menu has five links. Remove one to add another.</p>}</>;
   if(current==='logo')return <MediaSlot label="Logo" value={c.media} usage={usage} onChange={media=>change({media})} onClear={()=>change({media:{...mediaDefaults}})}/>;
   if(current==='trust') {
     const writeFact=(index:number,value:string)=>change({facts:c.facts.map((fact,i)=>i===index?value:fact)});
@@ -237,7 +265,7 @@ export function ContentBrowser({block,site,pages,update,change,footerDefaults,us
     const summary=ratingSummary(rating.score,rating.count);
     const note=scoreWarning(rating.score)||countWarning(rating.count);
     return <div className="list-editor">
-      <label className="switch-row"><span>Show rating</span><input type="checkbox" role="switch" checked={!!c.rating&&c.showRating!==false} onChange={event=>change(event.target.checked?{showRating:true,rating:c.rating||{score:'',count:'',href:''}}:{showRating:false})}/></label>
+      <label className="switch-row"><div className="toggle-info"><span>Show rating</span></div><input type="checkbox" role="switch" checked={!!c.rating&&c.showRating!==false} onChange={event=>change(event.target.checked?{showRating:true,rating:c.rating||{score:'',count:'',href:''}}:{showRating:false})}/></label>
       {!!c.rating&&c.showRating!==false&&<>
         <div className="stat-table"><RatingRow score={rating.score} count={rating.count} onScore={score=>change({rating:{...rating,score}})} onCount={count=>change({rating:{...rating,count}})}/></div>
         <p className="helper-text">Score out of 5.</p>
@@ -289,6 +317,5 @@ if(current==='facts')return <>{[0,1,2].map(i=><Field key={i} label={`Fact ${i+1}
   }
   return <p className="helper-text">Choose a part of this section to edit.</p>;
   };
-  const refined=type==='proof'||type==='logos'||type==='about'||type==='services';
-  return <div className={refined?"group-list refined-inspector":"group-list"}>{type==='footer'&&site.footerColumns&&<button type="button" className="reset-style" onClick={()=>update({footerColumns:undefined})}>Use original footer content</button>}{groups.map(item=>{const expanded=open===item.id;const slug=item.id.replace(/[^A-Za-z0-9_-]/g,"-");const buttonId=`${accordionBase}-${slug}-heading`;const panelId=`${accordionBase}-${slug}-panel`;return <div className="accordion" key={item.id} data-expanded={expanded}><button type="button" className="accordion-toggle" id={buttonId} aria-expanded={expanded} aria-controls={panelId} onClick={event=>{onOpen(expanded?null:item.id);if(refined)event.currentTarget.scrollIntoView({block:'nearest'});}}>{refined&&(item.id==='message'||item.id==='intro'?<FileText size={16} aria-hidden="true"/>:item.id==='promises'?<CheckCircle2 size={16} aria-hidden="true"/>:item.id==='photo'||item.id==='logos'||item.id==='gallery'||item.id==='services'?<ImageIcon size={16} aria-hidden="true"/>:null)}<span className="grow"><b>{item.label}</b>{item.hint&&<small>{item.hint}</small>}</span>{type==='proof'&&item.id==='promises'&&!expanded&&<span className="group-count">3</span>}{refined?<ChevronDown size={16} className="refined-chevron" aria-hidden="true"/>:<ChevronRight aria-hidden="true"/>}</button>{expanded&&<div className="accordion-panel" id={panelId} role="region" aria-labelledby={buttonId}>{panel(item.id)}</div>}</div>;})}{noun&&type!=='services'&&<button type="button" className="wide" disabled={capped||(type!=='quote'&&type!=='proof'&&!['logos','about','pains','solutions','trust','reviews','faq'].includes(type))} onClick={add}>Add {noun}</button>}{noun&&type!=='services'&&capped&&<p className="hint">This section has as many items as it can hold.</p>}</div>;
+  return <div className="group-list">{type==='footer'&&site.footerColumns&&<button type="button" className="reset-style" onClick={()=>update({footerColumns:undefined})}>Use original footer content</button>}{groups.map(item=>{const expanded=open===item.id;const slug=item.id.replace(/[^A-Za-z0-9_-]/g,"-");const buttonId=`${accordionBase}-${slug}-heading`;const panelId=`${accordionBase}-${slug}-panel`;const count=getGroupCount(item.id,block,site);return <div className="accordion" key={item.id} data-expanded={expanded}><button type="button" className="accordion-toggle" id={buttonId} aria-expanded={expanded} aria-controls={panelId} onClick={event=>{onOpen(expanded?null:item.id);event.currentTarget.scrollIntoView({block:'nearest'});}}>{getGroupIcon(item.id,type)}<span className="grow"><b>{item.label}</b>{item.hint&&<small>{item.hint}</small>}</span>{count!==null&&<span className="group-count">{count}</span>}{expanded?<ChevronDown size={16} className="group-chevron refined-chevron" aria-hidden="true"/>:<ChevronRight size={16} className="group-chevron refined-chevron" aria-hidden="true"/>}</button>{expanded&&<div className="accordion-panel" id={panelId} role="region" aria-labelledby={buttonId}>{panel(item.id)}</div>}</div>;})}{noun&&type!=='services'&&<button type="button" className="wide" disabled={capped||(type!=='quote'&&type!=='proof'&&!['logos','about','pains','solutions','trust','reviews','faq'].includes(type))} onClick={add}>Add {noun}</button>}{noun&&type!=='services'&&capped&&<p className="hint">This section has as many items as it can hold.</p>}</div>;
 }

@@ -1,6 +1,6 @@
 "use client";
 import {flushSync} from "react-dom";
-import {ArrowLeft,ChevronDown,Ellipsis,Monitor,Moon,Redo2,Settings,Smartphone,Sun,Tablet,Undo2} from "lucide-react";
+import {ChevronDown,Download,Ellipsis,Eye,Monitor,Moon,Redo2,Settings,Smartphone,Sun,Tablet,Undo2} from "lucide-react";
 import {ManageLibraryProvider, MediaProvider} from "./media/library";
 import {MediaLibraryBoard} from "./media/library-board";
 import {collectMediaUsage} from "./media/usage";
@@ -177,7 +177,6 @@ function Editor({initialPreview,requestedPage}:{initialPreview:boolean;requested
   const pageName=pages.find(p=>p.id===activeId)?.name||"Home";
   const profileValue:ProfileDetails={ownerName:homeSite.ownerName||""};
   const businessValue:BusinessDetails={email:homeSite.email,brand:homeSite.brand,address:homeSite.address,phone:homeSite.phone,hours:homeSite.blocks.find(b=>b.type==="contact")?.content.hours||""};
-  const showPages=()=>{setLocation("pages");setSidebarOpen(true);setMenu("");};
   const chooseZoom=(mode:"fit"|number)=>{setZoom(mode);setMenu("");};
   const darkTheme=site.theme==="midnight";
   const zoomChoices=<div className="export-options" role="menu">
@@ -186,11 +185,13 @@ function Editor({initialPreview,requestedPage}:{initialPreview:boolean;requested
   </div>;
   const toolbar=<header className="topbar workspace-toolbar">
     <div className="toolbar-group toolbar-identity">
-      <button type="button" className="icon-button" aria-label="Back to projects" onClick={showPages}><ArrowLeft aria-hidden="true"/></button>
-      <p className="toolbar-identity-text"><strong>{site.brand}</strong><span className="identity-sep" aria-hidden="true">/</span><button type="button" onClick={showPages}>{pageName}</button></p>
+      <div className="project-brand">
+        <span className="project-mark" aria-hidden="true">{(site.brand?.charAt(0)||"N").toUpperCase()}</span>
+        <strong className="brand-title">{site.brand}</strong>
+      </div>
     </div>
     <div className="toolbar-group toolbar-center">
-      <div className="toolbar-middle" role="group" aria-label="Preview size">
+      <div className="toolbar-middle devices" role="group" aria-label="Preview size">
         <button type="button" className={`icon-button${device==="desktop"?" tool-active":""}`} onClick={()=>setDevice("desktop")} aria-label="Desktop preview"><Monitor aria-hidden="true"/></button>
         <button type="button" className={`icon-button${device==="tablet"?" tool-active":""}`} onClick={()=>setDevice("tablet")} aria-label="Tablet preview"><Tablet aria-hidden="true"/></button>
         <button type="button" className={`icon-button${device==="mobile"?" tool-active":""}`} onClick={()=>setDevice("mobile")} aria-label="Mobile preview"><Smartphone aria-hidden="true"/></button>
@@ -205,13 +206,13 @@ function Editor({initialPreview,requestedPage}:{initialPreview:boolean;requested
       <button type="button" className="icon-button" onClick={()=>{setDirty(true);dispatch({type:"undo"});}} disabled={!history.past.length} aria-label="Undo"><Undo2 aria-hidden="true"/></button>
       <button type="button" className="icon-button" onClick={()=>{setDirty(true);dispatch({type:"redo"});}} disabled={!history.future.length} aria-label="Redo"><Redo2 aria-hidden="true"/></button>
       <button type="button" className="icon-button theme-toggle is-secondary" aria-pressed={darkTheme} aria-label={darkTheme?"Switch to light website theme":"Switch to dark website theme"} onClick={()=>update({theme:darkTheme?"paper":"midnight"})}><Moon className="is-moon" size={18} strokeWidth={1.75} aria-hidden="true"/><Sun className="is-sun" size={18} strokeWidth={1.75} aria-hidden="true"/></button>
-      <button type="button" onClick={openPreview} className="preview-toggle is-secondary">Live preview</button>
+      <button type="button" onClick={openPreview} className="preview-toggle is-secondary"><Eye size={16} strokeWidth={1.75} aria-hidden="true"/><span>Live preview</span></button>
       <div className="export-menu" onKeyDown={e=>{if(e.key==="Escape")setMenu("");}}>
-        <button type="button" aria-expanded={menu==="export"} aria-haspopup="menu" disabled={exportBusy} onClick={()=>setMenu(current=>current==="export"?"":"export")}>{exportBusy?"Preparing…":"Export"}<ChevronDown aria-hidden="true"/></button>
+        <button type="button" aria-expanded={menu==="export"} aria-haspopup="menu" disabled={exportBusy} onClick={()=>setMenu(current=>current==="export"?"":"export")}><Download size={16} strokeWidth={1.75} aria-hidden="true"/><span>{exportBusy?"Preparing…":"Export"}</span><ChevronDown aria-hidden="true"/></button>
         {menu==="export"&&<div className="export-options" role="menu"><button type="button" role="menuitem" onClick={()=>void exportPackage("html")}>HTML website (.zip)</button><button type="button" role="menuitem" onClick={()=>void exportPackage("wordpress")}>WordPress website theme (.zip)</button><button type="button" role="menuitem" onClick={()=>{setMenu("");exportConfig();}}>All pages (.json)</button></div>}
       </div>
       <span className="toolbar-divider is-secondary" aria-hidden="true"/>
-      <button type="button" className="icon-button is-secondary" aria-haspopup="dialog" aria-label="Settings" onClick={()=>openSettings('business')}><Settings aria-hidden="true"/></button>
+      <button type="button" className="icon-button is-secondary" aria-haspopup="dialog" aria-label="Settings" title="Settings" onClick={()=>openSettings('business')}><Settings aria-hidden="true"/></button>
     </div>
     <div className="toolbar-more" onKeyDown={e=>{if(e.key==="Escape")setMenu("");}}>
       <button type="button" className="icon-button" aria-haspopup="menu" aria-expanded={menu==="more"} aria-label="More" onClick={()=>setMenu(current=>current==="more"?"":"more")}><Ellipsis aria-hidden="true"/></button>
