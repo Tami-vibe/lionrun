@@ -45,3 +45,10 @@ next-env.d.ts
 
 # linked worktrees
 .worktrees/
+
+# local review dumps (not product assets)
+/docs/review-shots/
+/*.png
+!/public/
+Why-Choose-Us.patch
+counting.md

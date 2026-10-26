@@ -1,10 +1,26 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {normalizeSettings,equalWidths,resizeWidth,moveDivider,sectionVariables} from '../src/app/editor/settings.ts';
+import {normalizeSettings,equalWidths,resizeWidth,moveDivider,sectionVariables,normalizeBrandKit,brandKitVariables,defaultBrandKit} from '../src/app/editor/settings.ts';
 const valid=widths=>{assert.ok(widths.every(n=>Number.isFinite(n)&&n>=10-1e-8));assert.ok(Math.abs(widths.reduce((a,b)=>a+b,0)-100)<1e-8);};
 test('old pages retain inherited text styling and layout defaults',()=>{
   assert.deepEqual(sectionVariables(),{});assert.equal(normalizeSettings().columns,3);
   assert.deepEqual(normalizeSettings({heading:{}}).heading,normalizeSettings().heading);
+});
+test('brand kit defaults and rejects unknown font pairs',()=>{
+  assert.deepEqual(normalizeBrandKit(undefined),defaultBrandKit);
+  assert.deepEqual(normalizeBrandKit({fontPair:'weird',radius:'soft',lineWidth:'2'}),{fontPair:'northline',radius:'soft',lineWidth:'2'});
+  assert.match(brandKitVariables(normalizeBrandKit({fontPair:'editorial'}))['--font-display'],/editorial-display/);
+});
+import {sharedMenu} from '../src/app/editor/workspace.ts';
+import {initial} from '../src/app/site/blocks.ts';
+test('home brand kit syncs onto other pages',()=>{
+  const home={...initial,accent:'#112233',theme:'midnight',eyebrowStyle:'line',brandKit:{fontPair:'editorial',radius:'sharp',lineWidth:'2'}};
+  const page={...initial,accent:'#abcdef',theme:'paper',eyebrowStyle:'pill',brandKit:defaultBrandKit,blocks:initial.blocks.map(b=>({...structuredClone(b),id:b.type==='header'||b.type==='footer'?b.id:`${b.id}-page`}))};
+  const synced=sharedMenu(page,home);
+  assert.equal(synced.accent,'#112233');
+  assert.equal(synced.theme,'midnight');
+  assert.equal(synced.eyebrowStyle,'line');
+  assert.deepEqual(synced.brandKit,{fontPair:'editorial',radius:'sharp',lineWidth:'2'});
 });
 test('column counts and invalid persisted values remain bounded',()=>{
   for(const columns of [-5,1,2,3,4,5,50,NaN])valid(normalizeSettings({columns,widths:[90,10,10,10,10]}).widths);

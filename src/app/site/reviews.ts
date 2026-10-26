@@ -2,7 +2,7 @@ import type {BlockItem} from './blocks';
 import type {MediaSettings} from '../media/model';
 
 export type ReviewOrigin = 'manual' | 'demo' | 'plugin';
-export type ReviewLayout = 'featured' | 'grid' | 'carousel' | 'auto';
+export type ReviewLayout = 'featured' | 'grid' | 'carousel';
 export type ReviewRecord = {
   id: string;
   name: string;
@@ -42,11 +42,10 @@ export function reviewsFromPlugin(reviews: ReviewRecord[]): ReviewFeed {
 export function reviewLayout(layout: string): ReviewLayout {
   if (layout==='One large quote') return 'featured';
   if (layout==='Carousel') return 'carousel';
-  if (layout==='Auto') return 'auto';
   return 'grid';
 }
 export function reviewLayoutName(layout: ReviewLayout) {
-  return layout==='featured' ? 'One large quote' : layout==='carousel' ? 'Carousel' : layout==='auto' ? 'Auto' : 'Review cards';
+  return layout==='featured' ? 'One large quote' : layout==='carousel' ? 'Carousel' : 'Review cards';
 }
 export function reviewInitials(name: string) {
   const parts = name.split(/\s+/).filter(Boolean);

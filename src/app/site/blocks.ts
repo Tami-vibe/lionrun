@@ -1,16 +1,17 @@
 import {catalog} from './catalog';
 import type {SectionId} from './catalog';
 import {contactHours} from './contact-hours';
-import {defaultColumns,equalWidths,normalizeSettings,headerLook,pageSlug} from '../editor/settings';
-import type {SectionSettings,FooterColumn} from '../editor/settings';
+import {defaultColumns,equalWidths,normalizeSettings,normalizeBrandKit,headerLook,pageSlug} from '../editor/settings';
+import type {SectionSettings,FooterColumn,BrandKit} from '../editor/settings';
 import {heroSlides, slideIndexAllowed} from '../editor/hero-collection';
 import {mediaDefaults,socialEmbed} from '../media/model';
 import type {MediaSettings} from '../media/model';
-export type BlockItem = {title:string;description:string;icon:IconName;media?:MediaSettings;price?:string;pageId?:string;caption?:string;group?:string;tag?:string;value?:string;note?:string;when?:string;source?:string;stars?:number};
-export type BlockContent = {smallLabel:string;title:string;description:string;items:BlockItem[];media:MediaSettings;buttons:ButtonData[];facts:string[];note:string;formButton:string;consent:string;fields:{label:string;type:'text'|'email'|'tel'|'textarea';required:boolean}[];rating?:{score:string;count:string;href:string};slides?:MediaSettings[];factIcons?:IconName[];story?:MediaSettings;showSecondary?:boolean;showHeading?:boolean;showMedia?:boolean;showBusiness?:boolean;arrowCircle?:boolean;buttonCount?:0|1|2;headAlign?:'top'|'center'|'bottom';photoSide?:'left'|'right';height?:'standard'|'full';align?:'left'|'center';darkness?:number;fade?:boolean;fadeDirection?:'ltr'|'rtl';fadeWidth?:number;fadeStrength?:number;background?:string;reviewText?:'full'|'excerpt';avatar?:'off'|'circle'|'square';namePrivacy?:boolean;showRating?:boolean;showDate?:boolean;showService?:boolean;showSource?:boolean;cardFace?:'filled'|'plain';cardPad?:'comfortable'|'compact';promise?:string;price?:string;oldPrice?:string;endDate?:string;badge?:string;address?:string;phone?:string;email?:string;hours?:string;indexLabel?:string;actionLabel?:string;allPhotosLabel?:string;catalogPageId?:string;before?:MediaSettings;after?:MediaSettings;beforeLabel?:string;afterLabel?:string;slideSeconds?:number;slideAdvance?:'time'|'end';slideFade?:number;slideAutoplay?:boolean;slideIndex?:number;mediaMode?:'image'|'video'|'slideshow';slideLoop?:boolean};
+export type BlockItem = {id?:string;title:string;description:string;icon:IconName;media?:MediaSettings;price?:string;pageId?:string;caption?:string;group?:string;tag?:string;value?:string;note?:string;when?:string;source?:string;stars?:number;href?:string;hidden?:boolean};
+export type EyebrowStyle = 'pill' | 'line';
+export type BlockContent = {smallLabel:string;title:string;description:string;body?:string;showBody?:boolean;showBreadcrumbs?:boolean;items:BlockItem[];media:MediaSettings;buttons:ButtonData[];facts:string[];note:string;formButton:string;consent:string;fields:{label:string;type:'text'|'email'|'tel'|'textarea';required:boolean}[];rating?:{score:string;count:string;href:string};slides?:MediaSettings[];factIcons?:IconName[];story?:MediaSettings;showSecondary?:boolean;showHeading?:boolean;showMedia?:boolean;showBusiness?:boolean;arrowCircle?:boolean;buttonCount?:0|1|2;headAlign?:'top'|'center'|'bottom';photoSide?:'left'|'right';height?:'standard'|'full';align?:'left'|'center';darkness?:number;fade?:boolean;fadeDirection?:'ltr'|'rtl';fadeWidth?:number;fadeStrength?:number;background?:string;reviewText?:'full'|'excerpt';avatar?:'off'|'circle'|'square';namePrivacy?:boolean;showRating?:boolean;showDate?:boolean;showService?:boolean;showSource?:boolean;cardFace?:'filled'|'plain';cardPad?:'comfortable'|'compact';promise?:string;price?:string;oldPrice?:string;endDate?:string;badge?:string;address?:string;phone?:string;email?:string;hours?:string;indexLabel?:string;actionLabel?:string;allPhotosLabel?:string;catalogPageId?:string;before?:MediaSettings;after?:MediaSettings;beforeLabel?:string;afterLabel?:string;logoScale?:number;monochrome?:boolean;galleryVisible?:4|5|6|7;galleryRows?:number;storyFeatured?:1|2;galleryWidth?:'boxed'|'full';galleryScale?:number;galleryMotion?:'still'|'loop';gallerySpeed?:number;galleryPauseHover?:boolean;logoMotion?:'still'|'loop';logoPauseHover?:boolean;slideSeconds?:number;slideAdvance?:'time'|'end';slideFade?:number;slideAutoplay?:boolean;slideIndex?:number;mediaMode?:'image'|'video'|'slideshow';slideLoop?:boolean};
 export type Block = {id:string;type:SectionId;layout:string;content:BlockContent;settings:SectionSettings;hidden?:boolean};
 export const blockLayouts:Record<SectionId,readonly string[]> = {
- header:['standard','pill','rounded'],hero:['split','center','image','short','story'],logos:['Scrolling row','Still row','Heading and slider'],services:['Icon cards','Photo cards','Price list'],proof:['Text and photo','Promise band','Photo and reasons'],about:['Story and photos','Photos only'],pains:['Photo cards','One message'],solutions:['Numbered steps','Before and after'],trust:['Big numbers','Numbers and certifications','Signals'],reviews:['Review cards','One large quote','Carousel','Auto'],quote:['Photo beside the form'],faq:['Accordion','Two columns'],promo:['Offer band'],contact:['Details and map'],closing:['Quiet','Full color'],footer:['columns','minimal'],
+ header:['standard','pill','rounded'],hero:['split','center','image','short','story'],logos:['Scrolling row','Still row','Heading and slider'],services:['Icon cards','Photo cards','Price list'],proof:['Text and photo','Promise band','Photo and reasons'],about:['Story and photos','Photos only','Sliding gallery'],pains:['Photo cards','One message'],solutions:['Numbered steps','Before and after'],trust:['Big numbers','Numbers and certifications','Signals'],reviews:['Review cards','One large quote','Carousel'],quote:['Photo beside the form'],faq:['Accordion','Two columns'],promo:['Offer band'],contact:['Details and map'],closing:['Quiet','Full color'],footer:['columns','minimal'],
 };
 export type IconName = "none" | "arrow" | "phone" | "calendar" | "mail" | "check" | "message" | "car" | "wrench" | "shield" | "star" | "pin" | "paint" | "gear" | "tow" | "battery" | "wheel" | "scan" | "glass";
 export const icons: IconName[] = ["none", "arrow", "phone", "calendar", "mail", "check", "message", "car", "wrench", "shield", "star", "pin", "paint", "gear", "tow", "battery", "wheel", "scan", "glass"];
@@ -34,6 +35,7 @@ export type Item = {
     icon: IconName;
     image?: string;
     tag?: string;
+    group?: string;
 };
 export type Extra = {
     title: string;
@@ -91,16 +93,23 @@ export type Site = {
     seoDescription: string;
     accent: string;
     theme?: "midnight" | "paper";
+    /** Theme brand label look: pill badge or line rule. Inherited by every section kicker. */
+    eyebrowStyle?: EyebrowStyle;
+    /** Website-level brand kit (fonts, corners, line). One kit per website; Home owns and syncs. */
+    brandKit?: BrandKit;
     hidden: SectionId[];
     extras: Record<string, Extra>;
     contactSecondary: ButtonData;
 };
+export function normalizeEyebrowStyle(value: unknown): EyebrowStyle {
+  return value === 'line' ? 'line' : 'pill';
+}
 const legacyInitial: Omit<Site,'blocks'> = {
     brand: "NORTHLINE", nav: ["Services", "Why us", "Contact"], headerStyle: "standard", footerStyle: "columns",
     eyebrow: "CHICAGO'S TRUSTED AUTO BODY SHOP", headline: "Your car deserves a better comeback.",
     description: "Collision repair, flawless paint, and honest answers. We make the entire process feel easy—from your first estimate to the final handoff.",
     image: "/media/showcase/highway-suv.jpg", overlay: 36,
-    theme: "paper", layout: "image", align: "left", primary: { label: "Get a free estimate", href: "#contact", icon: "arrow" },
+    theme: "paper", eyebrowStyle: "pill", layout: "image", align: "left", primary: { label: "Get a free estimate", href: "#contact", icon: "arrow" },
     secondary: { label: "Call the shop", href: "tel:+13125550184", icon: "phone" },
     servicesTitle: "Expert care. Every detail.", services: [
         { title: "Collision repair", description: "Precision structural and cosmetic repairs to get you safely back on the road.", icon: "car" },
@@ -111,7 +120,18 @@ const legacyInitial: Omit<Site,'blocks'> = {
     mediaAlt: "Vehicle at the body shop", mediaKind: "image", seoTitle: "Northline | Collision Repair", seoDescription: "Collision repair, paint and estimates from Northline.", phone: "+1 (312) 555-0184", email: "hello@example.com", address: "Chicago, Illinois", accent: "#7963ff", hidden: [], contactSecondary: { label: "Call the shop", href: "tel:+13125550184", icon: "phone" },
     extras: {
         logos: { title: "Trusted by our community", description: "Brands and partners we work with", items: ["Audi", "BMW", "Mercedes-Benz", "Porsche", "Tesla", "Volvo", "Land Rover"].map(title => ({ title, description: "", icon: "none" as const })) },
-        about: { title: "Meet the people behind the work", description: "Real technicians, a real shop, and a commitment to doing things right.", items: [{ title: "Our team", description: "Experienced specialists who care about every detail.", icon: "check" }, { title: "Our workshop", description: "Modern equipment and a transparent process.", icon: "check" }] },
+        about: { title: "Meet the people behind the work", description: "Real technicians, a real shop, and a commitment to doing things right.", items: [
+            { title: "Workshop bay", description: "Active repair bays and tooling.", icon: "none", image: "/media/gallery/workshop-bay.jpg", group: "Facility" },
+            { title: "Chassis bench", description: "Structural diagnostic equipment.", icon: "none", image: "/media/gallery/ev-lift-diagnostic.jpg", group: "Bench" },
+            { title: "Paint booth", description: "Controlled refinishing environment.", icon: "none", image: "/media/gallery/hero-beast-mode-01.jpg", group: "Paint" },
+            { title: "Bodywork", description: "Panel repair and fitment.", icon: "none", image: "/media/gallery/bodywork-door-repair.jpg", group: "Detailing" },
+            { title: "Climate systems", description: "Service and calibration.", icon: "none", image: "/media/gallery/ac-service.jpg", group: "Facility" },
+            { title: "Diagnostics", description: "Scanner and readout station.", icon: "none", image: "/media/gallery/diagnostic-scanner.jpg", group: "Bench" },
+            { title: "Wheel service", description: "Balancing and tyre work.", icon: "none", image: "/media/gallery/tyres.jpg", group: "Detailing" },
+            { title: "Service desk", description: "Estimates and authorizations.", icon: "none", image: "/media/gallery/service-authorization.jpg", group: "Facility" },
+            { title: "ADAS cockpit", description: "Camera and sensor setup.", icon: "none", image: "/media/gallery/driver-cockpit.jpg", group: "Paint" },
+            { title: "Road ready", description: "Final checks before delivery.", icon: "none", image: "/media/gallery/highway-suv.jpg", group: "Facility" },
+        ] },
         pains: { title: "What gets in the way.", description: "Unexpected delays, hidden supplements, and insurer red tape shouldn't define your collision repair.", items: [{ title: "Moving deadlines", description: "Parts delays and a lack of communication leave rental clocks ticking down while your vehicle sits disassembled.", icon: "calendar", tag: "The hassle", image: "/media/ai-images/rental-delay.jpg" }, { title: "Estimate creep", description: "Initial quotes that balloon unexpectedly at vehicle pickup due to undocumented labor rates and unapproved parts supplements.", icon: "check", tag: "Surprise costs", image: "/media/ai-images/estimate-stress.jpg" }, { title: "Flawed finishes", description: "Noticeable color mismatches, clear-coat peeling, and rough texture from non-certified spray environments.", icon: "paint", tag: "Poor quality", image: "/media/ai-images/paint-flaw.jpg" }] },
         solutions: { title: "A clear path back to the road", description: "From your first call to the final inspection.", items: ["Tell us what happened", "Receive your estimate", "Approve the plan", "We complete the repair", "Drive away confidently"].map(title => ({ title, description: "", icon: "check" })) },
         trust: { title: "Confidence comes from evidence", description: "Show real credentials, warranty terms, and documented results.", items: [{ title: "Experienced team", description: "Meet our specialists", icon: "check" }, { title: "Clear estimates", description: "Know before we begin", icon: "check" }, { title: "Quality checks", description: "Every detail matters", icon: "check" }] },
@@ -168,7 +188,7 @@ export function blockFromLegacy(site:Omit<Site,'blocks'>,type:SectionId):Block {
  if(type==='hero')Object.assign(content,{smallLabel:site.eyebrow,title:site.headline,description:site.description,media:site.heroMedia||legacyHero(site),buttons:[site.primary,site.secondary],facts:['Clear estimates','Local experts','Quality first'],indexLabel:'01 / BUILT WITH CARE',align:site.align,darkness:site.overlay,showSecondary:true,height:'standard'});
  if(type==='services')Object.assign(content,{smallLabel:'Our services',title:'Everything your car needs after an accident.',description:'From the first call to the final polish, one workshop takes care of it all.',items:shopServices.map(item=>({title:item.title,description:item.description,icon:item.icon,media:item.media})),actionLabel:'Learn more'});
  if(type==='proof')Object.assign(content,{smallLabel:'The Northline difference',title:site.proofTitle,description:site.proofText,facts:['Transparent process','Quality craftsmanship','People-first service'],media:site.sectionMedia?.proof||{...mediaDefaults,src:site.proofImage||workshop,alt:site.proofTitle},note:'CRAFT / CARE / CONFIDENCE'});
- if(type==='about'){content.smallLabel='About';content.items=content.items.map((item,i)=>({...item,caption:i?'Care in every detail':'Inside the workshop',media:item.media||{...mediaDefaults,src:i?detailPhoto:extra?.image||workshop,alt:item.title}}));}
+ if(type==='about'){content.smallLabel='About';content.allPhotosLabel=content.allPhotosLabel||'All photos';content.items=content.items.map((item,i)=>({...item,group:item.group||'',caption:item.caption||item.title,media:item.media||{...mediaDefaults,src:i?detailPhoto:extra?.image||workshop,alt:item.title,kind:'image'}}));}
  if(type==='quote')Object.assign(content,{media:site.sectionMedia?.quote||{...mediaDefaults,src:extra?.image||workshop,alt:extra?.title||''},note:'Demo form — submissions are not sent or stored.',formButton:'Request estimate',consent:'I agree to be contacted about this request.',fields:[{label:'Name',type:'text',required:true},{label:'Phone or email',type:'text',required:true},{label:'What do you need?',type:'textarea',required:false}]});
  if(type==='contact')Object.assign(content,{smallLabel:'Your next step',title:site.contactTitle,description:site.contactText,buttons:[site.primary,site.contactSecondary],address:site.address,phone:site.phone,email:site.email,hours:''});
  if(['pains','faq','closing'].includes(type))content.buttons=[site.primary];
@@ -234,7 +254,7 @@ export function contentForLayout(block:Block,layout:string):BlockContent {
   if(block.type==='trust'&&layout==='Signals')return trustSignalContent(content);
   return content;
 }
-const singleColumnLayouts=['Price list','Promise band','One message','One large quote','Accordion','Scrolling row','Heading and slider','Signals'];
+const singleColumnLayouts=['Price list','Promise band','One message','One large quote','Accordion','Scrolling row','Heading and slider','Signals','Sliding gallery'];
 export function settingsForLayout(type:string,layout:string,settings:SectionSettings):SectionSettings {
   const count=singleColumnLayouts.includes(layout)?1:layout==='Two columns'?2:defaultColumns(type);
   if(settings.columns===count&&settings.widths?.length===count)return settings;
@@ -268,12 +288,19 @@ export function applyIndustryMedia(block:Block):Block {
   if(block.type==='promo'&&legacyMedia(content.media.src))content.media=still('/media/ai-images/promo-bg.jpg','Seasonal workshop offer');
   if(block.type==='contact'&&legacyMedia(content.media.src))content.media=still('/media/showcase/mountain-road.jpg','Open road');
   if(block.type==='contact'&&block.id==='contact')content.hours=contactHours(content.hours);
-  if(block.type==='about')content.items=content.items.map((item,i)=>legacyMedia(item.media?.src)?{...item,media:still(i?'/media/showcase/diagnostic-scanner.jpg':'/media/showcase/bodywork-door-repair.jpg',item.title)}:item);
+  if(block.type==='about'){
+    const starter=legacyInitial.extras.about?.items||[];
+    const thinSeed=content.items.length<=2&&content.items.every((item,i)=>item.title===['Our team','Our workshop'][i]);
+    if(thinSeed&&starter.length>=6)content.items=starter.map(item=>({title:item.title,description:item.description,icon:item.icon,group:item.group||'',caption:item.title,media:still(item.image||workshop,item.title)}));
+    else content.items=content.items.map((item,i)=>legacyMedia(item.media?.src)?{...item,media:still(i?'/media/showcase/diagnostic-scanner.jpg':'/media/showcase/bodywork-door-repair.jpg',item.title)}:item);
+    if(!content.allPhotosLabel)content.allPhotosLabel='All photos';
+  }
   if(block.type==='solutions'){if(legacyMedia(content.before?.src))content.before=still('/media/ai-images/before-repair.jpeg','Before the repair');if(legacyMedia(content.after?.src))content.after=still('/media/ai-images/after-repair.jpeg','After the repair');if(block.id==='solutions'&&block.layout==='Numbered steps')content.items=content.items.map((item,i)=>{const file=['Documenting Damage on a Luxury Sedan.png','Inspecting Automotive Damage in the Workshop.png','Digital Car Repair Consultation.png','Precision Auto Body Repair in a Modern Garage.png','Luxury Sedan in a Sunset Garage.png'][i];const src=file?`/media/ai-images/${file}`:'';return src&&legacyMedia(item.media?.src)?{...item,media:{...still(src,item.title),ratio:'4/3'}}:item;});}
   if(block.type==='pains')content.items=content.items.map((item,i)=>{const shot=['/media/ai-images/rental-delay.jpg','/media/ai-images/estimate-stress.jpg','/media/ai-images/paint-flaw.jpg'][i];return shot&&legacyMedia(item.media?.src)?{...item,media:still(shot,item.title)}:item;});
-  return {...block,content};
+  const layout=block.type==='reviews'&&block.layout==='Auto'?'Review cards':block.layout;
+  return {...block,layout,content};
 }
-export function migrateSite(site:Omit<Site,'blocks'>&{blocks?:Block[]}):Site {return {...site,footerColumns:site.footerColumns||[{title:site.brand,text:'Good work. Good people. A better way forward.',links:[]},{title:'Explore',text:'',links:catalog.filter(s=>!site.hidden.includes(s.id)&&['services','proof','about','contact'].includes(s.id)).map(s=>({label:s.label,href:`#${s.id}`}))},{title:'Get in touch',text:[site.address,site.phone,site.email].join('\n'),links:[]}],blocks:fixedBlockOrder((site.blocks?site.blocks.map(block=>({...block,layout:block.type==='header'?headerLook(site.headerStyle):block.type==='footer'?site.footerStyle:block.layout,content:{...block.content,title:block.type==='pains'&&block.content.title==="Repairs shouldn't add more stress"?'What gets in the way.':block.content.title,description:block.type==='pains'&&block.content.description==="We understand what matters when your vehicle is off the road."?"Unexpected delays, hidden supplements, and insurer red tape shouldn't define your collision repair.":block.content.description,smallLabel:block.type==='pains'&&!block.content.smallLabel?'Common industry pitfalls':block.content.smallLabel,media:legacyMedia(block.content.media?.src)?{...block.content.media,src:block.type==='hero'?'/media/showcase/highway-suv.jpg':block.type==='quote'?'/media/ai-images/repair-bench.jpg':workshop,kind:'image'}:block.content.media,items:block.type==='pains'?block.content.items.map((item,i)=>migratePainItem(item,i)):block.content.items,buttons:['hero','pains','faq','promo','contact','closing','proof'].includes(block.type)?block.content.buttons:[]},settings:normalizeSettings(block.settings)})):catalog.map(section=>blockFromLegacy(site,section.id))).map(block=>applyIndustryMedia(block as Block)))};}
+export function migrateSite(site:Omit<Site,'blocks'>&{blocks?:Block[]}):Site {return {...site,eyebrowStyle:normalizeEyebrowStyle(site.eyebrowStyle),brandKit:normalizeBrandKit(site.brandKit),footerColumns:site.footerColumns||[{title:site.brand,text:'Good work. Good people. A better way forward.',links:[]},{title:'Explore',text:'',links:catalog.filter(s=>!site.hidden.includes(s.id)&&['services','proof','about','contact'].includes(s.id)).map(s=>({label:s.label,href:`#${s.id}`}))},{title:'Get in touch',text:[site.address,site.phone,site.email].join('\n'),links:[]}],blocks:fixedBlockOrder((site.blocks?site.blocks.map(block=>({...block,layout:block.type==='header'?headerLook(site.headerStyle):block.type==='footer'?site.footerStyle:block.layout,content:{...block.content,title:block.type==='pains'&&block.content.title==="Repairs shouldn't add more stress"?'What gets in the way.':block.content.title,description:block.type==='pains'&&block.content.description==="We understand what matters when your vehicle is off the road."?"Unexpected delays, hidden supplements, and insurer red tape shouldn't define your collision repair.":block.content.description,smallLabel:block.type==='pains'&&!block.content.smallLabel?'Common industry pitfalls':block.content.smallLabel,media:legacyMedia(block.content.media?.src)?{...block.content.media,src:block.type==='hero'?'/media/showcase/highway-suv.jpg':block.type==='quote'?'/media/ai-images/repair-bench.jpg':workshop,kind:'image'}:block.content.media,items:block.type==='pains'?block.content.items.map((item,i)=>migratePainItem(item,i)):block.content.items,buttons:['hero','pains','faq','promo','contact','closing','proof'].includes(block.type)?block.content.buttons:[]},settings:normalizeSettings(block.settings)})):catalog.map(section=>blockFromLegacy(site,section.id))).map(block=>applyIndustryMedia(block as Block)))};}
 export const initial:Site=migrateSite(legacyInitial);
 export function makeBlock(type:SectionId):Block {const block=blockFromLegacy(legacyInitial,type);return {...structuredClone(block),id:crypto.randomUUID(),hidden:false};}
 export const pageStarters={service:['hero','services','faq','quote','contact'],offer:['hero','promo','quote','contact'],story:['hero','about','reviews','contact'],empty:['hero']} satisfies Record<string,SectionId[]>;
@@ -303,7 +330,7 @@ function catalogPageSite(home:Site,items:BlockItem[]):Site {
 export function syncServicePages<T extends {id:string;name:string;slug?:string;site:Site}>(pages:T[],homeId:string):T[]|null {
   const home=pages.find(p=>p.id===homeId);if(!home)return null;
   const block=home.site.blocks.find(b=>b.type==='services');if(!block)return null;
-  const titled=block.content.items.filter(item=>item.title.trim());if(!titled.length)return null;
+  const titled=block.content.items.filter(item=>item.title.trim()&&!item.hidden);if(!titled.length)return null;
   const cap=servicePreviewCount(block.settings.columns);
   const catalog=pages.find(p=>p.id===block.content.catalogPageId);
   const missing=titled.some(item=>!item.pageId||!pages.some(p=>p.id===item.pageId));
@@ -322,7 +349,7 @@ export function syncServicePages<T extends {id:string;name:string;slug?:string;s
   const services=homeNext.site.blocks.find(b=>b.type==='services')!;
   const add=(name:string,build:(source:Site)=>Site)=>{if(next.length>=30)return;const id=crypto.randomUUID(),slug=pageSlug(name,[...used]);used.add(slug);const page={id,name,slug,site:build(homeNext.site)} as T;next=[...next,page];return page;};
   services.content.items=services.content.items.map(item=>{
-    if(!item.title.trim())return item;
+    if(!item.title.trim()||item.hidden)return item;
     const found=item.pageId?next.find(p=>p.id===item.pageId):undefined;
     const page=found||add(item.title,source=>servicePageSite(source,item));
     if(!page)return item;
@@ -332,11 +359,27 @@ export function syncServicePages<T extends {id:string;name:string;slug?:string;s
     else if(hero&&hero.layout!=='short'&&item.media?.src&&(!hero.content.media.src||hero.content.media.src.startsWith('/media/')))hero.content.media={...item.media};
     return {...item,pageId:page.id};
   });
-  const linked=services.content.items.filter(item=>item.title.trim());
+  const linked=services.content.items.filter(item=>item.title.trim()&&!item.hidden);
   if(linked.length>cap){
     let index=services.content.catalogPageId?next.find(p=>p.id===services.content.catalogPageId):undefined;
     if(!index)index=add('All services',source=>catalogPageSite(source,linked));
-    if(index){services.content.catalogPageId=index.id;const grid=index.site.blocks.find(b=>b.type==='services');if(grid){grid.hidden=false;grid.layout='Icon cards';grid.content={...grid.content,smallLabel:'Our services',title:grid.content.title||'All services',description:grid.content.description||'Choose a service to see how the workshop handles it.',items:linked.map(item=>({...item})),actionLabel:'Learn more'};}}
+    if(index){
+      services.content.catalogPageId=index.id;
+      const grid=index.site.blocks.find(b=>b.type==='services');
+      if(grid){
+        grid.hidden=false;
+        // Keep the catalog page's own layout/columns; Home layout stays independent.
+        if(!blockLayouts.services.includes(grid.layout))grid.layout='Icon cards';
+        grid.content={
+          ...grid.content,
+          smallLabel:grid.content.smallLabel||'Our services',
+          title:grid.content.title||'All services',
+          description:grid.content.description||'Choose a service to see how the workshop handles it.',
+          items:linked.map(item=>({...item})),
+          actionLabel:grid.content.actionLabel||'Learn more'
+        };
+      }
+    }
   }
   return next;
 }
@@ -351,12 +394,18 @@ export function validBlocks(value:unknown):value is Block[] {
     if(!block||typeof block.id!=='string'||!block.id||block.id.length>100||ids.has(block.id)||!catalog.some(s=>s.id===block.type)||!blockLayouts[block.type as SectionId].includes(block.layout)||!block.content||!block.settings||typeof block.settings!=='object'||(block.hidden!==undefined&&typeof block.hidden!=='boolean'))return false;
     ids.add(block.id);if(['header','footer'].includes(block.type)){if(shared.has(block.type))return false;shared.add(block.type);}
     const c=block.content;
-    if(!['smallLabel','title','description','note','formButton','consent'].every(key=>typeof c[key]==='string')||!optionalStrings(c,['price','oldPrice','endDate','badge','promise','address','phone','email','hours','indexLabel','actionLabel','allPhotosLabel','catalogPageId','beforeLabel','afterLabel']))return false;
-    if(!Array.isArray(c.items)||c.items.length>60||!c.items.every((i:BlockItem)=>i&&typeof i.title==='string'&&typeof i.description==='string'&&icon(i.icon)&&optionalStrings(i,['price','pageId','caption','group','tag','value','note','when','source'])&&(!i.media||media(i.media))&&(i.stars===undefined||Number.isInteger(i.stars)&&i.stars>=1&&i.stars<=5)))return false;
+    if(!['smallLabel','title','description','note','formButton','consent'].every(key=>typeof c[key]==='string')||!optionalStrings(c,['body','price','oldPrice','endDate','badge','promise','address','phone','email','hours','indexLabel','actionLabel','allPhotosLabel','catalogPageId','beforeLabel','afterLabel']))return false;
+    if(c.showBody!==undefined&&typeof c.showBody!=='boolean')return false;
+    if(c.showBreadcrumbs!==undefined&&typeof c.showBreadcrumbs!=='boolean')return false;
+    if(c.galleryRows!==undefined&&!(Number.isInteger(c.galleryRows)&&c.galleryRows>=1&&c.galleryRows<=4))return false;
+    if(c.storyFeatured!==undefined&&c.storyFeatured!==1&&c.storyFeatured!==2)return false;
+    if(c.logoMotion!==undefined&&c.logoMotion!=='still'&&c.logoMotion!=='loop')return false;
+    if(c.logoPauseHover!==undefined&&typeof c.logoPauseHover!=='boolean')return false;
+    if(!Array.isArray(c.items)||c.items.length>60||!c.items.every((i:BlockItem)=>i&&typeof i.title==='string'&&typeof i.description==='string'&&icon(i.icon)&&optionalStrings(i,['id','price','pageId','caption','group','tag','value','note','when','source','href'])&&(i.id===undefined||i.id.length<=100)&&(i.hidden===undefined||typeof i.hidden==='boolean')&&(!i.media||media(i.media))&&(i.stars===undefined||Number.isInteger(i.stars)&&i.stars>=1&&i.stars<=5)))return false;
     if(!Array.isArray(c.buttons)||c.buttons.length>2||!c.buttons.every(validButton))return false;
     if(!Array.isArray(c.facts)||c.facts.length>3||!c.facts.every((fact:unknown)=>typeof fact==='string')||!Array.isArray(c.fields)||c.fields.length>12||!c.fields.every((f:{label:string;type:string;required:boolean})=>f&&typeof f.label==='string'&&['text','email','tel','textarea'].includes(f.type)&&typeof f.required==='boolean'))return false;
     if(!media(c.media)||(c.before&&!media(c.before))||(c.after&&!media(c.after))||(c.story&&!media(c.story))||(c.slides&&(!Array.isArray(c.slides)||c.slides.length>4||!c.slides.every(media)))||(c.factIcons!==undefined&&(!Array.isArray(c.factIcons)||c.factIcons.length>3||!c.factIcons.every(icon))))return false;
-    return (!c.rating||['score','count','href'].every(key=>typeof c.rating[key]==='string'))&&(c.height===undefined||['standard','full'].includes(c.height))&&(c.align===undefined||['left','center'].includes(c.align))&&(c.showSecondary===undefined||typeof c.showSecondary==='boolean')&&(c.showHeading===undefined||typeof c.showHeading==='boolean')&&(c.showMedia===undefined||typeof c.showMedia==='boolean')&&(c.showBusiness===undefined||typeof c.showBusiness==='boolean')&&(c.arrowCircle===undefined||typeof c.arrowCircle==='boolean')&&(c.buttonCount===undefined||[0,1,2].includes(c.buttonCount))&&(c.headAlign===undefined||['top','center','bottom'].includes(c.headAlign))&&(c.photoSide===undefined||['left','right'].includes(c.photoSide))&&(c.darkness===undefined||typeof c.darkness==='number'&&c.darkness>=0&&c.darkness<=80)&&(c.fade===undefined||typeof c.fade==='boolean')&&(c.fadeDirection===undefined||['ltr','rtl'].includes(c.fadeDirection))&&(c.fadeWidth===undefined||typeof c.fadeWidth==='number'&&c.fadeWidth>=0&&c.fadeWidth<=100)&&(c.fadeStrength===undefined||typeof c.fadeStrength==='number'&&c.fadeStrength>=0&&c.fadeStrength<=100)&&(c.background===undefined||typeof c.background==='string'&&/^#[0-9a-f]{6}$/i.test(c.background))&&(c.reviewText===undefined||['full','excerpt'].includes(c.reviewText))&&(c.avatar===undefined||['off','circle','square'].includes(c.avatar))&&(c.namePrivacy===undefined||typeof c.namePrivacy==='boolean')&&(c.showRating===undefined||typeof c.showRating==='boolean')&&(c.showDate===undefined||typeof c.showDate==='boolean')&&(c.showService===undefined||typeof c.showService==='boolean')&&(c.showSource===undefined||typeof c.showSource==='boolean')&&(c.cardFace===undefined||['filled','plain'].includes(c.cardFace))&&(c.cardPad===undefined||['comfortable','compact'].includes(c.cardPad))&&slideTiming(c);
+    return (!c.rating||['score','count','href'].every(key=>typeof c.rating[key]==='string'))&&(c.height===undefined||['standard','full'].includes(c.height))&&(c.align===undefined||['left','center'].includes(c.align))&&(c.showSecondary===undefined||typeof c.showSecondary==='boolean')&&(c.showHeading===undefined||typeof c.showHeading==='boolean')&&(c.showMedia===undefined||typeof c.showMedia==='boolean')&&(c.showBusiness===undefined||typeof c.showBusiness==='boolean')&&(c.arrowCircle===undefined||typeof c.arrowCircle==='boolean')&&(c.buttonCount===undefined||[0,1,2].includes(c.buttonCount))&&(c.headAlign===undefined||['top','center','bottom'].includes(c.headAlign))&&(c.photoSide===undefined||['left','right'].includes(c.photoSide))&&(c.darkness===undefined||typeof c.darkness==='number'&&c.darkness>=0&&c.darkness<=80)&&(c.fade===undefined||typeof c.fade==='boolean')&&(c.fadeDirection===undefined||['ltr','rtl'].includes(c.fadeDirection))&&(c.fadeWidth===undefined||typeof c.fadeWidth==='number'&&c.fadeWidth>=0&&c.fadeWidth<=100)&&(c.fadeStrength===undefined||typeof c.fadeStrength==='number'&&c.fadeStrength>=0&&c.fadeStrength<=100)&&(c.background===undefined||typeof c.background==='string'&&/^#[0-9a-f]{6}$/i.test(c.background))&&(c.reviewText===undefined||['full','excerpt'].includes(c.reviewText))&&(c.avatar===undefined||['off','circle','square'].includes(c.avatar))&&(c.namePrivacy===undefined||typeof c.namePrivacy==='boolean')&&(c.showRating===undefined||typeof c.showRating==='boolean')&&(c.showDate===undefined||typeof c.showDate==='boolean')&&(c.showService===undefined||typeof c.showService==='boolean')&&(c.showSource===undefined||typeof c.showSource==='boolean')&&(c.cardFace===undefined||['filled','plain'].includes(c.cardFace))&&(c.cardPad===undefined||['comfortable','compact'].includes(c.cardPad))&&(c.logoScale===undefined||typeof c.logoScale==='number'&&c.logoScale>=40&&c.logoScale<=90)&&(c.monochrome===undefined||typeof c.monochrome==='boolean')&&(c.galleryVisible===undefined||[4,5,6,7].includes(c.galleryVisible))&&(c.galleryWidth===undefined||c.galleryWidth==='boxed'||c.galleryWidth==='full')&&(c.galleryScale===undefined||typeof c.galleryScale==='number'&&c.galleryScale>=1&&c.galleryScale<=2)&&(c.galleryMotion===undefined||c.galleryMotion==='still'||c.galleryMotion==='loop')&&(c.gallerySpeed===undefined||typeof c.gallerySpeed==='number'&&c.gallerySpeed>=1&&c.gallerySpeed<=5)&&(c.galleryPauseHover===undefined||typeof c.galleryPauseHover==='boolean')&&slideTiming(c);
   });
 }
 export function duplicateBlock(block:Block):Block {const copy=structuredClone(block);copy.id=crypto.randomUUID();copy.content.title=`${copy.content.title} (copy)`;return copy;}

@@ -1,4 +1,4 @@
-import {useState} from 'react';
+import {useState, type ReactNode} from 'react';
 import {AlignCenter, AlignLeft, AlignRight, ChevronDown, RotateCcw} from 'lucide-react';
 import {fonts,normalizeSettings,resizeWidth,equalWidths,SectionSettings,TextStyle} from './settings';
 import {useEditScope} from './fields';
@@ -52,23 +52,23 @@ export function TypographyControls({value,change,target,setTarget,compact=false}
     ) : (
       <label className="field"><span>Text to style</span><select aria-label="Text to style" value={target} onChange={e=>setTarget(e.target.value as 'heading'|'body')}><option value="heading">Headings</option><option value="body">Body text</option></select></label>
     )}
-    {!compact && <p className="settings-hint">Use a clear heading and comfortable body text. Start with the theme defaults.</p>}
+    <p className="settings-hint">{compact ? (t.family || t.size !== undefined || t.weight !== undefined || t.align || t.lineHeight !== undefined || t.tracking !== undefined || t.color ? 'Custom overrides apply to this section.' : 'Following theme.') : 'Use a clear heading and comfortable body text. Start with the theme defaults.'}</p>
     <label className="field"><span>Font family</span><select value={t.family||''} onChange={e=>update({family:e.target.value||undefined})}><option value="">Theme default</option>{Object.keys(fonts).map(f=><option key={f} value={f}>{({display:'Display',text:'Text'})[f as keyof typeof fonts]}</option>)}</select></label>
     <div className="type-dual-row">
-      <UnitField label="Size" unit="px" placeholder="Theme" value={t.size} clear={()=>update({size:undefined})} min={10} max={96} change={size=>update({size})}/>
+      <UnitField label="Size" unit="px" placeholder={target==='heading'?'40':'18'} value={t.size} clear={()=>update({size:undefined})} min={10} max={96} change={size=>update({size})}/>
       <label className="field"><span>Weight</span><select value={t.weight||''} onChange={e=>update({weight:Number(e.target.value)||undefined})}><option value="">Theme default</option>{[300,400,500,600,700,800,900].map(n=><option key={n} value={n}>{n===400?'Regular':n===700?'Bold':n}</option>)}</select></label>
     </div>
     {compact ? (
-      <fieldset className="type-align"><legend>Alignment</legend><div className="segmented-align">{[['','Theme',null],['left','Align left',AlignLeft],['center','Align center',AlignCenter],['right','Align right',AlignRight]].map(([align,label,Icon])=><button key={String(align)} type="button" title={String(label)} aria-label={String(label)} className={(!t.align && !align) || t.align === align ? 'is-active' : ''} aria-pressed={(!t.align && !align) || t.align === align} onClick={()=>update({align:String(align)||undefined})}>{Icon&&typeof Icon!=='string'?<Icon size={16} aria-hidden="true"/>:String(label)}</button>)}</div></fieldset>
+      <fieldset className="type-align"><legend>Alignment</legend><div className="segmented-align">{[['','Auto',null],['left','Align left',AlignLeft],['center','Align center',AlignCenter],['right','Align right',AlignRight]].map(([align,label,Icon])=><button key={String(align)} type="button" title={String(label)} aria-label={String(label)} className={(!t.align && !align) || t.align === align ? 'is-active' : ''} aria-pressed={(!t.align && !align) || t.align === align} onClick={()=>update({align:String(align)||undefined})}>{Icon&&typeof Icon!=='string'?<Icon size={16} aria-hidden="true"/>:String(label)}</button>)}</div></fieldset>
     ) : (
       <label className="field"><span>Text alignment</span><select value={t.align||''} onChange={e=>update({align:e.target.value||undefined})}><option value="">Theme default</option><option>left</option><option>center</option><option>right</option></select></label>
     )}
     <div className="type-dual-row">
-      <UnitField label="Line height" placeholder="Theme" value={t.lineHeight} clear={()=>update({lineHeight:undefined})} min={1} max={2.5} step={0.05} change={lineHeight=>update({lineHeight})}/>
-      <UnitField label="Letter spacing" unit="px" placeholder="Theme" value={t.tracking} clear={()=>update({tracking:undefined})} min={-3} max={10} step={0.1} change={tracking=>update({tracking})}/>
+      <UnitField label="Line height" placeholder={target==='heading'?'1.15':'1.65'} value={t.lineHeight} clear={()=>update({lineHeight:undefined})} min={1} max={2.5} step={0.05} change={lineHeight=>update({lineHeight})}/>
+      <UnitField label="Letter spacing" unit="px" placeholder="0" value={t.tracking} clear={()=>update({tracking:undefined})} min={-3} max={10} step={0.1} change={tracking=>update({tracking})}/>
     </div>
     <ColorField key={target} compact={compact} color={t.color} change={color=>update({color})}/>
-    {compact && <p className="helper-text">Theme values remain linked until changed.</p>}
+    {compact && <p className="helper-text">Overrides apply only to this section.</p>}
     <button className={compact?"refined-reset":"reset-style"} onClick={()=>change({...value,[target]:undefined})}><RotateCcw size={16} aria-hidden="true"/>Reset {target==='heading'?'heading':'body'} style</button>
   </div>;
 }
@@ -76,4 +76,31 @@ export function TypographyControls({value,change,target,setTarget,compact=false}
 export function SpacingField({label,value,max,change}:{label:string;value?:number;max:number;change:(value:number|undefined)=>void}) {
   const scope=useEditScope();
   return <label className="spacing-field"><span>{label}</span><span className="unit-input"><input aria-label={label} type="number" min={0} max={max} value={value??''} placeholder="Theme" {...scope} onChange={event=>change(event.target.value===''?undefined:Math.max(0,Math.min(max,Number(event.target.value))))}/><small>px</small></span></label>;
+}
+
+/** Shared spacing pair used by refined style panels; section-specific extras pass as children. */
+export function RefinedSpacingGroup({
+  gapLabel,
+  gap,
+  padding,
+  showGap = true,
+  settings,
+  onChange,
+  children,
+}: {
+  gapLabel: string;
+  gap?: number;
+  padding?: number;
+  showGap?: boolean;
+  settings: SectionSettings;
+  onChange: (settings: SectionSettings) => void;
+  children?: ReactNode;
+}) {
+  return (
+    <>
+      {showGap && <SpacingField label={gapLabel} value={gap} max={80} change={next => onChange({...settings, gap: next})} />}
+      <SpacingField label="Top and bottom" value={padding} max={160} change={next => onChange({...settings, padding: next})} />
+      {children}
+    </>
+  );
 }

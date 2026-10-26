@@ -11,12 +11,12 @@ import {collectionPatch,removalStart} from '../src/app/editor/hero-collection.ts
 import {sequenceRuntime} from '../src/app/media/export.ts';
 import vm from 'node:vm';
 register('./support/tsx.mjs',import.meta.url);
-const {ContentBrowser}=await import('../src/app/editor/fields.tsx');
+const {ContentBrowser}=await import('../src/app/editor/content-browser.tsx');
 const {ProofStyle}=await import('../src/app/editor/proof-style.tsx');
 const {ProofSection}=await import('../src/app/site/sections/proof.tsx');
 const proof=()=>structuredClone(initial.blocks.find(block=>block.type==='proof'));
 const image={...mediaDefaults,src:'/media/one.jpg',alt:'Workshop'},video={...mediaDefaults,src:'/media/two.mp4',kind:'video'};
-const contentMarkup=(block,group)=>renderToStaticMarkup(createElement(ContentBrowser,{block,group,site:initial,pages:[],update:()=>assert.fail('Render must not mutate'),change:()=>assert.fail('Render must not mutate'),footerDefaults:[],used:'',onOpen:()=>{},home:true}));
+const contentMarkup=(block,group)=>renderToStaticMarkup(createElement(ContentBrowser,{block,group,site:initial,pages:[],update:()=>assert.fail('Render must not mutate'),change:()=>assert.fail('Render must not mutate'),footerDefaults:[],usage:new Map(),onOpen:()=>{},home:true}));
 
 test('Why choose us Links renders section destinations, not shared menu fields',()=>{
   const block=proof();block.layout='Photo and reasons';block.content=contentForLayout(block,block.layout);
@@ -35,6 +35,7 @@ test('Style exposes layout first and preserves underlying layout ids',()=>{
   const block=proof(),html=renderToStaticMarkup(createElement(ProofStyle,{block,changeLayout:()=>{},changeSettings:()=>{},change:()=>{}}));
   assert.match(html,/Text \+ media/);assert.match(html,/Media \+ reasons/);
   assert.match(html,/value="Text and photo"/);assert.match(html,/aria-expanded="true"/);
+  assert.equal((html.match(/class="layout-choice"/g) || []).length, 3);
   assert.doesNotMatch(html,/Font size/);
 });
 test('media mode switches retain the saved collection and select the requested kind',()=>{

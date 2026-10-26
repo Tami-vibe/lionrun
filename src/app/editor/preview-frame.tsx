@@ -14,7 +14,13 @@ function syncFrame(doc: Document) {
   base.href = document.baseURI;
   doc.body.className = document.body.className;
   const source = getComputedStyle(document.body);
-  for (const name of ["--font-display", "--font-text"]) {
+  for (const name of [
+    "--font-display", "--font-text",
+    "--font-pair-northline-display", "--font-pair-northline-text",
+    "--font-pair-editorial-display", "--font-pair-editorial-text",
+    "--font-pair-industrial-display", "--font-pair-industrial-text",
+    "--font-pair-friendly-display", "--font-pair-friendly-text",
+  ]) {
     const value = source.getPropertyValue(name).trim();
     if (value) doc.documentElement.style.setProperty(name, value);
   }

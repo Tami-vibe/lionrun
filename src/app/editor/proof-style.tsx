@@ -1,9 +1,11 @@
-import {useId, useState} from 'react';
+import {useState} from 'react';
 import {ChevronDown, Grid2X2, MoveVertical, RotateCcw, SlidersHorizontal, Type} from 'lucide-react';
 import type {Block, BlockContent} from '../site/blocks';
 import {equalWidths, normalizeSettings, resizeWidth, type SectionSettings} from './settings';
-import {SpacingField, TypographyControls} from './inspector';
+import {RefinedSpacingGroup, TypographyControls} from './inspector';
 import {Choice} from './fields';
+import {LayoutPicker, LayoutThumb} from './layout-picker';
+import {RefinedStyleShell} from './refined-style-shell';
 
 export function ProofStyle({
   block,
@@ -20,7 +22,6 @@ export function ProofStyle({
 }) {
   const [open, setOpen] = useState('layout');
   const [target, setTarget] = useState<'heading' | 'body'>('heading');
-  const base = useId();
   const value = block.settings;
   const s = normalizeSettings(value);
   const single = block.layout === 'Promise band';
@@ -41,50 +42,22 @@ export function ProofStyle({
   const isEqual = !isMoreText && !isMoreMedia;
 
   return (
-    <div className="refined-inspector">
-      {groups.map(({id, label, icon: Icon}) => (
-        <section className="refined-group" key={id}>
-          <h3>
-            <button
-              type="button"
-              className="refined-toggle"
-              id={`${base}-${id}-heading`}
-              aria-expanded={open === id}
-              aria-controls={`${base}-${id}`}
-              onClick={event => {
-                setOpen(open === id ? '' : id);
-                event.currentTarget.scrollIntoView({block: 'nearest'});
-              }}
-            >
-              <Icon size={16} aria-hidden="true" />
-              <span>{label}</span>
-              <ChevronDown size={16} className="refined-chevron" aria-hidden="true" />
-            </button>
-          </h3>
-          {open === id && (
-            <div className="refined-body" id={`${base}-${id}`} role="region" aria-labelledby={`${base}-${id}-heading`}>
+    <RefinedStyleShell groups={groups} open={open} setOpen={setOpen}>
+      {id => (
+        <>
               {id === 'layout' && (
                 <>
-                  <fieldset className="layout-options">
-                    <legend>Section layout</legend>
-                    {[
-                      {layout: 'Text and photo', name: 'Text + media', renderSketch: () => <SchematicTextMedia />},
-                      {layout: 'Promise band', name: 'Promise band', renderSketch: () => <SchematicPromiseBand />},
-                      {layout: 'Photo and reasons', name: 'Media + reasons', renderSketch: () => <SchematicMediaReasons />}
-                    ].map(({layout, name, renderSketch}) => (
-                      <label key={layout} className="layout-option" data-selected={block.layout === layout}>
-                        <input
-                          type="radio"
-                          name={`${base}-layout`}
-                          checked={block.layout === layout}
-                          value={layout}
-                          onChange={() => changeLayout(layout)}
-                        />
-                        {renderSketch()}
-                        <span>{name}</span>
-                      </label>
-                    ))}
-                  </fieldset>
+                  <LayoutPicker
+                    legend="Section layout"
+                    name="proof-layout"
+                    value={block.layout}
+                    onChange={changeLayout}
+                    options={[
+                      {value: 'Text and photo', label: 'Text + media', thumb: <TextMediaThumb />},
+                      {value: 'Promise band', label: 'Promise band', thumb: <PromiseBandThumb />},
+                      {value: 'Photo and reasons', label: 'Media + reasons', thumb: <MediaReasonsThumb />}
+                    ]}
+                  />
 
                   {!single && (
                     <>
@@ -283,34 +256,23 @@ export function ProofStyle({
               )}
 
               {id === 'spacing' && (
-                <>
-                  {!single && (
-                    <SpacingField
-                      label="Between columns"
-                      value={gapVal}
-                      max={80}
-                      change={gap => changeSettings({...value, gap})}
-                    />
-                  )}
-                  <SpacingField
-                    label="Top and bottom"
-                    value={padVal}
-                    max={160}
-                    change={padding => changeSettings({...value, padding})}
-                  />
-
+                <RefinedSpacingGroup
+                  gapLabel="Between columns"
+                  gap={gapVal}
+                  padding={padVal}
+                  showGap={!single}
+                  settings={value}
+                  onChange={changeSettings}
+                >
                   <div className="spacing-diagram-wrapper" aria-hidden="true">
                     <svg width="100%" height="144" viewBox="0 0 260 144" fill="none" className="spacing-diagram-svg">
                       <rect x="0.5" y="0.5" width="259" height="143" rx="8" fill="#f0f5ff" stroke="#bfdbfe" strokeDasharray="3 3" />
-
-                      {/* Top spacing guide */}
                       <line x1="130" y1="6" x2="130" y2="34" stroke="#2563eb" strokeWidth="1.25" />
                       <path d="M127.5 9.5 L130 6 L132.5 9.5" stroke="#2563eb" strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round" />
                       <path d="M127.5 30.5 L130 34 L132.5 30.5" stroke="#2563eb" strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round" />
                       <text x="136" y="24" fill="#2563eb" fontSize="11" fontWeight="600" fontFamily="var(--editor-font)">
                         {padVal}px
                       </text>
-
                       {single ? (
                         <g>
                           <rect x="18" y="40" width="224" height="64" rx="6" fill="#ffffff" stroke="#e2e8f0" strokeWidth="1" />
@@ -323,29 +285,22 @@ export function ProofStyle({
                         </g>
                       ) : (
                         <g>
-                          {/* Left Card: Text */}
                           <rect x="18" y="40" width="88" height="64" rx="6" fill="#ffffff" stroke="#e2e8f0" strokeWidth="1" />
                           <rect x="28" y="54" width="48" height="4" rx="2" fill="#94a3b8" />
                           <rect x="28" y="63" width="68" height="3" rx="1.5" fill="#cbd5e1" />
                           <rect x="28" y="70" width="56" height="3" rx="1.5" fill="#cbd5e1" />
                           <rect x="28" y="77" width="40" height="3" rx="1.5" fill="#cbd5e1" />
-
-                          {/* Horizontal gap guide */}
                           <line x1="108" y1="72" x2="152" y2="72" stroke="#2563eb" strokeWidth="1.25" />
                           <path d="M111.5 69.5 L108 72 L111.5 74.5" stroke="#2563eb" strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round" />
                           <path d="M148.5 69.5 L152 72 L148.5 74.5" stroke="#2563eb" strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round" />
                           <text x="130" y="66" textAnchor="middle" fill="#2563eb" fontSize="10.5" fontWeight="600" fontFamily="var(--editor-font)">
                             {gapVal}px
                           </text>
-
-                          {/* Right Card: Media */}
                           <rect x="154" y="40" width="88" height="64" rx="6" fill="#ffffff" stroke="#e2e8f0" strokeWidth="1" />
                           <circle cx="178" cy="56" r="4.5" fill="#cbd5e1" />
                           <path d="M166 88 L182 68 L194 80 L206 64 L226 88 Z" fill="#cbd5e1" />
                         </g>
                       )}
-
-                      {/* Bottom spacing guide */}
                       <line x1="130" y1="110" x2="130" y2="138" stroke="#2563eb" strokeWidth="1.25" />
                       <path d="M127.5 113.5 L130 110 L132.5 113.5" stroke="#2563eb" strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round" />
                       <path d="M127.5 134.5 L130 138 L132.5 134.5" stroke="#2563eb" strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round" />
@@ -354,8 +309,6 @@ export function ProofStyle({
                       </text>
                     </svg>
                   </div>
-
-                  <p className="helper-text">Applies to this section.</p>
                   <button
                     type="button"
                     className="refined-reset"
@@ -364,63 +317,54 @@ export function ProofStyle({
                     <RotateCcw size={16} aria-hidden="true" />
                     Reset spacing
                   </button>
-                </>
+                </RefinedSpacingGroup>
               )}
 
               {id === 'typography' && (
                 <TypographyControls compact value={value} change={changeSettings} target={target} setTarget={setTarget} />
               )}
-            </div>
-          )}
-        </section>
+        </>
+      )}
+    </RefinedStyleShell>
+  );
+}
+
+function TextMediaThumb() {
+  return (
+    <LayoutThumb>
+      <rect className="layout-shape-strong" x="7" y="11" width="18" height="3" rx="1.5" />
+      <rect className="layout-shape" x="7" y="17" width="14" height="2.5" rx="1.25" />
+      <rect className="layout-shape" x="7" y="22" width="11" height="2.5" rx="1.25" />
+      <rect className="layout-shape" x="30" y="8" width="27" height="20" rx="3" />
+    </LayoutThumb>
+  );
+}
+
+function PromiseBandThumb() {
+  return (
+    <LayoutThumb>
+      {[0, 1, 2].map(column => (
+        <g key={column} transform={`translate(${6 + column * 19} 0)`}>
+          <rect className="layout-shape-strong" x="1" y="11" width="14" height="3" rx="1.5" />
+          <rect className="layout-shape" x="0" y="17" width="16" height="2.5" rx="1.25" />
+          <rect className="layout-shape" x="2" y="22" width="12" height="2.5" rx="1.25" />
+        </g>
       ))}
-    </div>
+    </LayoutThumb>
   );
 }
 
-function SchematicTextMedia() {
+function MediaReasonsThumb() {
   return (
-    <svg width="52" height="30" viewBox="0 0 52 30" fill="none" aria-hidden="true" className="layout-svg">
-      <rect width="52" height="30" rx="4" fill="#f1f5f9" />
-      <rect x="6" y="8" width="16" height="3" rx="1.5" fill="#94a3b8" />
-      <rect x="6" y="14" width="13" height="2.5" rx="1.25" fill="#cbd5e1" />
-      <rect x="6" y="19" width="10" height="2.5" rx="1.25" fill="#cbd5e1" />
-      <rect x="26" y="6" width="20" height="18" rx="2" fill="#cbd5e1" />
-      <path d="M29 20 L34 14 L37 17 L40 13 L44 20 Z" fill="#94a3b8" />
-    </svg>
-  );
-}
-
-function SchematicPromiseBand() {
-  return (
-    <svg width="52" height="30" viewBox="0 0 52 30" fill="none" aria-hidden="true" className="layout-svg">
-      <rect width="52" height="30" rx="4" fill="#f1f5f9" />
-      <rect x="5" y="7" width="12" height="16" rx="2" fill="#cbd5e1" />
-      <rect x="7" y="11" width="8" height="2" rx="1" fill="#94a3b8" />
-      <rect x="7" y="15" width="6" height="2" rx="1" fill="#94a3b8" />
-      <rect x="20" y="7" width="12" height="16" rx="2" fill="#cbd5e1" />
-      <rect x="22" y="11" width="8" height="2" rx="1" fill="#94a3b8" />
-      <rect x="22" y="15" width="6" height="2" rx="1" fill="#94a3b8" />
-      <rect x="35" y="7" width="12" height="16" rx="2" fill="#cbd5e1" />
-      <rect x="37" y="11" width="8" height="2" rx="1" fill="#94a3b8" />
-      <rect x="37" y="15" width="6" height="2" rx="1" fill="#94a3b8" />
-    </svg>
-  );
-}
-
-function SchematicMediaReasons() {
-  return (
-    <svg width="52" height="30" viewBox="0 0 52 30" fill="none" aria-hidden="true" className="layout-svg">
-      <rect width="52" height="30" rx="4" fill="#f1f5f9" />
-      <rect x="6" y="6" width="18" height="18" rx="2" fill="#cbd5e1" />
-      <path d="M8 20 L13 14 L16 17 L18 15 L22 20 Z" fill="#94a3b8" />
-      <circle cx="29" cy="9" r="1.5" fill="#3b82f6" />
-      <rect x="33" y="8" width="13" height="2" rx="1" fill="#94a3b8" />
-      <circle cx="29" cy="15" r="1.5" fill="#3b82f6" />
-      <rect x="33" y="14" width="13" height="2" rx="1" fill="#94a3b8" />
-      <circle cx="29" cy="21" r="1.5" fill="#3b82f6" />
-      <rect x="33" y="20" width="10" height="2" rx="1" fill="#94a3b8" />
-    </svg>
+    <LayoutThumb>
+      <rect className="layout-shape" x="6" y="7" width="22" height="22" rx="3" />
+      {[0, 1, 2].map(row => (
+        <g key={row}>
+          <circle className="layout-shape-strong" cx="34" cy={12 + row * 7} r="1.6" />
+          <rect className="layout-shape" x="38" y={10.5 + row * 7} width={row === 2 ? 14 : 18} height="2.5" rx="1.25" />
+        </g>
+      ))}
+    </LayoutThumb>
   );
 }
 

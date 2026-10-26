@@ -3,7 +3,7 @@ import {Icon} from "../icons";
 export {Icon};
 export {safeHref} from "../safe-href";
 export function SectionHeading({content}:{content:import('../blocks').BlockContent}) {
-  return <div className="section-heading-copy">{content.smallLabel&&<span className="section-kicker">{content.smallLabel}</span>}<h2>{content.title}</h2>{content.description&&<p>{content.description}</p>}</div>;
+  return <div className="section-heading-copy">{content.smallLabel&&<span className="section-kicker">{content.smallLabel}</span>}<h2>{content.title}</h2>{content.description&&<p className="section-lede">{content.description}</p>}{content.showBody&&content.body?.trim()&&<p className="section-body">{content.body}</p>}</div>;
 }
 export function buttonContents(button: Pick<ButtonData, "icon" | "label" | "iconPosition">, size = 28) {
   const icon = <Icon name={button.icon} size={size}/>;

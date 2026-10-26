@@ -124,10 +124,12 @@ test('rating summary uses only a valid entered score and count', async () => {
 });
 
 test('hero collection accepts a direct media file and rejects a web page', async () => {
-  const {HERO_ADD_LIMIT, directMediaLink, heroSlides, moveItem, publishedStart, reorderStart, slideIndexAllowed} = await import('../src/app/editor/hero-collection.ts');
+  const {HERO_ADD_LIMIT, SECTION_STAGE_LIMIT, directMediaLink, heroSlides, moveItem, publishedStart, reorderStart, slideIndexAllowed} = await import('../src/app/editor/hero-collection.ts');
   assert.deepEqual(directMediaLink('https://cdn.example.com/road.jpg'), {ok: true, src: 'https://cdn.example.com/road.jpg', kind: 'image'});
   assert.equal(directMediaLink('https://example.com/about').ok, false);
   assert.match(directMediaLink('https://example.com/about').error, /web page/);
+  assert.match(directMediaLink('https://drive.google.com/drive/folders/abc').error, /Private folders/);
+  assert.equal(directMediaLink('https://www.dropbox.com/s/abc/logo.svg').ok, true);
   assert.equal(directMediaLink('http://localhost/a.jpg').ok, false);
   const slides = heroSlides({media: {src: ''}, slides: [{src: '/media/showcase/mountain-road.jpg'}]});
   assert.equal(slides.length, 1);
@@ -138,6 +140,7 @@ test('hero collection accepts a direct media file and rejects a web page', async
   assert.equal(reorderStart(2, 0, 0, 3), 1);
   assert.equal(reorderStart(1, 2, 0, 3), 0);
   assert.equal(HERO_ADD_LIMIT, 3);
+  assert.equal(SECTION_STAGE_LIMIT, 4);
   assert.equal(slideIndexAllowed(2, 3), true);
   assert.equal(slideIndexAllowed(8, 3), false);
   assert.equal(slideIndexAllowed(4, 5), true);
@@ -208,12 +211,18 @@ test('editor and exported slideshows use the same advance rules', async () => {
 });
 
 test('removal undo puts the item back without replacing later collection edits', async () => {
-  const {removalStart, restoreRemoved} = await import('../src/app/editor/hero-collection.ts');
+  const {removalStart, restoreRemoved, selectionAfterMove, selectionAfterRemove, selectionAfterRestore} = await import('../src/app/editor/hero-collection.ts');
   const removed = {item: 'b', index: 1, slideIndex: 2};
   const afterRemoval = ['a', 'c', 'd'];
   const afterLaterEdit = afterRemoval.map(item => item === 'c' ? 'c-edited' : item);
   assert.equal(removalStart(removed.index, removed.slideIndex, 4), 1);
   assert.deepEqual(restoreRemoved(afterLaterEdit, removed.item, removed.index), ['a', 'b', 'c-edited', 'd']);
+  assert.equal(selectionAfterRestore(removed.index, afterLaterEdit.length), 1);
   assert.equal(removalStart(0, 0, 3), 0);
   assert.equal(removalStart(2, 2, 3), 1);
+  assert.equal(selectionAfterRemove(0, 2), 0);
+  assert.equal(selectionAfterRemove(2, 2), 1);
+  assert.equal(selectionAfterRemove(0, 0), -1);
+  assert.equal(selectionAfterMove(2, 3), 2);
+  assert.equal(selectionAfterMove(3, 3), -1);
 });

@@ -1,13 +1,14 @@
 "use client";
 import {Fragment, useEffect, useRef, useState} from "react";
 import type {PageEntry} from "../editor/navigation";
-import {accentRamp, linkedPage, normalizeSettings, sectionVariables, type SectionSettings} from "../editor/settings";
+import {accentRamp, brandKitVariables, linkedPage, normalizeBrandKit, normalizeSettings, sectionVariables, type SectionSettings} from "../editor/settings";
+import {normalizeEyebrowStyle} from "./blocks";
 import {fixedBlockOrder, type Block, type Site} from "../site/blocks";
 import {MediaView} from "../media/library";
 import {safeHref} from "./safe-href";
 import {sectionComponents} from "./sections";
 import {editorSticky, framePieces, type EditorScope} from "../editor/scope";
-export function SitePreview({ site, select, selected, editable, changeSettings, pages, activeId, selectPage, region = "live" }: {
+export function SitePreview({ site, select, selected, editable, changeSettings, pages, activeId, selectPage, region = "live", focusItem = null }: {
     site: Site;
     select: (id: string) => void;
     selected: string;
@@ -17,6 +18,7 @@ export function SitePreview({ site, select, selected, editable, changeSettings, 
     activeId:string;
     selectPage?:(id:string,hash?:string)=>void;
     region?: EditorScope;
+    focusItem?: string | null;
 }) {
     const homeId=pages.find(p=>p.id==="home")?.id||pages[0].id;
     const menuHome=activeId===homeId?site:pages.find(p=>p.id===homeId)!.site,menuTheme=menuHome.theme==='midnight'?'theme-midnight':'shared-paper';
@@ -31,10 +33,11 @@ export function SitePreview({ site, select, selected, editable, changeSettings, 
     const parentIndex=site.navChildren?.findIndex(rows=>rows.some(l=>pageFor(l.href,l.pageId)?.id===activeId))??-1;
     const blocks=fixedBlockOrder(site.blocks),pieces=framePieces(blocks,region);
     const classFor=(b:Block)=>b.type==='header'?`site-menu ${menuTheme}`:b.type==='footer'?`site-footer ${menuTheme} ${site.footerStyle==='minimal'?'footer-minimal':''}`:b.type==='hero'?`hero hero-${b.layout} text-${b.content.align||'left'}`:'site-block';
-    return <div ref={rootRef} data-editor-region={region==="live"?undefined:region} className={`site-preview theme-${site.theme==="midnight"?"midnight":"paper"}`} style={{'--menu-links':site.nav.length,'--menu-extra':(site.headerButtonCount??1)>0?1:0,'--accent':site.accent,...Object.fromEntries(Object.entries(accentRamp(site.accent)).map(([key,value])=>[`--accent-${key}`,value])),'--hero-ratio':blocks.find(b=>b.type==='hero')?.content.media.ratio||'16/9'} as React.CSSProperties}>
+    const brand=normalizeBrandKit(site.brandKit);
+    return <div ref={rootRef} data-editor-region={region==="live"?undefined:region} className={`site-preview theme-${site.theme==="midnight"?"midnight":"paper"}`} data-eyebrow={normalizeEyebrowStyle(site.eyebrowStyle)} data-font-pair={brand.fontPair} data-radius={brand.radius} data-line={brand.lineWidth} style={{'--menu-links':site.nav.length,'--menu-extra':(site.headerButtonCount??1)>0?1:0,'--accent':site.accent,...Object.fromEntries(Object.entries(accentRamp(site.accent)).map(([key,value])=>[`--accent-${key}`,value])),...brandKitVariables(brand),'--hero-ratio':blocks.find(b=>b.type==='hero')?.content.media.ratio||'16/9'} as React.CSSProperties}>
       {pieces.map(({block, context})=>{const Component=sectionComponents[block.type],Tag=block.type==='header'?'header':block.type==='footer'?'footer':'section',settings=block.settings;
         return <Fragment key={block.id}><Tag id={block.type==='hero'&&blocks.find(b=>b.type==='hero')?.id===block.id?'top':blocks.find(b=>b.type===block.type)?.id===block.id?block.type:block.id} data-section={block.id} data-block-type={block.type} data-layout={block.layout} data-height={block.content.height} data-align={block.content.align} data-custom-padding={settings.padding!==undefined||undefined} {...Object.fromEntries((['heading','body'] as const).flatMap(target=>Object.entries(normalizeSettings(settings)[target]!).filter(([,v])=>v!==undefined).map(([key])=>[`data-${target}-${key.toLowerCase()}`,true])))} style={{...sectionVariables(settings),...(block.type==='header'||block.type==='footer'?{'--accent':menuHome.accent}:{})} as React.CSSProperties} className={`${editable&&!context?'editable-section':''} ${editable&&!context&&selected===block.id?'selected-section':''} ${context?'editor-context':''} ${classFor(block)}`} inert={context||undefined} data-sticky={block.type==='header'&&editorSticky(region,!!site.headerSticky)||undefined} data-overlay={block.type==='header'&&site.headerOverlay&&blocks.some(b=>b.type==='hero'&&!b.hidden)||undefined} data-background={block.type==='header'?site.headerBackground!==false:undefined} onClick={editable&&!context?e=>{if((e.target as HTMLElement).closest('[data-editor-only]'))return;if((e.target as HTMLElement).closest('a'))e.preventDefault();select(block.id);}:undefined}>
-          {block.content.media.src&&["services","pains","solutions","trust","reviews","faq","closing"].includes(block.type)&&!(block.type==='trust'&&block.layout==='Signals')&&<MediaView value={block.content.media} editable={editable}/>}<Component block={block} site={site} editable={editable} selected={selected===block.id} change={value=>changeSettings?.(block.id,value)} link={(href,id)=>menuLink(href,id,href.startsWith('#')&&!['header','footer'].includes(block.type)&&blocks.some(b=>!b.hidden&&(href==='#top'?b.type==='hero':`#${b.type}`===href))?activeId:homeId)} labelFor={labelFor} pages={pages} homeId={homeId} activeId={activeId} parentIndex={parentIndex}/>
+          {block.content.media.src&&["services","pains","solutions","trust","reviews","faq","closing"].includes(block.type)&&!(block.type==='trust'&&block.layout==='Signals')&&<MediaView value={block.content.media} editable={editable}/>}<Component block={block} site={site} editable={editable} selected={selected===block.id} change={value=>changeSettings?.(block.id,value)} link={(href,id)=>menuLink(href,id,href.startsWith('#')&&!['header','footer'].includes(block.type)&&blocks.some(b=>!b.hidden&&(href==='#top'?b.type==='hero':`#${b.type}`===href))?activeId:homeId)} labelFor={labelFor} pages={pages} homeId={homeId} activeId={activeId} parentIndex={parentIndex} focusItem={focusItem}/>
         </Tag></Fragment>;
       })}
     </div>;

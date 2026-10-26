@@ -2,6 +2,33 @@ export type TextStyle = {family?:string;size?:number;weight?:number;align?:strin
 export type SectionSettings = {columns?:number;widths?:number[];gap?:number;padding?:number;heading?:TextStyle;body?:TextStyle};
 export type FooterColumn = {title:string;text:string;links:{label:string;href:string;pageId?:string}[]};
 export const fonts = {display:'var(--font-display), sans-serif',text:'var(--font-text), sans-serif'};
+
+export type FontPairId = 'northline' | 'editorial' | 'industrial' | 'friendly';
+export type BrandRadius = 'sharp' | 'soft' | 'pill';
+export type BrandLineWidth = '1' | '1.5' | '2';
+export type BrandKit = {fontPair:FontPairId;radius:BrandRadius;lineWidth:BrandLineWidth};
+export const fontPairs: Record<FontPairId,{label:string;display:string;text:string;displayVar:string;textVar:string}> = {
+  northline:{label:'Northline',display:'Syne',text:'Manrope',displayVar:'--font-pair-northline-display',textVar:'--font-pair-northline-text'},
+  editorial:{label:'Editorial',display:'Fraunces',text:'Source Sans 3',displayVar:'--font-pair-editorial-display',textVar:'--font-pair-editorial-text'},
+  industrial:{label:'Industrial',display:'Space Grotesk',text:'IBM Plex Sans',displayVar:'--font-pair-industrial-display',textVar:'--font-pair-industrial-text'},
+  friendly:{label:'Friendly',display:'Outfit',text:'DM Sans',displayVar:'--font-pair-friendly-display',textVar:'--font-pair-friendly-text'},
+};
+export const defaultBrandKit: BrandKit = {fontPair:'northline',radius:'pill',lineWidth:'1'};
+export function normalizeBrandKit(value: unknown): BrandKit {
+  const v = value && typeof value === 'object' ? value as Partial<BrandKit> : {};
+  return {
+    fontPair: v.fontPair && Object.hasOwn(fontPairs, v.fontPair) ? v.fontPair : defaultBrandKit.fontPair,
+    radius: v.radius === 'sharp' || v.radius === 'soft' || v.radius === 'pill' ? v.radius : defaultBrandKit.radius,
+    lineWidth: v.lineWidth === '1.5' || v.lineWidth === '2' || v.lineWidth === '1' ? v.lineWidth : defaultBrandKit.lineWidth,
+  };
+}
+export function brandKitVariables(kit: BrandKit = defaultBrandKit): Record<string, string> {
+  const pair = fontPairs[normalizeBrandKit(kit).fontPair];
+  return {
+    '--font-display': `var(${pair.displayVar})`,
+    '--font-text': `var(${pair.textVar})`,
+  };
+}
 export function bounded(value:unknown,min:number,max:number,fallback:number) {
   return typeof value==='number'&&Number.isFinite(value)?Math.max(min,Math.min(max,value)):fallback;
 }
@@ -45,6 +72,24 @@ export function sectionVariables(value:SectionSettings = {}) {
     for(const [key,v] of Object.entries(t))if(v!==undefined)vars[`--${target}-${key}`]=key==='family'?fonts[v as keyof typeof fonts]:key==='size'||key==='tracking'?`${v}px`:v;
   }
   return vars;
+}
+
+export type PageGroup = 'main' | 'service' | 'other';
+export type ClassifiablePage = {id:string;name:string;slug?:string};
+type ServicesHome = {blocks:{type:string;content:{items:{pageId?:string}[];catalogPageId?:string}}[];navPageIds?:(string|null)[]};
+
+/** Derive sidebar groups from Home service links — never persist a competing group field. */
+export function classifyPages<T extends ClassifiablePage>(pages:T[],homeId:string,homeSite:ServicesHome):Record<PageGroup,T[]> {
+  const services=homeSite.blocks.find(b=>b.type==='services');
+  const serviceIds=new Set((services?.content.items||[]).map(item=>item.pageId).filter((id):id is string=>!!id));
+  const catalogId=services?.content.catalogPageId;
+  const mainIds=new Set<string>([homeId]);
+  if(catalogId)mainIds.add(catalogId);
+  for(const id of homeSite.navPageIds||[])if(id&&!serviceIds.has(id))mainIds.add(id);
+  const main=pages.filter(p=>mainIds.has(p.id));
+  const service=pages.filter(p=>serviceIds.has(p.id));
+  const claimed=new Set([...main.map(p=>p.id),...service.map(p=>p.id)]);
+  return {main,service,other:pages.filter(p=>!claimed.has(p.id))};
 }
 
 export function pageSlug(name:string,used:string[] = []) {

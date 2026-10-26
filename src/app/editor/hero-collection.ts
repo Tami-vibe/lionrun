@@ -1,6 +1,8 @@
 import {mediaDefaults, mediaURL, normalizeMedia, type MediaSettings} from "../media/model";
 
 export const HERO_ADD_LIMIT = 3;
+/** Compact section media stage (Why choose us, promo, quote, …). Hero keeps HERO_ADD_LIMIT. */
+export const SECTION_STAGE_LIMIT = 4;
 
 export function directMediaLink(value: string): {ok: true; src: string; kind: "image" | "video"} | {ok: false; error: string} {
   const src = mediaURL(value.trim());
@@ -10,6 +12,9 @@ export function directMediaLink(value: string): {ok: true; src: string; kind: "i
   const path = src.split("?")[0].split("#")[0].toLowerCase();
   if (/\.(mp4|webm|mov)$/.test(path)) return {ok: true, src, kind: "video"};
   if (/\.(jpg|jpeg|png|webp|avif|svg)$/.test(path)) return {ok: true, src, kind: "image"};
+  let host = "";
+  try { host = new URL(src).hostname.replace(/^www\./, ""); } catch { host = ""; }
+  if (/^(drive\.google\.com|docs\.google\.com|dropbox\.com|icloud\.com|1drv\.ms|onedrive\.live\.com)$/.test(host) || host.endsWith(".sharepoint.com")) return {ok: false, error: "Private folders cannot be linked. Download the file, then upload it."};
   return {ok: false, error: "That address is a web page, not an image or video file. Paste a direct file address ending in .jpg, .png, .webp, .mp4, or .webm."};
 }
 export function heroSlides(content: {media?: MediaSettings; slides?: MediaSettings[]}) {
@@ -51,6 +56,10 @@ export function restoreRemoved<T>(items: readonly T[], item: T, index: number) {
   next.splice(Math.min(Math.max(0, index), next.length), 0, item);
   return next;
 }
+export const REMOVAL_NOTICE_MS = 8000;
+export const selectionAfterRemove = (removedAt: number, countAfter: number) => countAfter > 0 ? Math.min(removedAt, countAfter - 1) : -1;
+export const selectionAfterMove = (to: number, count: number) => to >= 0 && to < count ? to : -1;
+export const selectionAfterRestore = (restoreAt: number, countBeforeRestore: number) => Math.min(Math.max(0, restoreAt), countBeforeRestore);
 export function reorderStart(from: number, to: number, index: number | undefined, count: number) {
   const start = publishedStart(index, count);
   if (from === to || from < 0 || to < 0 || from >= count || to >= count) return start;

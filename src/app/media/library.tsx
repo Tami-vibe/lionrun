@@ -3,7 +3,12 @@ import { createContext, useCallback, useContext, useEffect, useRef, useState } f
 import { ACCEPT, assetStore, Asset, LIMITS, validateUpload } from './store';
 import { mediaDefaults, MediaSettings, mediaURL, normalizeMedia, socialEmbed, https, videoPlan, videoClick } from './model';
 import {mountMediaSequence, sequenceItems, type MediaMode} from './sequence';
+import {isAssetUnused, type MediaUsageIndex} from './usage';
 const LibraryContext=createContext<{assets:Asset[];resolve:(src:string)=>string;reload:()=>Promise<void>;error:string}>({assets:[],resolve:()=>'',reload:async()=>{},error:''});
+const ManageLibraryContext=createContext<(()=>void)|null>(null);
+export function ManageLibraryProvider({onOpen,children}:{onOpen:()=>void;children:React.ReactNode}){
+  return <ManageLibraryContext.Provider value={onOpen}>{children}</ManageLibraryContext.Provider>;
+}
 export function MediaProvider({children}:{children:React.ReactNode}){
   const [assets,setAssets]=useState<Asset[]>([]),[urls,setUrls]=useState<Record<string,string>>({}),[error,setError]=useState('');
   const objectURLs=useRef<Record<string,string>>({});
@@ -14,12 +19,20 @@ export function MediaProvider({children}:{children:React.ReactNode}){
   return <LibraryContext.Provider value={{assets,resolve,reload,error}}>{children}</LibraryContext.Provider>;
 }
 export const useMediaLibrary=()=>useContext(LibraryContext);
-export function MediaSequence({content,editable=false,index=0}:{content:{media:MediaSettings;slides?:MediaSettings[];mediaMode?:MediaMode;slideAutoplay?:boolean;slideSeconds?:number;slideLoop?:boolean;slideIndex?:number};editable?:boolean;index?:number}) {
-  const root=useRef<HTMLDivElement>(null),items=sequenceItems({...content,slideIndex:editable?index:content.slideIndex}),key=JSON.stringify([items,content.slideAutoplay,content.slideSeconds,content.slideLoop,editable,index]);
+export function MediaLibraryFixture({assets,urls,children}:{assets:Asset[];urls:Record<string,string>;children:React.ReactNode}){
+  return <LibraryContext.Provider value={{assets,resolve:src=>src?.startsWith('media:')?urls[src.slice(6)]||'':'',reload:async()=>{},error:''}}>{children}</LibraryContext.Provider>;
+}
+function AssetThumb({kind,url}:{kind:Asset['kind'];url:string}){
+  if(kind==='image'&&url)return <span className="asset-thumb" aria-hidden="true"><img src={url} alt=""/></span>;
+  if(kind==='video'&&url)return <span className="asset-thumb is-video" aria-hidden="true"><video src={url} muted playsInline preload="metadata"/></span>;
+  return <span className="asset-thumb is-empty" aria-hidden="true"/>;
+}
+export function MediaSequence({content,editable=false,index=0,fill=false,background=false,className='',label='Section media'}:{content:{media:MediaSettings;slides?:MediaSettings[];mediaMode?:MediaMode;slideAutoplay?:boolean;slideSeconds?:number;slideLoop?:boolean;slideIndex?:number};editable?:boolean;index?:number;fill?:boolean;background?:boolean;className?:string;label?:string}) {
+  const root=useRef<HTMLDivElement>(null),items=sequenceItems({...content,slideIndex:editable?index:content.slideIndex}),key=JSON.stringify([items,content.slideAutoplay,content.slideSeconds,content.slideLoop,editable,index,fill,background,className]);
   useEffect(()=>{if(root.current)return mountMediaSequence(root.current);},[key]);
   const current=Math.min(Math.max(0,editable?index:content.slideIndex??0),Math.max(0,items.length-1));
-  return <div ref={root} className="media-sequence" role={items.length>1?'region':undefined} aria-roledescription={items.length>1?'carousel':undefined} aria-label={items.length>1?'Why choose us media':undefined} data-media-sequence data-sequence-autoplay={!editable&&content.mediaMode==='slideshow'&&!!content.slideAutoplay?'true':'false'} data-sequence-loop={content.slideLoop!==false?'true':'false'} data-sequence-seconds={content.slideSeconds??5}>
-    {items.length?items.map((item,i)=><div key={`${item.src}-${i}`} data-sequence-slide hidden={i!==current}><MediaView value={item} editable={editable}/></div>):<p className="media-fallback">Add media in the editor.</p>}
+  return <div ref={root} className={`media-sequence${background?' media-sequence-background':''}${className?` ${className}`:''}`} role={items.length>1?'region':undefined} aria-roledescription={items.length>1?'carousel':undefined} aria-label={items.length>1?label:undefined} data-media-sequence data-sequence-autoplay={!editable&&content.mediaMode==='slideshow'&&!!content.slideAutoplay?'true':'false'} data-sequence-loop={content.slideLoop!==false?'true':'false'} data-sequence-seconds={content.slideSeconds??5}>
+    {items.length?items.map((item,i)=><div key={`${item.src}-${i}`} data-sequence-slide hidden={i!==current}><MediaView value={item} editable={editable} fill={fill} background={background}/></div>):<p className="media-fallback">Add media in the editor.</p>}
     {items.length>1&&<div className="sequence-actions"><button type="button" data-sequence-step="-1" aria-label="Previous slide">‹</button><span data-sequence-count aria-live={content.slideAutoplay&&!editable?'off':'polite'}>{current+1} / {items.length}</span><button type="button" data-sequence-step="1" aria-label="Next slide">›</button>{content.slideAutoplay&&!editable&&<button type="button" data-sequence-toggle aria-pressed="false">Pause slideshow</button>}</div>}
   </div>;
 }
@@ -60,7 +73,7 @@ export async function publishAsset(file:File,reload:()=>Promise<void>,caption=fa
   await assetStore('put',asset);await reload();return asset;
 }
 export function MediaPicker({label,imagesOnly=false,onSelect,onClose}:{label:string;imagesOnly?:boolean;onSelect:(src:string,kind:'image'|'video')=>void;onClose:()=>void}){
-  const {assets,reload,error}=useMediaLibrary(),[query,setQuery]=useState(''),[notice,setNotice]=useState(''),[busy,setBusy]=useState(false),dialog=useRef<HTMLDivElement>(null),close=useRef(onClose);
+  const {assets,resolve,reload,error}=useMediaLibrary(),openManage=useContext(ManageLibraryContext),[query,setQuery]=useState(''),[notice,setNotice]=useState(''),[busy,setBusy]=useState(false),dialog=useRef<HTMLDivElement>(null),close=useRef(onClose);
   const rows=assets.filter(asset=>asset.kind!=='captions'&&(!imagesOnly||asset.kind==='image')&&asset.name.toLowerCase().includes(query.toLowerCase()));
   useEffect(()=>{close.current=onClose;},[onClose]);
   useEffect(()=>{const node=dialog.current;const previously=document.activeElement as HTMLElement|null;node?.querySelector('input')?.focus();const keys=(event:KeyboardEvent)=>{if(event.key==='Escape'){event.preventDefault();close.current();}if(event.key==='Tab'){const controls=Array.from(node?.querySelectorAll<HTMLElement>('button:not(:disabled),input:not(:disabled),select:not(:disabled),[tabindex="0"]')||[]),first=controls[0],last=controls.at(-1);if(event.shiftKey&&document.activeElement===first){event.preventDefault();last?.focus();}else if(!event.shiftKey&&document.activeElement===last){event.preventDefault();first?.focus();}}};document.addEventListener('keydown',keys);return()=>{document.removeEventListener('keydown',keys);previously?.focus();};},[]);
@@ -69,11 +82,12 @@ export function MediaPicker({label,imagesOnly=false,onSelect,onClose}:{label:str
     {(error||notice)&&<p role="status" className="helper-text">{error||notice}</p>}
     <label className="field"><span>Search library</span><input type="search" value={query} onChange={event=>setQuery(event.target.value)}/></label>
     <label className="upload-media">{busy?'Saving…':'Upload image or video'}<input disabled={busy} type="file" accept={imagesOnly?'image/jpeg,image/png,image/webp,image/gif':ACCEPT} onChange={event=>{const file=event.target.files?.[0];event.target.value='';if(!file)return;setBusy(true);setNotice('');void publishAsset(file,reload).then(asset=>{if(asset.kind==='captions'||(imagesOnly&&asset.kind!=='image'))throw Error('Choose an image.');onSelect(`media:${asset.id}`,asset.kind==='video'?'video':'image');}).catch(reason=>setNotice(String(reason))).finally(()=>setBusy(false));}}/></label>
-    <div className="asset-list" role="listbox" aria-label="Library files">{rows.map(asset=><button type="button" key={asset.id} onClick={()=>onSelect(`media:${asset.id}`,asset.kind==='video'?'video':'image')}><strong>{asset.name}</strong><small>{asset.kind}</small></button>)}{!rows.length&&<p className="helper-text">No matching files in this browser’s library.</p>}</div>
+    <div className="asset-list" role="listbox" aria-label="Library files">{rows.map(asset=><button type="button" key={asset.id} onClick={()=>onSelect(`media:${asset.id}`,asset.kind==='video'?'video':'image')}><AssetThumb kind={asset.kind} url={resolve(`media:${asset.id}`)}/><span className="asset-meta"><strong>{asset.name}</strong><small>{asset.kind}</small></span></button>)}{!rows.length&&<p className="helper-text">No matching files in this browser’s library.</p>}</div>
+    {openManage&&<button type="button" className="media-manage-link" onClick={()=>{onClose();openManage();}}>Manage library</button>}
   </div>;
 }
-export function MediaManager({value,onChange,used}:{value:Partial<MediaSettings>;onChange:(m:MediaSettings)=>void;used:string}){
-  const m=normalizeMedia(value),{assets,reload,error}=useMediaLibrary();
+export function MediaManager({value,onChange,usage}:{value:Partial<MediaSettings>;onChange:(m:MediaSettings)=>void;usage:MediaUsageIndex}){
+  const m=normalizeMedia(value),{assets,reload,error}=useMediaLibrary(),openManage=useContext(ManageLibraryContext);
   const [busy,setBusy]=useState(false),[notice,setNotice]=useState(''),[search,setSearch]=useState('');
   const update=(patch:Partial<MediaSettings>)=>onChange(normalizeMedia({...m,...patch}));
   const field=(label:string,key:'src'|'alt'|'title'|'description'|'poster'|'captions'|'uploadDate'|'captionLanguage')=><label className="field"><span>{label}</span><input value={m[key]} onChange={e=>update({[key]:e.target.value})}/></label>;
@@ -86,7 +100,8 @@ export function MediaManager({value,onChange,used}:{value:Partial<MediaSettings>
     {(error||notice)&&<p role="status" className="media-notice">{error||notice}</p>}
     <label className="upload-media">{busy?'Saving…':'Upload image or video'}<input disabled={busy} type="file" accept={ACCEPT} onChange={e=>{const file=e.target.files?.[0];if(file)void upload(file);e.target.value='';}}/></label>
     <label className="field"><span>Search media library</span><input type="search" value={search} onChange={e=>setSearch(e.target.value)} placeholder="Filename…"/></label>
-    <div className="asset-list">{assets.filter(a=>a.name.toLowerCase().includes(search.toLowerCase())).map(a=><div key={a.id}><button type="button" onClick={()=>a.kind==='captions'?update({captions:`media:${a.id}`}):update({src:`media:${a.id}`,kind:a.kind,title:m.title||a.name,uploadDate:a.created})}><strong>{a.name}</strong><small>{a.kind} · {(a.size/1_000_000).toFixed(2)} MB · Use here</small></button>{a.kind==='image'&&<button type="button" title={`Use ${a.name} as poster`} onClick={()=>update({poster:`media:${a.id}`})}>Poster</button>}<button type="button" disabled={busy||used.includes(`media:${a.id}`)} title={used.includes(`media:${a.id}`)?'Remove all references before deleting':'Delete from this browser'} onClick={async()=>{if(!window.confirm('Delete this unused file from this browser? This cannot be undone.'))return;setBusy(true);try{await assetStore('delete',a.id);await reload();setNotice('Unused asset deleted.');}catch(e){setNotice(String(e));}finally{setBusy(false);}}}>Delete</button></div>)}</div>
+    <div className="asset-list">{assets.filter(a=>a.name.toLowerCase().includes(search.toLowerCase())).map(a=>{const unused=isAssetUnused(usage,a.id);return <div key={a.id}><button type="button" onClick={()=>a.kind==='captions'?update({captions:`media:${a.id}`}):update({src:`media:${a.id}`,kind:a.kind,title:m.title||a.name,uploadDate:a.created})}><strong>{a.name}</strong><small>{a.kind} · {(a.size/1_000_000).toFixed(2)} MB · Use here</small></button>{a.kind==='image'&&<button type="button" title={`Use ${a.name} as poster`} onClick={()=>update({poster:`media:${a.id}`})}>Poster</button>}<button type="button" disabled={busy||!unused} title={unused?'Delete from this browser':'Remove from every page first'} onClick={async()=>{if(!window.confirm('Delete this unused file from this browser? This cannot be undone.'))return;setBusy(true);try{await assetStore('delete',a.id);await reload();setNotice('Unused asset deleted.');}catch(e){setNotice(String(e));}finally{setBusy(false);}}}>Delete</button></div>;})}</div>
+    {openManage&&<button type="button" className="media-manage-link" onClick={openManage}>Manage library</button>}
     {!assets.length&&<p className="helper-text">Your uploads will appear here and can be reused in any section.</p>}
     <label className="field"><span>Media type</span><select value={m.kind} onChange={e=>update({kind:e.target.value as MediaSettings['kind']})}><option value="image">Image</option><option value="video">Video file / URL</option><option value="social">Social embed</option></select></label>
     {field('Media URL or library reference','src')}{m.src&&!mediaURL(m.src)&&<p role="alert">Use an HTTPS link or select a library file.</p>}

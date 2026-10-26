@@ -29,7 +29,7 @@ export function retainFailedWorkspace(storage: KeyValueStore): {dirty: boolean; 
 export const schemaBackupKey = "business-builder-workspace-v2-backup";
 export const legacyWorkspaceKey = "business-builder-demo-v1";
 
-const menuKeys = ["brand","nav","navTargets","navPageIds","navChildren","headerStyle","headerSticky","headerOverlay","headerBackground","headerButtonCount","headerButtonPlace","headerButtons","footerStyle","footerColumns","phone","email","address","ownerName"] as const;
+const menuKeys = ["brand","nav","navTargets","navPageIds","navChildren","headerStyle","headerSticky","headerOverlay","headerBackground","headerButtonCount","headerButtonPlace","headerButtons","footerStyle","footerColumns","phone","email","address","ownerName","accent","theme","eyebrowStyle","brandKit"] as const;
 export function menuButtons(site:Site):ButtonData[] {
     return [site.headerButtons?.[0]||{label:"Let's talk",href:`tel:${site.phone.replace(/[^+0-9]/g,'')}`,icon:"arrow"},site.headerButtons?.[1]||{...site.primary}];
 }
@@ -62,6 +62,7 @@ export function validSite(value: unknown): value is Site {
     if(v.navChildren&&(!Array.isArray(v.navChildren)||v.navChildren.length>5||!v.navChildren.every(rows=>Array.isArray(rows)&&rows.length<=24&&rows.every(l=>l&&typeof l.label==="string"&&typeof l.href==="string"&&(l.pageId===undefined||typeof l.pageId==="string")))))return false;
     if(v.sectionSettings&&(!Object.values(v.sectionSettings).every(s=>s&&typeof s==="object")))return false;
     if(v.footerColumns&&(!Array.isArray(v.footerColumns)||v.footerColumns.length>5||!v.footerColumns.every(c=>typeof c.title==="string"&&typeof c.text==="string"&&Array.isArray(c.links)&&c.links.every(l=>typeof l.label==="string"&&typeof l.href==="string"&&(l.pageId===undefined||typeof l.pageId==="string")))))return false;
+    if(v.eyebrowStyle!==undefined&&v.eyebrowStyle!=='pill'&&v.eyebrowStyle!=='line')return false;
     return typeof v.brand === "string" && typeof v.headline === "string" && typeof v.description === "string" &&
         Array.isArray(v.services) && Array.isArray(v.hidden) && typeof v.primary?.label === "string" && typeof v.secondary?.href === "string" &&
         typeof v.contactTitle === "string" && typeof v.accent === "string";

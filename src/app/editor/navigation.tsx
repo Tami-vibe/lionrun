@@ -8,8 +8,7 @@ import {PanelsTopLeft,PanelBottom,Sunrise,BadgeCheck,LayoutGrid,Sparkles,Images,
 export const sectionIcons={header:PanelsTopLeft,hero:Sunrise,logos:BadgeCheck,services:LayoutGrid,proof:Sparkles,about:Images,pains:ShieldQuestion,solutions:Route,trust:CircleCheck,reviews:Quote,quote:ClipboardList,faq:CircleHelp,promo:Tag,contact:Mail,closing:CircleArrowRight,footer:PanelBottom};
 export type PageEntry<T>={id:string;name:string;slug?:string;site:T};
 export type PagePlacement={where:'top'|'bottom'|'under';parent:number;title:string;description:string;kind?:keyof typeof pageStarters};
-export function placementLabel(where:'top'|'bottom'|'under'|'none'){return where==='top'?'Top menu':where==='bottom'?'Bottom menu':where==='under'?'Under a menu button':'Not in a menu';}
-type PreviewSite={nav:string[];navTargets?:string[];navPageIds?:(string|null)[];navChildren?:{label:string;href:string;pageId?:string}[][];footerColumns?:import('./settings').FooterColumn[];seoTitle:string;seoDescription:string;brand:string;headline:string;image:string;theme?:'midnight'|'paper';accent?:string;layout:'split'|'center'|'image'|'short'|'story';blocks?:Block[];heroMedia?:{src:string;poster:string;kind:string}};
+type PreviewSite={nav:string[];navTargets?:string[];navPageIds?:(string|null)[];navChildren?:{label:string;href:string;pageId?:string}[][];footerColumns?:import('./settings').FooterColumn[];seoTitle:string;seoDescription:string;brand:string;headline:string;image:string;theme?:'midnight'|'paper';eyebrowStyle?:'pill'|'line';accent?:string;layout:'split'|'center'|'image'|'short'|'story';blocks?:Block[];heroMedia?:{src:string;poster:string;kind:string}};
 function MiniPage({site,layout=(site.blocks?.find(b=>b.type==='hero')?.layout||site.layout) as PreviewSite['layout']}:{site:PreviewSite;layout?:PreviewSite['layout']}){
   const hero=site.blocks?.find(b=>b.type==='hero'),media=hero?.content.media||site.heroMedia;
   const {resolve}=useMediaLibrary(),photo=resolve(media?(media.kind==='image'?media.src:media.poster):site.image);
@@ -47,19 +46,63 @@ export function SectionMenu({block,index,blocks,editBlocks,onAdd}:{block:Block;i
     </div>}
   </div>;
 }
-export function PageSettings<T extends PreviewSite>({site,pages,activeId,renamePage,placeCurrent,editSEO,onTheme,onAccent,home}:{site:T;pages:PageEntry<T>[];activeId:string;renamePage:(name:string)=>void;placeCurrent:(where:'top'|'bottom'|'under'|'none',parent:number)=>void;editSEO:(patch:{seoTitle?:string;seoDescription?:string})=>void;onTheme:(theme:'paper'|'midnight')=>void;onAccent:(accent:string)=>void;home:boolean}) {
+export function PageSettings<T extends PreviewSite>({site,pages,activeId,homeId,renamePage,setSlug,placeCurrent,editSEO,setBreadcrumbs,onEditService,home}:{
+  site:T;pages:PageEntry<T>[];activeId:string;homeId:string;renamePage:(name:string)=>void;setSlug:(slug:string)=>void;
+  placeCurrent:(where:'top'|'bottom'|'under'|'none',parent:number)=>void;editSEO:(patch:{seoTitle?:string;seoDescription?:string})=>void;
+  setBreadcrumbs:(show:boolean)=>void;onEditService?:()=>void;home:boolean;
+}) {
+  const [tab,setTab]=useState<'page'|'navigation'|'seo'>('page');
+  const [crumbsOpen,setCrumbsOpen]=useState(true);
   const current=pages.find(p=>p.id===activeId)!,location=pageLocation(site,current),menuNames=site.nav.map((label,i)=>linkedPage(pages,site.navTargets?.[i]||'',site.navPageIds?.[i])?.name||label);
+  const homePage=pages.find(p=>p.id===homeId);
+  const services=homePage?.site.blocks?.find(b=>b.type==='services');
+  const linkedService=services?.content.items.find(item=>item.pageId===activeId);
+  const catalog=pages.find(p=>p.id===services?.content.catalogPageId);
+  const onService=!!linkedService,onCatalog=catalog?.id===activeId;
+  const hero=site.blocks?.find(b=>b.type==='hero');
+  const showCrumbs=hero?.content.showBreadcrumbs!==false;
+  const parentName=catalog?.name||'Services';
+  const slugValue=current.slug||'home';
   return <>
-    {!home&&<p className="helper-text">Menu colors come from Home. Light and dark below change this page only.</p>}
-    <div className="field" role="group" aria-label="Page appearance"><span>Page appearance</span><div className="choice-group"><button type="button" className={site.theme==='paper'?'choice-active':''} aria-pressed={site.theme==='paper'} onClick={()=>onTheme('paper')}>Light</button><button type="button" className={site.theme!=='paper'?'choice-active':''} aria-pressed={site.theme!=='paper'} onClick={()=>onTheme('midnight')}>Dark</button></div></div>
-    <label className="field"><span>Page accent</span><div className="color-input"><input type="color" value={/^#[0-9a-f]{6}$/i.test(site.accent||'')?site.accent!:'#5878f5'} onChange={e=>onAccent(e.target.value)}/><code>{site.accent}</code></div></label>
-    <label className="field"><span>Current page name</span><input maxLength={60} value={current.name} onChange={e=>renamePage(e.target.value)}/></label>
-    <label className="field"><span>Where should people find this page?</span><select aria-label="Current page placement" value={location.where} onChange={e=>placeCurrent(e.target.value as typeof location.where,location.parent)}><option value="none">Not in a menu</option><option value="top" disabled={location.where!=='top'&&site.nav.length>=5}>Top menu</option><option value="bottom">Bottom menu</option><option value="under" disabled={!site.nav.length||site.nav.length===1&&location.where==='top'}>Under a menu button</option></select></label>
-    {location.where==='under'&&<label className="field"><span>Under which menu button?</span><select aria-label="Current parent menu button" value={location.parent} onChange={e=>placeCurrent('under',Number(e.target.value))}>{menuNames.map((label,i)=><option key={i} value={i}>{label}</option>)}</select></label>}
-    {location.where!=='top'&&site.nav.length>=5&&<p className="hint">The top menu has five links. Remove a link to make room.</p>}
-    <p className="hint">Page address: /{current.slug||'home'}</p>
-    <label className="field"><span>Name in Google</span><input maxLength={120} value={site.seoTitle} onChange={e=>editSEO({seoTitle:e.target.value})}/></label>
-    <label className="field"><span>One sentence for Google</span><textarea maxLength={320} value={site.seoDescription} onChange={e=>editSEO({seoDescription:e.target.value})}/></label>
+    {!home&&<p className="helper-text">Menu and website brand come from Home. Name, address, and SEO below are for this page only.</p>}
+    <div className="tabs" role="tablist" aria-label="Page settings">
+      <button type="button" role="tab" aria-selected={tab==='page'} onClick={()=>setTab('page')}>Page</button>
+      <button type="button" role="tab" aria-selected={tab==='navigation'} onClick={()=>setTab('navigation')}>Navigation</button>
+      <button type="button" role="tab" aria-selected={tab==='seo'} onClick={()=>setTab('seo')}>SEO</button>
+    </div>
+    {tab==='page'&&<>
+      <label className="field"><span>Page name</span><input maxLength={60} value={current.name} onChange={e=>renamePage(e.target.value)}/></label>
+      <label className="field"><span>Page address</span>
+        <span className="page-address"><span className="page-address-prefix">/</span>
+          <input aria-label="Page address slug" maxLength={48} value={slugValue} disabled={home} onChange={e=>setSlug(e.target.value)}/>
+        </span>
+      </label>
+      {linkedService&&<div className="linked-service">
+        <span>Linked service</span>
+        <strong>{linkedService.title||current.name}</strong>
+        {onEditService&&<button type="button" className="quiet" onClick={onEditService}>Edit service</button>}
+      </div>}
+      {(onService||onCatalog)&&<div className="accordion" data-open={crumbsOpen||undefined}>
+        <button type="button" className="accordion-toggle" aria-expanded={crumbsOpen} onClick={()=>setCrumbsOpen(v=>!v)}><b>Breadcrumbs</b></button>
+        {crumbsOpen&&<div className="accordion-panel">
+          <label className="choice-row"><span>Show breadcrumbs</span>
+            <button type="button" role="switch" aria-checked={showCrumbs} className={showCrumbs?'choice-active':''} onClick={()=>setBreadcrumbs(!showCrumbs)}>{showCrumbs?'On':'Off'}</button>
+          </label>
+          {showCrumbs&&<p className="breadcrumb-preview" aria-hidden="true">Home{onService?` › ${parentName}`:''} › {current.name}</p>}
+          {onService&&<p className="hint">Parent page: {parentName}</p>}
+        </div>}
+      </div>}
+    </>}
+    {tab==='navigation'&&<>
+      <p className="hint">Choose whether this page appears in your menu.</p>
+      <label className="field"><span>Menu placement</span><select aria-label="Current page placement" value={location.where} onChange={e=>placeCurrent(e.target.value as typeof location.where,location.parent)}><option value="none">Not in a menu</option><option value="top" disabled={location.where!=='top'&&site.nav.length>=5}>Top menu</option><option value="bottom">Bottom menu</option><option value="under" disabled={!site.nav.length||site.nav.length===1&&location.where==='top'}>Under a menu button</option></select></label>
+      {location.where==='under'&&<label className="field"><span>Under which menu button?</span><select aria-label="Current parent menu button" value={location.parent} onChange={e=>placeCurrent('under',Number(e.target.value))}>{menuNames.map((label,i)=><option key={i} value={i}>{label}</option>)}</select></label>}
+      {location.where!=='top'&&site.nav.length>=5&&<p className="hint">The top menu has five links. Remove a link to make room.</p>}
+    </>}
+    {tab==='seo'&&<>
+      <label className="field"><span>Name in Google</span><input maxLength={120} value={site.seoTitle} onChange={e=>editSEO({seoTitle:e.target.value})}/></label>
+      <label className="field"><span>One sentence for Google</span><textarea maxLength={320} value={site.seoDescription} onChange={e=>editSEO({seoDescription:e.target.value})}/></label>
+    </>}
   </>;
 }
 export function CreatePageForm({site,pages,disabled,addPage}:{site:PreviewSite;pages:PageEntry<PreviewSite>[];disabled:boolean;addPage:(name:string,placement:PagePlacement)=>void}) {
