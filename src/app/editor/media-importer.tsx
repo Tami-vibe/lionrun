@@ -1,5 +1,5 @@
 import {useId, useState, type ClipboardEvent, type DragEvent, type ReactNode} from 'react';
-import {ChevronLeft, ChevronRight, FolderOpen, Image as ImageIcon, Link2, Play, Upload, X} from 'lucide-react';
+import {ChevronLeft, ChevronRight, FolderOpen, Link2, Upload, X} from 'lucide-react';
 
 export function mediaFileName(src: string, names: Map<string, string>) {
   if (src.startsWith('media:')) return names.get(src.slice(6)) || 'Uploaded file';
@@ -8,12 +8,12 @@ export function mediaFileName(src: string, names: Map<string, string>) {
 }
 
 export function MediaImporter({
-  owner, hint, accept, placeholder, items, selected, busy, blocked, status,
+  owner, accept, placeholder, items, selected, busy, blocked, status, limitNote,
   onFiles, onLink, onLibrary, onSelect, onRemove, onReorder, compact = false,
 }: {
-  owner: string; hint: string; accept: string; placeholder: string;
+  owner: string; hint?: string; accept: string; placeholder: string;
   items: {name: string; kind: 'image' | 'video'; preview: ReactNode}[];
-  selected: number; busy: boolean; blocked: boolean; status: string;
+  selected: number; busy: boolean; blocked: boolean; status: string; limitNote?: string;
   onFiles: (files: File[]) => void; onLink: (value: string) => boolean; onLibrary: () => void;
   onSelect: (index: number) => void; onRemove: (index: number) => void; onReorder: (from: number, to: number) => void;
   compact?: boolean;
@@ -42,27 +42,21 @@ export function MediaImporter({
   };
   const upload = (
     <label className="hero-upload" aria-disabled={shut || undefined}>
-      <Upload size={16} aria-hidden="true" />{compact ? 'Upload' : 'Upload files'}
+      <Upload size={16} aria-hidden="true" />Upload files
       <input type="file" accept={accept} multiple disabled={shut} onChange={event => { const files = event.target.files; event.target.value = ''; if (files?.length) onFiles([...files]); }} />
     </label>
   );
   const linkBtn = <button type="button" className="hero-link" disabled={shut} onClick={() => setLinking(open => !open)}><Link2 size={16} aria-hidden="true" />Add link</button>;
   return (
     <div className={compact ? 'media-import is-compact' : 'media-import'}>
-      {compact ? !items.length && (
-        <div {...dropProps}>
-          <span className="hero-drop-mark" aria-hidden="true"><ImageIcon size={16} /><Play size={16} /></span>
-          <p>Drop images or videos here</p>
-          <p className="helper-text">From your computer or a direct media link.</p>
-        </div>
-      ) : (
-        <div {...dropProps}>
-          <p>Drop files or paste a link</p>
-          <div className="hero-drop-actions">{upload}{linkBtn}</div>
-          <button type="button" className="media-import-library" disabled={shut} onClick={onLibrary}><FolderOpen size={16} aria-hidden="true" />Choose from library</button>
-        </div>
-      )}
-      {!compact && <p className="media-import-hint">{hint}</p>}
+      <div {...dropProps}>
+        <p>Drop files or paste a link</p>
+        <div className="hero-drop-actions">{upload}{linkBtn}</div>
+        <button type="button" className="media-import-library" title="Library" aria-label="Choose from library" disabled={shut} onClick={onLibrary}><FolderOpen size={16} aria-hidden="true" />Choose from library<span className="sr-only">Library</span></button>
+      </div>
+      {limitNote && <p className="media-limit-note">{limitNote}</p>}
+      {status && status !== limitNote && <p className="helper-text" role={compact && (busy || blocked) ? 'status' : 'alert'}>{status}</p>}
+      {!!items.length && <span className="media-section-subhead">Images and videos</span>}
       {!!items.length && (
         <div className="hero-grid" role="list" aria-label={`${owner} media`}>
           {items.map((item, index) => (
@@ -95,18 +89,24 @@ export function MediaImporter({
                 <span className="hero-tile-frame">{item.preview}</span>
               </button>
               <button type="button" className="hero-tile-remove" aria-label={`Remove ${item.name} from this ${owner.toLowerCase()}`} onClick={event => { event.stopPropagation(); onRemove(index); }}><X size={12} aria-hidden="true" /></button>
-              {!compact && <span className="hero-tile-name">{item.name}</span>}
+              <span className="hero-tile-name">{item.name}</span>
             </div>
           ))}
         </div>
       )}
-      {compact && <div className="hero-drop-actions compact-actions">{upload}{linkBtn}<button type="button" className="hero-link" disabled={shut} onClick={onLibrary}><FolderOpen size={16} aria-hidden="true" />Library</button></div>}
-      {linking && (compact ? (
-        <form onSubmit={event => { event.preventDefault(); if (onLink(link)) { setLink(''); setLinking(false); } }}>
-          <label className="field"><span>Direct media link</span><input aria-label="Direct media link" inputMode="url" value={link} onChange={event => setLink(event.target.value)} placeholder={placeholder} /></label>
-          <button type="submit" disabled={!link.trim()}>Add to {owner.toLowerCase()}</button>
-        </form>
-      ) : (
+      {selected >= 0 && items[selected] && (
+        <div className="hero-selected">
+          <div className="hero-selected-meta">
+            <span className="hero-selected-heading">Selected media</span>
+            <span className="media-filename">{items[selected].name}</span>
+          </div>
+          <div className="hero-selected-actions">
+            <button type="button" className="hero-reorder-btn" title="Move earlier" aria-label="Move earlier" aria-keyshortcuts="Alt+ArrowLeft" disabled={selected === 0} onClick={() => onReorder(selected, selected - 1)}><ChevronLeft size={16} aria-hidden="true" /></button>
+            <button type="button" className="hero-reorder-btn" title="Move later" aria-label="Move later" aria-keyshortcuts="Alt+ArrowRight" disabled={selected === items.length - 1} onClick={() => onReorder(selected, selected + 1)}><ChevronRight size={16} aria-hidden="true" /></button>
+          </div>
+        </div>
+      )}
+      {linking && (
         <form className="media-link-dialog" role="dialog" aria-labelledby={titleId} onSubmit={event => { event.preventDefault(); if (onLink(link)) { setLink(''); setLinking(false); } }}>
           <div className="media-link-dialog-head">
             <strong id={titleId}>Add link</strong>
@@ -119,16 +119,7 @@ export function MediaImporter({
             <button type="submit" className="media-link-submit" disabled={!link.trim()}>Add media</button>
           </div>
         </form>
-      ))}
-      {!compact && selected >= 0 && items[selected] && (
-        <div className="hero-selected">
-          <p className="media-filename">Selected: {items[selected].name}</p>
-          <button type="button" aria-label="Move earlier" aria-keyshortcuts="Alt+ArrowLeft" disabled={selected === 0} onClick={() => onReorder(selected, selected - 1)}><ChevronLeft size={16} aria-hidden="true" /></button>
-          <button type="button" aria-label="Move later" aria-keyshortcuts="Alt+ArrowRight" disabled={selected === items.length - 1} onClick={() => onReorder(selected, selected + 1)}><ChevronRight size={16} aria-hidden="true" /></button>
-        </div>
       )}
-      {status && <p className="helper-text" role={compact && (busy || blocked) ? 'status' : 'alert'}>{status}</p>}
-      {!compact && <p className="helper-text">X removes the selected item from this section. Undo is available.</p>}
     </div>
   );
 }

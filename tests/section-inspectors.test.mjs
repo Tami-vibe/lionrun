@@ -65,3 +65,37 @@ test('all 16 section types render cleanly with shared accordion structure', () =
     assert.match(markup, /group-chevron/);
   }
 });
+
+test('hero Action buttons use segmented selector, combined button text & icon, and destination choices', () => {
+  const heroBlock = initial.blocks.find(b => b.type === 'hero');
+  assert.ok(heroBlock);
+
+  const markup = renderContent(heroBlock, 'buttons');
+  assert.match(markup, /class="segmented button-selector"/);
+  assert.match(markup, />Primary<\/button>/);
+  assert.match(markup, />Secondary<\/button>/);
+  assert.match(markup, /class="button-wording"/);
+  assert.match(markup, /class="icon-picker-trigger"/);
+  assert.match(markup, /class="aligned-field icon-position"/);
+  assert.match(markup, /class="segmented destination-kind"/);
+  assert.doesNotMatch(markup, /class="button-result"/);
+});
+
+test('hero media uses standardized drop zone, 2-column collection grid, and plain text selected item', () => {
+  const heroBlock = initial.blocks.find(b => b.type === 'hero');
+  assert.ok(heroBlock);
+
+  const markup = renderContent(heroBlock, 'media');
+  assert.match(markup, /class="media-import"/);
+  assert.match(markup, /class="hero-drop"/);
+  assert.match(markup, /Drop files or paste a link/);
+  assert.match(markup, /Upload files/);
+  assert.match(markup, /Add link/);
+  assert.match(markup, /Choose from library/);
+  assert.match(markup, /class="hero-grid"/);
+  assert.match(markup, /class="hero-tile-name"/);
+  assert.match(markup, /class="hero-selected"/);
+  assert.match(markup, /class="media-summary-card"/);
+  assert.doesNotMatch(markup, /name="selected-filename"/);
+});
+

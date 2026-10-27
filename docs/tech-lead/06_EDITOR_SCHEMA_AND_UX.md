@@ -29,10 +29,15 @@ A first-time user can change headline, replace image, add a button icon, change 
 - Top bar and canvas layout: `docs/review-shots/updated-redesign.png`
 - Header inspector (Shared): `docs/review-shots/header_inspector_verified.png`
 - Hero inspector (Standard): `docs/review-shots/hero_inspector_verified.png`
+- Action buttons inspector: `docs/review-shots/buttons_inspector_verified.png`
+- Media importer & 2-column collection: `docs/review-shots/media_inspector_verified.png`
+- Section media & slideshow controls: `docs/review-shots/slideshow_inspector_verified.png`
 
 ### 2. Shared Tokens
 - **Editor Blue**: `#2563EB` (accent color for active tab underlines, radio/choice borders, focused inputs, toggle switches, and row highlights).
 - **Active Row / Pill Tint**: `#e8f1fe` / `#eff6ff`.
+- **Segmented Track Background**: `#f1f3f8` (subtle gray container track for compact segment buttons).
+- **Active Segment Surface**: `#ffffff` with subtle border/shadow (`rgba(15, 23, 42, 0.08)`) and `#2563EB` text.
 - **Borders & Dividers**: `1px solid var(--p-line)` (`#e4e5ec`).
 - **Typography**: `var(--editor-font)` (`ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif`).
   - Section Index: `11px`, `600`, letter-spacing `0.05em`, uppercase, `#64748b`.
@@ -51,8 +56,20 @@ A first-time user can change headline, replace image, add a button icon, change 
 - **Expanded Groups**: Inputs and fields appear directly underneath the group header without nested card containers.
 - **Standardized Inputs**: Full-width stacked inputs (38px height, 8px radius, `8px 12px` padding, `#2563EB` focus ring) and textareas (min-height 80px with vertical resize preserved).
 - **Toggle Switches**: Label on left, smooth pill switch on right (`#2563EB` when checked), with helper text support.
+- **Button Controls**:
+  - Segmented selector for `Primary` / `Secondary` rendering only buttons that exist.
+  - Button text and icon combined into a single field (`.button-wording`) with integrated icon picker trigger.
+  - Icon position (`Left` / `Right`) with label on left and compact segmented control on right.
+  - Action choices (`Link`, `Call`, `Email`) with consistent icons and contextual target fields (`Destination`, `Section`, `Phone number`, `Email address`).
+  - Real contrast ratio warning preserved with corrective action; duplicate website-styled preview card removed.
+- **Media Controls**:
+  - Standardized dashed drop zone with `Upload files`, `Add link`, and `Choose from library`.
+  - Media collection formatted in a uniform 2-column grid (`.hero-grid`) with video play badges (`▶`), selected `#2563EB` outline, and accessible `X` removal.
+  - Selected media filename presented as clean text with accessible `<` / `>` reorder controls (no editable input).
+  - Compact selected-item summary card above editing controls.
+  - Slideshow controls with aligned labels and `s` / `ms` unit indicators inside numeric field borders.
 - **Pinned Layout**: Header (`.paneltop`) and footer (`.panelbottom`) remain pinned; middle `.panelbody` scrolls smoothly.
 
 ### 4. Style Lock
-Shared shell and inspector styles in `src/app/studio.css`, `src/app/editor/shell.tsx`, and `src/app/editor/content-browser.tsx` are locked to ensure uniform consistency across all 16 section tabs. Future section updates must reuse these shared components and rules. Any modification to the shell architecture requires explicit review; bug and accessibility fixes remain allowed.
+Shared shell and inspector styles in `src/app/studio.css`, `src/app/editor/shell.tsx`, `src/app/editor/content-browser.tsx`, `src/app/editor/fields.tsx`, `src/app/editor/media-importer.tsx`, and `src/app/editor/hero-media.tsx` are locked to ensure uniform consistency across all 16 section tabs. Future section updates must reuse these shared components and rules. Any modification to the shell architecture requires explicit review; bug and accessibility fixes remain allowed.
 

@@ -2,7 +2,6 @@
 import {useId, useState, type CSSProperties} from 'react';
 import {Building2,CheckCircle2,ChevronDown,ChevronRight,FileText,HelpCircle,Image as ImageIcon,Link as LinkIcon,MessageSquare,MousePointerClick,Plus,ShieldCheck,Star,X} from 'lucide-react';
 import {Block,BlockContent,BlockItem,ButtonData,Site,IconName,buttonIconSide,icons,servicePreviewCount} from '../site/blocks';
-import {ButtonPreview} from '../site/sections/elements';
 import {catalog as sections} from '../site/catalog';
 import {accentRamp, FooterColumn, linkedPage, pageSlug} from './settings';
 import {MediaManager} from '../media/library';
@@ -42,7 +41,7 @@ function ButtonText({button, onLabel, onIcon}:{button:ButtonData; onLabel:(label
   const labelId = useId();
   const side = buttonIconSide(button);
   const picker = <IconPicker compact label="Button icon" value={button.icon} onChange={onIcon} options={icons}/>;
-  return <div className="field"><span id={labelId}>Button text</span><div className="button-wording" data-side={side}>{side==="left" && picker}<input className="button-wording-input" aria-labelledby={labelId} value={button.label} {...scope} onChange={event=>onLabel(event.target.value)}/>{side==="right" && picker}</div><p className="helper-text">Click the icon to change it.</p></div>;
+  return <div className="field"><div className="field-label-row"><span id={labelId}>Button text</span><span className="field-tooltip-icon" title="Click the icon inside the field to change it" aria-label="Click the icon inside the field to change it"><HelpCircle size={14} aria-hidden="true"/></span></div><div className="button-wording" data-side={side}>{side==="left" && picker}<input id={`${labelId}-input`} className="button-wording-input" aria-labelledby={labelId} value={button.label} {...scope} onChange={event=>onLabel(event.target.value)}/>{side==="right" && picker}</div></div>;
 }
 function luminance(hex: string) {
   return [1, 3, 5].map(index => { const value = parseInt(hex.slice(index, index + 2), 16) / 255; return value <= 0.04045 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4; }).reduce((sum, channel, index) => sum + channel * [0.2126, 0.7152, 0.0722][index], 0);
@@ -87,24 +86,53 @@ function buttonContext(block: Block, theme: "midnight" | "paper" | undefined, ra
   }
   return {color: ink, solid: surface, style: {background: surface, color: ink} as CSSProperties};
 }
-function ButtonResult({button, primary, context, labelColor, fillColor, accentStyle, theme}:{button: ButtonData; primary: boolean; context: ReturnType<typeof buttonContext>; labelColor: string; fillColor: string; accentStyle: CSSProperties; theme?: "midnight" | "paper"}) {
+function ButtonContrastNote({primary, context, labelColor, fillColor}:{primary: boolean; context: ReturnType<typeof buttonContext>; labelColor: string; fillColor: string}) {
   const [useAlternative, setUseAlternative] = useState(false);
   const alternative = contrastAlternative(primary ? labelColor : context.color, primary ? fillColor : context.solid);
-  const style = {...accentStyle, ...(primary ? {} : context.style), ...(useAlternative && alternative?.fill ? {"--accent": alternative.fill} : {}), ...(useAlternative && alternative?.color ? {color: alternative.color, "--line": alternative.color} : {})} as CSSProperties;
-  return <><div className={`site-preview button-result theme-${theme==="midnight"?"midnight":"paper"}`} data-context={primary ? undefined : "site"} style={style}><ButtonPreview button={button} primary={primary}/></div>{alternative && <p className="helper-text contrast-note" role="status"><span>Label contrast is too low. The website color is unchanged.</span><button type="button" aria-pressed={useAlternative} onClick={() => setUseAlternative(shown => !shown)}>{useAlternative ? "Show website colors" : "Preview darker alternative"}</button></p>}</>;
+  if (!alternative) return null;
+  return <p className="helper-text contrast-note" role="status"><span>Label contrast is too low on the website canvas.</span><button type="button" aria-pressed={useAlternative} onClick={() => setUseAlternative(shown => !shown)}>{useAlternative ? "Show website colors" : "Preview darker alternative"}</button></p>;
 }
 function IconPosition({value, onChange}:{value:"left"|"right"; onChange:(side:"left"|"right")=>void}) {
   const id = useId();
   const options = [{value:"left" as const, label:"Left"}, {value:"right" as const, label:"Right"}];
-  return <div className="icon-position"><span id={id}>Icon position</span><div className="segmented" role="group" aria-labelledby={id}>{options.map(option => <button type="button" key={option.value} aria-pressed={value===option.value} onClick={() => onChange(option.value)}>{option.label}</button>)}</div></div>;
+  return <div className="aligned-field icon-position"><span id={id}>Icon position</span><div className="segmented" role="group" aria-labelledby={id}>{options.map(option => <button type="button" key={option.value} aria-pressed={value===option.value} onClick={() => onChange(option.value)}>{option.label}</button>)}</div></div>;
 }
 function ButtonFields({block, change, sections: pageSections, accent, theme}:{block:Block; change:Change; sections:{id:string; type:string}[]; accent:string; theme?: "midnight" | "paper"}) {
-  const c=block.content,write=(index:number,patch:Partial<ButtonData>)=>change({buttons:c.buttons.map((button,i)=>i===index?{...button,...patch}:button)});
+  const c = block.content;
+  const [activeTab, setActiveTab] = useState(0);
+  const write = (index:number,patch:Partial<ButtonData>)=>change({buttons:c.buttons.map((button,i)=>i===index?{...button,...patch}:button)});
   const fill = /^#[0-9a-f]{6}$/i.test(accent) ? accent : "#7963ff";
   const ramp = accentRamp(fill);
   const context = buttonContext(block, theme, ramp);
-  const accentStyle = {"--accent": fill, ...Object.fromEntries(Object.entries(ramp).map(([step, color]) => [`--accent-${step}`, color]))} as CSSProperties;
-  return <>{block.type==='hero'&&['short','center'].includes(block.layout)&&<Toggle label="Show secondary button" checked={c.showSecondary!==false} change={showSecondary=>change({showSecondary})}/>}{c.buttons.filter((_,i)=>i===0||c.showSecondary!==false).map((button,i)=><div className="action-editor" key={i}><h3>{i?'Secondary button':'Primary button'}</h3><ButtonResult button={button} primary={i===0} context={context} labelColor={ramp[50]} fillColor={fill} accentStyle={accentStyle} theme={theme}/><ButtonText button={button} onLabel={label=>write(i,{label})} onIcon={icon=>write(i,{icon})}/>{button.icon!=='none' && <IconPosition value={buttonIconSide(button)} onChange={iconPosition=>write(i,{iconPosition})}/>}<Destination label="When clicked" value={button.href} onChange={href=>write(i,{href})} sections={pageSections}/></div>)}</>;
+  const availableButtons = c.buttons.filter((_, i) => i === 0 || c.showSecondary !== false);
+  const selectedIndex = Math.min(activeTab, Math.max(0, availableButtons.length - 1));
+  const currentButton = availableButtons[selectedIndex] || c.buttons[0];
+  const actualIndex = c.buttons.indexOf(currentButton);
+  return <>
+    {block.type==='hero'&&['short','center'].includes(block.layout)&&<Toggle label="Show secondary button" checked={c.showSecondary!==false} change={showSecondary=>change({showSecondary})}/>}
+    {availableButtons.length > 1 && (
+      <div className="segmented button-selector" role="group" aria-label="Button selection">
+        {availableButtons.map((_, i) => (
+          <button
+            key={i}
+            type="button"
+            aria-pressed={selectedIndex === i}
+            onClick={() => setActiveTab(i)}
+          >
+            {i === 0 ? "Primary" : "Secondary"}
+          </button>
+        ))}
+      </div>
+    )}
+    {currentButton && (
+      <div className="action-editor" key={actualIndex}>
+        <ButtonContrastNote primary={actualIndex === 0} context={context} labelColor={ramp[50]} fillColor={fill}/>
+        <ButtonText button={currentButton} onLabel={label=>write(actualIndex,{label})} onIcon={icon=>write(actualIndex,{icon})}/>
+        {currentButton.icon!=='none' && <IconPosition value={buttonIconSide(currentButton)} onChange={iconPosition=>write(actualIndex,{iconPosition})}/>}
+        <Destination label="When clicked" value={currentButton.href} onChange={href=>write(actualIndex,{href})} sections={pageSections}/>
+      </div>
+    )}
+  </>;
 }
 function proofBuckets(items:BlockItem[]) {
   return {reasons:items.filter(item=>item.group!=='stat'&&item.group!=='avatar'&&item.group!=='more'),stats:items.filter(item=>item.group==='stat'),avatars:items.filter(item=>item.group==='avatar'),more:items.filter(item=>item.group==='more')};

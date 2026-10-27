@@ -34,7 +34,8 @@ export function HeroMediaEditor({content, layout, blockId, onChange, compact=fal
   const candidate=items.length?Math.min(Math.max(0,index),items.length-1):-1;
   const matches=(item:MediaSettings)=>mode==='slideshow'||(mode==='image'?item.kind==='image':item.kind!=='image');
   const selected=compact&&candidate>=0&&!matches(items[candidate])?items.findIndex(matches):candidate;
-  const limitNote = items.length > addLimit ? `This ${owner.toLowerCase()} already has ${items.length} items, and they all stay. New items stop at ${addLimit}.` : `This ${owner.toLowerCase()} holds ${addLimit} items.`;
+  const limitExplanation = items.length >= addLimit ? `${items.length} of ${addLimit} items • remove one to add another` : `${items.length} of ${addLimit} items`;
+  const limitNote = items.length > addLimit ? `This ${owner.toLowerCase()} already has ${items.length} items, and they all stay. New items stop at ${addLimit}.` : `${limitExplanation}. This ${owner.toLowerCase()} holds ${addLimit} items.`;
   useEffect(() => { setFocus(compact||selected < 0 ? null : {blockId, index: selected}); }, [blockId, selected, setFocus,compact]);
   useEffect(() => () => setFocus(null), [setFocus]);
   const stageModeKey = stageModes.join(",");
@@ -113,17 +114,53 @@ export function HeroMediaEditor({content, layout, blockId, onChange, compact=fal
   };
   const shade = content.fade ? "bottom" : (content.darkness ?? 36) === 0 ? "none" : "solid";
   const color = /^#[0-9a-f]{6}$/i.test(content.background || "") ? content.background! : "#0b1420";
-  const importerItems = items.map(item => ({
-    name: fileName(item.src, names),
-    kind: item.kind === "video" ? "video" as const : "image" as const,
-    preview: <>{item.src && <MediaView value={{...item, controls: false, autoplay: false}} editable/>}{item.kind === "video" && <span className="hero-tile-play"><Play size={16} aria-hidden="true"/></span>}</>
-  }));
+  const importerItems = items.map(item => {
+    const itemDuration = (item as unknown as { duration?: string }).duration;
+    return {
+      name: fileName(item.src, names),
+      kind: item.kind === "video" ? "video" as const : "image" as const,
+      preview: <>
+        {item.src && <MediaView value={{...item, controls: false, autoplay: false}} editable/>}
+        {item.kind === "video" && (
+          <span className="hero-tile-play">
+            <Play size={10} fill="currentColor" aria-hidden="true"/>
+            {itemDuration ? <span className="hero-tile-duration">{itemDuration}</span> : null}
+          </span>
+        )}
+      </>
+    };
+  });
   const importerStatus = progress || notice || (items.length >= addLimit ? limitNote : "");
+  const selectedAsset = media?.src?.startsWith('media:') ? assets.find(a => a.id === media.src.slice(6)) : null;
+  const metaParts: string[] = [];
+  if (selectedAsset?.size) {
+    const mb = selectedAsset.size / (1024 * 1024);
+    metaParts.push(mb >= 1 ? `${mb.toFixed(0)} MB` : `${Math.round(selectedAsset.size / 1024)} KB`);
+  }
+  const summaryMeta = metaParts.join(' • ');
+  const mediaDuration = media ? (media as unknown as { duration?: string }).duration : null;
+
   return <div className={compact?"list-editor section-media":"list-editor"}>
     {compact&&stageModes.length>1&&<div className="media-modes" role="group" aria-label="Media display">{stageModes.map(value=><button key={value} type="button" aria-pressed={mode===value} onClick={()=>{onChange({mediaMode:value});const first=items.findIndex(item=>value==='slideshow'||(value==='image'?item.kind==='image':item.kind!=='image'));setIndex(Math.max(0,first));}}>{value==='slideshow'?'Slideshow':value==='image'?'Image':'Video'}</button>)}</div>}
-    {compact&&media&&<div className="section-media-preview"><MediaView value={{...media,autoplay:false,controls:media.kind!=='image'}}/>{items.length>1&&<span className="preview-badge">{selected+1} / {items.length}</span>}</div>}
     {compact&&media&&media.kind!=='image'&&<label className="switch-row"><span>Muted</span><input type="checkbox" role="switch" aria-label="Muted" checked={media.muted} onChange={event => writeSelected({muted: event.target.checked})}/></label>}
-    <MediaImporter compact={compact} owner={owner} hint="Images and videos" accept={ACCEPT} placeholder="https://example.com/photo.jpg" items={importerItems} selected={selected} busy={!!progress} blocked={items.length >= addLimit} status={importerStatus} onFiles={files => void addFiles(files)} onLink={addLink} onLibrary={() => setLibrary(true)} onSelect={select} onRemove={removeAt} onReorder={reorder} />
+    <MediaImporter compact={compact} owner={owner} hint="Images and videos" accept={ACCEPT} placeholder="https://example.com/photo.jpg" items={importerItems} selected={selected} busy={!!progress} blocked={items.length >= addLimit} status={importerStatus} limitNote={items.length >= addLimit ? `${items.length} of ${addLimit} items • remove one to add another` : undefined} onFiles={files => void addFiles(files)} onLink={addLink} onLibrary={() => setLibrary(true)} onSelect={select} onRemove={removeAt} onReorder={reorder} />
+    {media && (
+      <div className="media-summary-card">
+        <div className="media-summary-thumb">
+          {media.src && <MediaView value={{...media, autoplay: false, controls: false}}/>}
+          {media.kind === 'video' && (
+            <span className="hero-tile-play">
+              <Play size={10} fill="currentColor" aria-hidden="true"/>
+              {mediaDuration ? <span className="hero-tile-duration">{mediaDuration}</span> : null}
+            </span>
+          )}
+        </div>
+        <div className="media-summary-info">
+          <strong className="media-summary-name">{fileName(media.src, names)}</strong>
+          {summaryMeta ? <span className="media-summary-meta">{summaryMeta}</span> : null}
+        </div>
+      </div>
+    )}
     {!compact && <Fold icon={<Accessibility size={16} aria-hidden="true"/>} label="Link & accessibility" disabled={!media} note={media ? undefined : "Add media first"}>
       {media && <>
         {layout !== "story" && <Field label="Label on image (optional)" value={content.indexLabel || ""} onChange={indexLabel => onChange({indexLabel})}/>}
@@ -131,9 +168,9 @@ export function HeroMediaEditor({content, layout, blockId, onChange, compact=fal
       </>}
     </Fold>}
     {compact&&mode==='slideshow'&&<>
-      <label className="switch-row"><span>Autoplay slideshow</span><input type="checkbox" role="switch" aria-label="Autoplay slideshow" checked={!!content.slideAutoplay} onChange={event => onChange({slideAutoplay: event.target.checked})}/></label>
+      <label className="switch-row"><span>Play slideshow</span><input type="checkbox" role="switch" aria-label="Play slideshow" checked={!!content.slideAutoplay} onChange={event => onChange({slideAutoplay: event.target.checked})}/></label>
       <label className="switch-row"><span>Loop slideshow</span><input type="checkbox" role="switch" aria-label="Loop slideshow" checked={content.slideLoop!==false} onChange={event=>onChange({slideLoop:event.target.checked})}/></label>
-      <label className="spacing-field"><span>Time per image</span><span className="unit-input"><input aria-label="Time per image" type="number" min={1} max={30} value={content.slideSeconds ?? 5} onChange={event => onChange({slideSeconds: Math.min(30, Math.max(1, Number(event.target.value) || 5))})}/><small>s</small></span></label>
+      <div className="aligned-field"><span>Time per image</span><span className="unit-input"><input aria-label="Time per image" type="number" min={1} max={30} value={content.slideSeconds ?? 5} onChange={event => onChange({slideSeconds: Math.min(30, Math.max(1, Number(event.target.value) || 5))})}/><small>s</small></span></div>
     </>}
     {compact&&<Field label="Caption" value={content.note || ''} onChange={note=>onChange({note})}/>}
     <Fold icon={<Crop size={16} aria-hidden="true"/>} label="Framing" disabled={!media} note={media ? undefined : "Add media first"}>
@@ -160,17 +197,14 @@ export function HeroMediaEditor({content, layout, blockId, onChange, compact=fal
     </Fold>}
     {!compact&&<Fold icon={<Images size={16} aria-hidden="true"/>} label="Slideshow" disabled={items.length<2} note={items.length<2?"Add two items":undefined}>
       <label className="switch-row"><span>Play slideshow</span><input type="checkbox" role="switch" aria-label="Play slideshow" checked={!!content.slideAutoplay} onChange={event => onChange({slideAutoplay: event.target.checked})}/></label>
-      <label className="field"><span>Image duration (seconds)</span><input aria-label="Image duration" type="number" min={1} max={30} value={content.slideSeconds ?? 5} onChange={event => onChange({slideSeconds: Math.min(30, Math.max(1, Number(event.target.value) || 5))})}/></label>
-      <div className="overlay-tiles" role="group" aria-label="Video advance">
-        <button type="button" aria-pressed={(content.slideAdvance ?? "time") === "time"} onClick={() => onChange({slideAdvance: "time"})}>Timer</button>
-        <button type="button" aria-pressed={content.slideAdvance === "end"} onClick={() => onChange({slideAdvance: "end"})}>At clip end</button>
-      </div>
-      <label className="field"><span>Fade (milliseconds)</span><input aria-label="Fade" type="number" min={0} max={2000} step={50} value={content.slideFade ?? 0} onChange={event => onChange({slideFade: Math.min(2000, Math.max(0, Number(event.target.value) || 0))})}/></label>
+      <div className="aligned-field"><span>Image duration</span><span className="unit-input"><input aria-label="Image duration" type="number" min={1} max={30} value={content.slideSeconds ?? 5} onChange={event => onChange({slideSeconds: Math.min(30, Math.max(1, Number(event.target.value) || 5))})}/><small>s</small></span></div>
+      <div className="aligned-field"><span>Advance videos</span><div className="segmented" role="group" aria-label="Video advance"><button type="button" aria-pressed={(content.slideAdvance ?? "time") === "time"} onClick={() => onChange({slideAdvance: "time"})}>After timer</button><button type="button" aria-pressed={content.slideAdvance === "end"} onClick={() => onChange({slideAdvance: "end"})}>At clip end</button></div></div>
+      <div className="aligned-field"><span>Transition fade</span><span className="unit-input"><input aria-label="Transition fade" type="number" min={0} max={2000} step={50} value={content.slideFade ?? 0} onChange={event => onChange({slideFade: Math.min(2000, Math.max(0, Number(event.target.value) || 0))})}/><small>ms</small></span></div>
+      <p className="helper-text">Images use the timer. Videos follow your selection.</p>
     </Fold>}
     {compact && <Fold icon={<Accessibility size={16} aria-hidden="true"/>} label="Accessibility" disabled={!media} note={media ? undefined : "Add media first"}>
       {media && <><Field label="Alternative text" value={media.alt} onChange={alt => writeSelected({alt})}/>{<><p className="helper-text">Describe the media for people who cannot see it. Leave empty only when decorative.</p><Field label="Media title" value={media.title} onChange={title=>writeSelected({title})}/><Field label="Media description" value={media.description} onChange={description=>writeSelected({description})}/>{media.kind!=='image'&&<><Field label="Captions link (.vtt)" value={media.captions} onChange={captions=>writeSelected({captions})}/><Field label="Caption language" value={media.captionLanguage} onChange={captionLanguage=>writeSelected({captionLanguage})}/></>}</>}</>}
     </Fold>}
-    {compact && <p className="helper-text">X removes the {owner} item; originals and other sections remain intact.</p>}
     {removed && <p className="media-toast" role="status">Removed from {owner} <button type="button" onClick={undo}>Undo</button><button type="button" aria-label="Dismiss" onClick={() => setRemoved(null)}><X size={16} aria-hidden="true"/></button></p>}
     {library&&<MediaPicker label="Choose section media" onSelect={(src,kind)=>{addItem({...mediaDefaults,src,kind});setLibrary(false);}} onClose={()=>setLibrary(false)}/>}
     {poster && <MediaPicker label="Choose poster" imagesOnly onSelect={src => { writeSelected({poster: src}); setPoster(false); }} onClose={() => setPoster(false)}/>}
