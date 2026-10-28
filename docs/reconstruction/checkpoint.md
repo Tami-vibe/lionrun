@@ -4,7 +4,7 @@
 
 This is an implemented and tested **schema/inspector reconstruction checkpoint**, not the requested complete reconstruction. The 2,500-line gate remains failing. No claim is made that this is the smallest possible complete implementation or that the budget has been proved incompatible with full feature preservation.
 
-The reference contained 9,993 application lines, plus 37 lines of executable root configuration: **10,030** under the complete counting rule. The checkpoint contains **9,648** lines, including configuration, blank lines and comments. Nothing was moved into an excluded runtime file, generated artifact, dependency or document to lower the count.
+The reference contained 9,993 application lines, plus 37 lines of executable root configuration: **10,030** under the complete counting rule. The checkpoint contains **9,684** lines, including configuration, blank lines and comments. Nothing was moved into an excluded runtime file, generated artifact, dependency or document to lower the count.
 
 | Architectural module | Physical lines |
 | --- | ---: |
@@ -15,9 +15,10 @@ The reference contained 9,993 application lines, plus 37 lines of executable roo
 | Next.js entry points | 324 |
 | Export | 119 |
 | Executable configuration | 37 |
-| **Total** | **9,648** |
+| Source audit utility | 36 |
+| **Total** | **9,684** |
 
-Reproduce with `node scripts/application-lines.mjs`. The counter includes public runtime scripts and non-audit utility scripts if present. A fixture test checks those inclusions. Tests, documentation, dependencies, build output, `next-env.d.ts`, and this non-runtime audit tool are excluded.
+Reproduce with `node scripts/application-lines.mjs`. The counter includes public runtime scripts and every utility script, including the audit utility itself. A fixture test checks those inclusions. Tests, documentation, dependencies, build output and generated `next-env.d.ts` are excluded.
 
 ## Original versus replacement boundary
 
@@ -57,7 +58,7 @@ Only `refactor/reconstruct-2500-lines` was edited. No deployment, merge, main ch
 
 ## Outstanding acceptance gaps
 
-- **7,148 lines over budget.** The proposed allocation has not been realized.
+- **7,184 lines over budget.** The proposed allocation has not been realized.
 - Workspace/persistence, media, public rendering, remaining editor interactions, export and most CSS still retain the existing architecture. Full demolition/reconstruction is incomplete.
 - All 39 layouts render under automated checks, but every control/interaction has not been exercised in a browser. Existing tests provide partial evidence, not a complete acceptance audit.
 - Full WCAG 2.2 AA (including contrast/target sizes/focus across every flow), assistive technology behavior, real-device responsive behavior, privacy/security review, and installation in an actual WordPress environment remain unverified. No certification or compliance guarantee is implied.

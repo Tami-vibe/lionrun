@@ -26,8 +26,8 @@ test('source audit includes root config, public scripts and utilities, excludes 
       writeFileSync(join(root, name), source);
     }
     const audit = applicationLines(root);
-    assert.equal(audit.total, 7);
-    assert.equal(audit.files.length, 5);
+    assert.equal(audit.total, 8);
+    assert.equal(audit.files.length, 6);
   } finally {
     rmSync(root, {recursive: true, force: true});
   }

@@ -8,7 +8,7 @@ const excludedDirectories = new Set([
   'tests', 'docs', 'out', 'build', 'coverage',
 ]);
 
-/** Audit tooling and fixtures are excluded; all executable application/config source is counted. */
+/** Count owned source and configuration conservatively, including this audit utility. */
 export function applicationLines(root = process.cwd()) {
   const files = [];
   function walk(directory) {
@@ -16,7 +16,6 @@ export function applicationLines(root = process.cwd()) {
       const path = join(directory, entry.name);
       if (entry.isDirectory() && !excludedDirectories.has(entry.name)) walk(path);
       if (!entry.isFile() || !sourceExtension.test(entry.name) || entry.name === 'next-env.d.ts') continue;
-      if (relative(root, path) === 'scripts/application-lines.mjs') continue;
       const source = readFileSync(path, 'utf8');
       const lines = source === '' ? [] : source.replace(/\n$/, '').split('\n');
       files.push({path: relative(root, path), lines: lines.length,

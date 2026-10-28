@@ -24,4 +24,4 @@ Subsequent boundaries are workspace/persistence, media, section rendering, expor
 
 ## Counting
 
-Count physical lines (including blank/comment lines) of application-owned `.ts`, `.tsx`, `.js`, `.jsx`, `.mjs`, `.cjs`, `.css`, `.mts`, and `.cts`, including root executable configuration. Exclude dependencies, Git/Next output, generated `next-env.d.ts`, TypeScript build info, tests, documentation and non-runtime audit tooling. Count protected user files even when unused. Report all modules; never present only replacement-module lines as the application count.
+Count physical lines (including blank/comment lines) of application-owned `.ts`, `.tsx`, `.js`, `.jsx`, `.mjs`, `.cjs`, `.css`, `.mts`, and `.cts`, including root executable configuration. Exclude dependencies, Git/Next output, generated `next-env.d.ts`, TypeScript build info, tests and documentation. Audit tooling is conservatively included. Count protected user files even when unused. Report all modules; never present only replacement-module lines as the application count.
