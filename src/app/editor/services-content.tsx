@@ -79,6 +79,77 @@ function ServicePageLink({
   );
 }
 
+function ServiceDetailsFields({
+  item,
+  pages,
+  writeSelected,
+  onOpenPage,
+}: {
+  item: BlockItem;
+  pages: {id: string; name: string}[];
+  writeSelected: (patch: Partial<BlockItem>) => void;
+  onOpenPage?: (id: string) => void;
+}) {
+  return <>
+    <Field label="Title" value={item.title} onChange={title => writeSelected({title})} />
+    <Field label="Description" value={item.description} multiline onChange={description => writeSelected({description})} />
+    <Field label="Price" value={item.price || ''} onChange={price => writeSelected({price: price.trim() || undefined})} />
+    <ServicePageLink
+      item={item}
+      pages={pages}
+      onOpenPage={onOpenPage}
+      onHref={href => writeSelected({href})}
+    />
+  </>;
+}
+
+function ServiceMediaFields({
+  media,
+  writeMedia,
+}: {
+  media: MediaSettings;
+  writeMedia: (patch: Partial<MediaSettings>) => void;
+}) {
+  return <>
+    <Field label="Alternative text" value={media.alt || ''} onChange={alt => writeMedia({alt})} />
+    <p className="helper-text">Describe the media for people who cannot see it.</p>
+    {media.kind !== 'image' && (
+      <>
+        <Field label="Captions link (.vtt)" value={media.captions} onChange={captions => writeMedia({captions})} />
+        <Field label="Caption language" value={media.captionLanguage} onChange={captionLanguage => writeMedia({captionLanguage})} />
+      </>
+    )}
+  </>;
+}
+
+function ServiceRowActions({
+  hidden,
+  allowClone,
+  onClone,
+  onToggleHidden,
+  onRemove,
+}: {
+  hidden: boolean;
+  allowClone: boolean;
+  onClone: () => void;
+  onToggleHidden: () => void;
+  onRemove: () => void;
+}) {
+  return <div className="service-row-actions" role="menu">
+    <button type="button" role="menuitem" disabled={!allowClone} onClick={onClone}>
+      <Copy size={16} strokeWidth={1.75} aria-hidden="true" /><span>Clone</span>
+    </button>
+    <button type="button" role="menuitem" onClick={onToggleHidden}>
+      {hidden
+        ? <><Eye size={16} strokeWidth={1.75} aria-hidden="true" /><span>Show</span></>
+        : <><EyeOff size={16} strokeWidth={1.75} aria-hidden="true" /><span>Hide</span></>}
+    </button>
+    <button type="button" role="menuitem" className="is-danger" onClick={onRemove}>
+      <Trash2 size={16} strokeWidth={1.75} aria-hidden="true" /><span>Delete</span>
+    </button>
+  </div>;
+}
+
 export function ServicesContent({
   items,
   pages,
@@ -292,19 +363,13 @@ export function ServicesContent({
                     <MoreVertical size={16} aria-hidden="true" />
                   </button>
                   {menu === index && (
-                    <div className="service-row-actions" role="menu">
-                      <button type="button" role="menuitem" disabled={list.length >= 60} onClick={() => cloneAt(index)}>
-                        <Copy size={16} strokeWidth={1.75} aria-hidden="true" /><span>Clone</span>
-                      </button>
-                      <button type="button" role="menuitem" onClick={() => toggleHidden(index)}>
-                        {row.hidden
-                          ? <><Eye size={16} strokeWidth={1.75} aria-hidden="true" /><span>Show</span></>
-                          : <><EyeOff size={16} strokeWidth={1.75} aria-hidden="true" /><span>Hide</span></>}
-                      </button>
-                      <button type="button" role="menuitem" className="is-danger" onClick={() => removeAt(index)}>
-                        <Trash2 size={16} strokeWidth={1.75} aria-hidden="true" /><span>Delete</span>
-                      </button>
-                    </div>
+                    <ServiceRowActions
+                      hidden={!!row.hidden}
+                      allowClone={list.length < 60}
+                      onClone={() => cloneAt(index)}
+                      onToggleHidden={() => toggleHidden(index)}
+                      onRemove={() => removeAt(index)}
+                    />
                   )}
                 </div>
               )}
@@ -331,17 +396,12 @@ export function ServicesContent({
                   {item.price?.trim() && <p className="helper-text">Price: {item.price}</p>}
                 </>
               ) : (
-                <>
-                  <Field label="Title" value={item.title} onChange={title => writeSelected({title})} />
-                  <Field label="Description" value={item.description} multiline onChange={description => writeSelected({description})} />
-                  <Field label="Price" value={item.price || ''} onChange={price => writeSelected({price: price.trim() || undefined})} />
-                  <ServicePageLink
-                    item={item}
-                    pages={pages}
-                    onOpenPage={onOpenPage}
-                    onHref={href => writeSelected({href})}
-                  />
-                </>
+                <ServiceDetailsFields
+                  item={item}
+                  pages={pages}
+                  writeSelected={writeSelected}
+                  onOpenPage={onOpenPage}
+                />
               )}
             </div>
           )}
@@ -390,14 +450,7 @@ export function ServicesContent({
                         <MediaFramingControls media={media} onChange={writeMedia} />
                       </Fold>
                       <Fold icon={<Accessibility size={16} aria-hidden="true" />} label="Accessibility" note="Alt text and screen reader support">
-                        <Field label="Alternative text" value={media.alt || ''} onChange={alt => writeMedia({alt})} />
-                        <p className="helper-text">Describe the media for people who cannot see it.</p>
-                        {media.kind !== 'image' && (
-                          <>
-                            <Field label="Captions link (.vtt)" value={media.captions} onChange={captions => writeMedia({captions})} />
-                            <Field label="Caption language" value={media.captionLanguage} onChange={captionLanguage => writeMedia({captionLanguage})} />
-                          </>
-                        )}
+                        <ServiceMediaFields media={media} writeMedia={writeMedia} />
                       </Fold>
                       {media.kind !== 'image' && (
                         <Fold icon={<Play size={16} aria-hidden="true" />} label="Video settings">
