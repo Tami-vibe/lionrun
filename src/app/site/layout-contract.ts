@@ -1,5 +1,8 @@
 import type {SectionId} from './catalog';
-import {blockLayouts} from './blocks';
+export const blockLayouts:Record<SectionId,readonly string[]> = {
+ header:['standard','pill','rounded'],hero:['split','center','image','short','story'],logos:['Scrolling row','Still row','Heading and slider'],services:['Icon cards','Photo cards','Price list'],proof:['Text and photo','Promise band','Photo and reasons'],about:['Story and photos','Photos only','Sliding gallery'],pains:['Photo cards','One message'],solutions:['Numbered steps','Before and after'],trust:['Big numbers','Numbers and certifications','Signals'],reviews:['Review cards','One large quote','Carousel'],quote:['Photo beside the form'],faq:['Accordion','Two columns'],promo:['Offer band'],contact:['Details and map'],closing:['Quiet','Full color'],footer:['columns','minimal'],
+};
+
 
 export type LayoutContract = {
   showsEyebrow: boolean;
@@ -135,3 +138,5 @@ export function layoutContractCoverage(): {type: SectionId; layout: string; ok: 
     })),
   );
 }
+
+export function defaultColumns(id:string) { return id==='solutions'?5:id==='about'||id==='proof'||id==='contact'?2:id==='faq'?1:3; }

@@ -1,17 +1,7 @@
 export type TextStyle = {family?:string;size?:number;weight?:number;align?:string;lineHeight?:number;tracking?:number;color?:string};
 export type SectionSettings = {columns?:number;widths?:number[];gap?:number;padding?:number;heading?:TextStyle;body?:TextStyle};
-export type FooterColumn = {
-  kind?: 'text' | 'hours';
-  title: string;
-  text: string;
-  links: {
-    id?: string;
-    label: string;
-    href: string;
-    pageId?: string;
-    customLabel?: boolean;
-  }[];
-};
+import type {FooterColumn} from './footer-model';
+export type {FooterColumn} from './footer-model';
 export const fonts = {display:'var(--font-display), sans-serif',text:'var(--font-text), sans-serif'};
 
 export type FontPairId = 'northline' | 'editorial' | 'industrial' | 'friendly';
@@ -43,7 +33,7 @@ export function brandKitVariables(kit: BrandKit = defaultBrandKit): Record<strin
 function bounded(value:unknown,min:number,max:number,fallback:number) {
   return typeof value==='number'&&Number.isFinite(value)?Math.max(min,Math.min(max,value)):fallback;
 }
-export function defaultColumns(id:string) { return id==='solutions'?5:id==='about'||id==='proof'||id==='contact'?2:id==='faq'?1:3; }
+export {defaultColumns} from './layout-contract';
 export function equalWidths(count:number) { return Array.from({length:count},()=>100/count); }
 export function normalizeSettings(value:SectionSettings = {}):SectionSettings {
   value=value&&typeof value==='object'?value:{};

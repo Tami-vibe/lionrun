@@ -160,3 +160,57 @@ export function validFooter(value: unknown): value is FooterConfig {
       && (t.color === undefined || /^#[\da-f]{6}$/i.test(t.color));
   });
 }
+
+export type FooterColumn = {
+  kind?: 'text' | 'hours';
+  title: string;
+  text: string;
+  links: {
+    id?: string;
+    label: string;
+    href: string;
+    pageId?: string;
+    customLabel?: boolean;
+  }[];
+};
+
+import type {Block, Site} from './blocks';
+import {equalWidths, type SectionSettings} from './settings';
+
+export function footerColumnWidths(settings: SectionSettings): number[] {
+  return settings.widths || equalWidths(settings.columns || 3);
+}
+export function footerColumnCount(site: Site, block: Block, columns: FooterColumn[], count: number): Partial<Site> {
+  return {
+    footerColumns: Array.from({length: Math.max(columns.length, count)}, (_, i) =>
+      columns[i] || {title: `Column ${i + 1}`, text: '', links: []}),
+    blocks: site.blocks.map(item => item.id === block.id ? {
+      ...item, settings: {...item.settings, columns: count, widths: equalWidths(count)},
+    } : item),
+  };
+}
+export function footerLayoutPatch(site: Site, block: Block, columns: FooterColumn[], config: FooterConfig, layout: FooterLayout): {patch: Partial<Site>; notice?: string} {
+  const next = [...columns];
+  let notice: string | undefined;
+  if (layout === 'hours' && !next.some(item => item.kind === 'hours')) {
+    if (next.length < 5) next.push({title: 'Opening hours', text: '', links: [], kind: 'hours'});
+    else notice = 'All five columns are in use. Choose Opening hours inside a column.';
+  }
+  const count = layout === 'hours' ? Math.max(4, next.length)
+    : footerLayouts.find(item => item.id === layout)!.columns;
+  return {notice, patch: {
+    footerStyle: 'columns', footerColumns: next,
+    blocks: site.blocks.map(item => item.id === block.id ? {
+      ...item, layout: 'columns',
+      settings: {...item.settings, columns: count, widths: equalWidths(count)},
+      content: {...item.content, footer: {...config, layout, align: layout === 'stack' ? 'center' : config.align}},
+    } : item),
+  }};
+}
+
+export function footerConfig(block: Block, site: Site, columns: FooterColumn[]): FooterConfig {
+  if (block.content.footer) return block.content.footer;
+  const config = footerDefaults(columns[0]?.text || '');
+  if (site.footerStyle === 'minimal') config.layout = 'stack';
+  return config;
+}

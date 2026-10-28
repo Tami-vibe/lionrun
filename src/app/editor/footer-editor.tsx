@@ -1,18 +1,17 @@
 'use client';
-import {useEffect, useLayoutEffect, useRef, useState, type ReactNode} from 'react';
-import {
-  AlignCenter, AlignLeft, AlignRight, ArrowLeft, Bold, CaseSensitive,
-  CaseUpper, ChevronRight, Link2, MoveHorizontal,
-  Plus, Rows3, Trash2, Type,
-} from 'lucide-react';
+import {FooterHours, FooterSocials, FooterSocialForm, FooterColumnLinks} from './footer-details';
+import {useEffect, useLayoutEffect, useRef, useState} from 'react';
+import {ArrowLeft, ChevronRight, Link2, Plus, Trash2} from 'lucide-react';
 import type {Block, Site} from '../site/blocks';
-import type {PageEntry} from './navigation';
+import type {FooterEditorProps} from './footer-details';
 import type {FooterColumn} from '../site/settings';
 import {
-  footerDefaults, footerLayouts, safeSocialUrl, validOfficeDay,
+  footerConfig, safeSocialUrl,
   type FooterConfig, type FooterLink, type FooterTarget, type FooterText,
 } from '../site/footer-model';
-import {Choice, Field} from './fields';
+import {SidebarSelect as Choice, Field, UnitField} from './components/fields';
+import {FooterAppearance, Alignment} from './footer-appearance';
+import {footerLayoutPatch, footerColumnCount, footerColumnWidths} from '../site/footer-model';
 import {createDefaultMenus} from '../site/menu-model';
 import {MediaPicker, MediaView, publishAsset, useMediaLibrary} from '../media/library';
 import {mediaDefaults} from '../media/model';
@@ -20,42 +19,9 @@ import {MediaUpload} from './media-upload';
 import {directMediaLink} from '../site/hero-collection';
 import {HeroMediaEditor} from './hero-media';
 
-type Props = {
-  block: Block;
-  site: Site;
-  pages: PageEntry<Site>[];
-  defaults: FooterColumn[];
-  view: 'Content' | 'Appearance';
-  update: (patch: Partial<Site>) => void;
-};
-const targets: {value: FooterTarget; label: string}[] = [
-  {value: 'heading', label: 'Titles'}, {value: 'body', label: 'Text & links'},
-  {value: 'motto', label: 'Motto'}, {value: 'bottom', label: 'Bottom row'},
-  {value: 'hours', label: 'Opening hours'},
-];
-const alignments = [
-  {value: 'left', label: 'Left', icon: AlignLeft},
-  {value: 'center', label: 'Center', icon: AlignCenter},
-  {value: 'right', label: 'Right', icon: AlignRight},
-] as const;
-function Alignment({value, change, label}: {
-  value: string; label: string; change: (value: 'left' | 'center' | 'right') => void;
-}) {
-  return <div className="field" role="group" aria-label={label}>
-    <span>{label}</span><div className="choice-group">
-      {alignments.map(({value: next, label: text, icon: Glyph}) => (
-        <button type="button" key={next} aria-pressed={value === next}
-          onClick={() => change(next)}><Glyph size={16} aria-hidden="true"/>{text}</button>
-      ))}
-    </div>
-  </div>;
-}
-
-export function FooterEditor({block, site, pages, defaults, view, update}: Props) {
+export function FooterEditor({block, site, pages, defaults, view, update}: FooterEditorProps) {
   const columns = site.footerColumns || defaults;
-  const initial = footerDefaults(columns[0]?.text || '');
-  if (site.footerStyle === 'minimal') initial.layout = 'stack';
-  const config = block.content.footer || initial;
+  const config = footerConfig(block, site, columns);
   const [screen, setScreen] = useState('home');
   const [target, setTarget] = useState<FooterTarget>('motto');
   const [picker, setPicker] = useState<number | 'bottom' | null>(null);
@@ -107,23 +73,9 @@ export function FooterEditor({block, site, pages, defaults, view, update}: Props
     setNotice('Removed.');
   };
   const selectLayout = (layout: FooterConfig['layout']) => {
-    const next = [...columns];
-    if (layout === 'hours' && !next.some(item => item.kind === 'hours')) {
-      if (next.length < 5) next.push({title: 'Opening hours', text: '', links: [], kind: 'hours'});
-      else setNotice('All five columns are in use. Choose Opening hours inside a column.');
-    }
-    const count = ['social', 'stack', 'bottom'].includes(layout) ? 1
-      : layout === 'hours' ? Math.max(4, next.length) : 3;
-    update({
-      footerStyle: 'columns', footerColumns: next,
-      blocks: site.blocks.map(item => item.id === block.id ? {
-        ...item, layout: 'columns',
-        settings: {...item.settings, columns: count, widths: Array(count).fill(100 / count)},
-        content: {...item.content, footer: {
-          ...config, layout, align: layout === 'stack' ? 'center' : config.align,
-        }},
-      } : item),
-    });
+    const result = footerLayoutPatch(site, block, columns, config, layout);
+    if (result.notice) setNotice(result.notice);
+    update(result.patch);
   };
   const back = () => {
     setScreen('home'); setPicker(null); setDraft(null);
@@ -194,13 +146,6 @@ export function FooterEditor({block, site, pages, defaults, view, update}: Props
       <ChevronRight size={16} aria-hidden="true"/>
     </button>
   );
-  const number = (label: ReactNode, value: number, change: (n: number) => void,
-    min: number, max: number, step = 1) => (
-    <label className="field"><span>{label}</span><input type="number" value={value}
-      min={min} max={max} step={step} onChange={event => {
-        if (event.target.value !== '') change(Math.max(min, Math.min(max, +event.target.value)));
-      }}/></label>
-  );
   const menus = createDefaultMenus(site, pages);
   const choices = source === 'pages' ? pages.map(page => ({
     label: page.name, href: `/?page=${page.id}`, pageId: page.id,
@@ -214,113 +159,12 @@ export function FooterEditor({block, site, pages, defaults, view, update}: Props
   })) || [];
   const activeColumn = screen.startsWith('column:') ? Number(screen.slice(7)) : -1;
   const currentColumn = columns[activeColumn];
-  const columnCount = block.settings.columns || 3;
-  const widths = block.settings.widths || Array(columnCount).fill(100 / columnCount);
-  const title = targets.find(item => item.value === target)!.label;
-  const form = socialDraft && <div className="footer-social-form">
-    <Field label="Platform or name" value={socialDraft.label}
-      onChange={label => setSocialDraft({...socialDraft, label})}/>
-    <Field label="Account URL" value={socialDraft.href}
-      onChange={href => setSocialDraft({...socialDraft, href})}/>
-    <div className="footer-control-pair">
-      <button type="button" onClick={saveSocial}>Save link</button>
-      <button type="button" onClick={() => setSocialDraft(null)}>Cancel</button></div>
-  </div>;
+  const widths = footerColumnWidths(block.settings);
+  const form = socialDraft && <FooterSocialForm draft={socialDraft} change={setSocialDraft} save={saveSocial} cancel={() => setSocialDraft(null)}/>;
   return <div className="footer-editor"
     data-detail={view === 'Content' && (screen !== 'home' || picker !== null)}>
     {view === 'Appearance' ? <>
-      <h3>Layout</h3><div className="footer-layout-options" aria-label="Footer layout">
-        {footerLayouts.map(layout => <button type="button" key={layout.id}
-          aria-pressed={config.layout === layout.id} onClick={() => selectLayout(layout.id)}>
-          <span className={`footer-thumbnail is-${layout.id}`} aria-hidden="true">
-            <span><i/><i/><i/><i/></span><b/>
-          </span><span>{layout.label}</span><i className="footer-radio"/>
-        </button>)}
-      </div>
-      {['standard', 'hours'].includes(config.layout) && <details className="footer-advanced">
-        <summary>Columns & spacing</summary>
-        {number('Visible columns', block.settings.columns || 3, count => {
-          const next = Array.from({length: Math.max(columns.length, count)}, (_, i) =>
-            columns[i] || {title: `Column ${i + 1}`, text: '', links: []});
-          update({footerColumns: next, blocks: site.blocks.map(item => item.id === block.id ? {
-            ...item, settings: {...item.settings, columns: count,
-              widths: Array(count).fill(100 / count)},
-          } : item)});
-        }, 1, 5)}
-        <div className="footer-control-pair">
-          {widths.map((width, i) =>
-            <label className="field" key={i}><span>Column {i + 1} width</span>
-              <input type="number" min="10" max="100" value={Math.round(width)}
-                onChange={event => settings({widths: widths
-                  .map((n, j) => i === j
-                    ? Math.max(10, Math.min(100, +event.target.value)) : n)})}/>
-            </label>)}
-        </div>
-        <p className="helper-text">Widths are balanced to fill the row.</p>
-        {number('Column gap (px)', block.settings.gap ?? 24, gap => settings({gap}), 0, 80)}
-        {number('Vertical space (px)', block.settings.padding ?? 48,
-          padding => settings({padding}), 0, 160)}
-      </details>}
-      <h3>Typography</h3><Choice label="Text to style" value={target}
-        options={targets} onChange={setTarget}/>
-      <h4>Editing: {title}</h4>
-      <Choice label="Font" value={text.family || 'text'}
-        options={[{value: 'text', label: 'Website text'},
-          {value: 'display', label: 'Website heading'}, {value: 'system', label: 'System'}]}
-        onChange={family => textWrite({family})}/>
-      <div className="footer-control-pair">
-        {number(`${title} size (px)`,
-          text.size ?? (target === 'bottom' ? 12 : target === 'motto' ? 16 : 14),
-          size => textWrite({size}), 10, 96)}
-        {number('Line height', text.lineHeight ?? 1.5,
-          lineHeight => textWrite({lineHeight}), 1, 2.5, .1)}
-      </div>
-      <label className="field"><span><Bold size={15}/>Font weight</span>
-        <select value={text.weight || (target === 'heading' ? 600 : 400)}
-          onChange={event => textWrite({weight: +event.target.value})}>
-          {[['400', 'Regular'], ['500', 'Medium'], ['600', 'Semibold'], ['700', 'Bold']]
-            .map(([weight, label]) => <option value={weight} key={weight}>{label}</option>)}
-        </select>
-      </label>
-      <div className="footer-control-pair">
-        {number(<><MoveHorizontal size={15}/>Letter spacing (px)</>, text.tracking ?? 0,
-          tracking => textWrite({tracking}), -3, 10, .1)}
-        {['body', 'hours', 'bottom'].includes(target)
-          ? number(<><Rows3 size={15}/>Row spacing (px)</>, text.rowGap ?? 0,
-            rowGap => textWrite({rowGap}), 0, 24)
-          : number(<><Rows3 size={15}/>Item spacing (px)</>, config.itemGap,
-            itemGap => write({itemGap}), 0, 48)}
-      </div>
-      <Alignment label="Text alignment" value={text.align || 'left'}
-        change={align => textWrite({align})}/>
-      <div className="field" role="group" aria-label="Letter case"><span>Letter case</span>
-        <div className="choice-group">
-          {[{value: 'none', label: 'As typed', icon: Type},
-            {value: 'uppercase', label: 'CAPS', icon: CaseUpper},
-            {value: 'capitalize', label: 'Title', icon: CaseSensitive}].map(item => (
-            <button type="button" key={item.value}
-              aria-pressed={(text.transform || 'none') === item.value}
-              onClick={() => textWrite({transform: item.value as FooterText['transform']})}>
-              <item.icon size={16} aria-hidden="true"/>{item.label}
-            </button>
-          ))}
-        </div>
-      </div>
-      <label className="field"><span>Text color</span><input type="color"
-        value={text.color || (site.theme === 'midnight' ? '#f0f3fa' : '#252938')}
-        onChange={event => textWrite({color: event.target.value})}/></label>
-      <button type="button" onClick={() => textWrite({color: undefined})}>Use theme color</button>
-      <h3>Bottom link hover</h3><Choice label="Appearance" value={config.hover}
-        onChange={hover => write({hover})}
-        options={[{value: 'match', label: 'Match Header'}, {value: 'text', label: 'Text only'}]}/>
-      <details className="footer-advanced"><summary>Advanced</summary>
-        <Choice label="Hover corners" value={config.hoverShape}
-          onChange={hoverShape => write({hoverShape})}
-          options={[{value: 'header', label: 'Use Header'}, {value: 'square', label: 'Square'},
-            {value: 'rounded', label: 'Rounded'}, {value: 'pill', label: 'Pill'}]}/>
-        {number('Hover side padding (px)', config.hoverPadding,
-          hoverPadding => write({hoverPadding}), 8, 24)}
-      </details>
+      <FooterAppearance block={block} site={site} config={config} target={target} setTarget={setTarget} text={text} textWrite={textWrite} write={write} settings={settings} selectLayout={selectLayout} widths={widths} setColumnCount={count => update(footerColumnCount(site, block, columns, count))}/>
     </> : <>
       {(screen !== 'home' || picker !== null) && <button type="button" className="footer-back"
         onClick={back}><ArrowLeft size={16}/>Footer</button>}
@@ -409,26 +253,14 @@ export function FooterEditor({block, site, pages, defaults, view, update}: Props
         <Choice label="Order" value={config.order} onChange={order => write({order})}
           options={[{value: 'motto', label: 'Logo → Motto → Socials'},
             {value: 'social', label: 'Logo → Socials → Motto'}]}/>
-        {number('Space between items (px)', config.itemGap, itemGap => write({itemGap}), 0, 48)}
+        <UnitField label="Space between items (px)" value={config.itemGap} change={itemGap => write({itemGap})} min={0} max={48}/>
         <label className="visibility-toggle"><span>Show motto</span><input type="checkbox"
           checked={config.showMotto} onChange={e => write({showMotto: e.target.checked})}/></label>
         <label className="visibility-toggle"><span>Show social links</span>
           <input type="checkbox"
           checked={config.showSocials}
           onChange={e => write({showSocials: e.target.checked})}/></label>
-        <h3>Social media</h3>
-        {config.socials.map(item => <div className="footer-link-row" key={item.id}>
-          <button type="button" onClick={() => {setSocialDraft(item); setNotice('');}}>
-            {item.label}<ChevronRight size={15}/></button>
-          <button type="button" className="footer-danger" aria-label={`Remove ${item.label}`}
-            onClick={() => remove('socials', item.id)}>
-            <Trash2 size={16}/></button>
-        </div>)}
-        {!config.socials.length && <p className="helper-text">Add your first social account.</p>}
-        <button type="button" className="subtle-action" disabled={config.socials.length >= 60}
-          onClick={() => {setSocialDraft({label: '', href: ''}); setNotice('');}}>
-          <Plus size={16}/>Add social link</button>
-        {form}
+        <FooterSocials config={config} setSocialDraft={setSocialDraft} setNotice={setNotice} remove={remove}>{form}</FooterSocials>
       </> : screen === 'image' ? <>
         <h3>Footer image</h3><HeroMediaEditor content={block.content} layout="footer"
           blockId={block.id} compact onChange={changeContent}/>
@@ -440,51 +272,18 @@ export function FooterEditor({block, site, pages, defaults, view, update}: Props
           options={[{value: 'text', label: 'Text & links'},
             {value: 'hours', label: 'Opening hours'}]}/>
         {currentColumn.kind === 'hours' ? <>
-          <Choice label="Business" value={config.online ? 'online' : 'physical'}
-            onChange={v => write({online: v === 'online'})}
-            options={[{value: 'physical', label: 'Physical location'},
-              {value: 'online', label: 'Online business'}]}/>
-          {config.online ? <p>Office hours are hidden. Your schedule stays saved.</p> : <>
-            {!config.hoursReady && <p>Add your hours before they appear on your website.</p>}
-            {config.hours.map((day, i) => <div className="footer-office-day" key={day.day}>
-              <label><input type="checkbox" checked={!day.closed} onChange={event => write({
-                hoursReady: true, hours: config.hours.map((d, j) => j === i
-                  ? {...d, closed: !event.target.checked} : d),
-              })}/>{day.day}</label>
-              {(['open', 'close'] as const).map(key => <input type="time" key={key}
-                aria-label={`${day.day} ${key === 'open' ? 'opens' : 'closes'}`}
-                disabled={day.closed} value={day[key]} onChange={event => {
-                  const next = {...day, [key]: event.target.value};
-                  if (!validOfficeDay(next)) {setNotice('Closing time must follow opening time.');
-                    return;}
-                  setNotice(''); write({hoursReady: true,
-                    hours: config.hours.map((d, j) => j === i ? next : d)});
-                }}/>) }
-            </div>)}
-            <p className="helper-text">Unchecked days show Closed.</p>
-          </>}
+          <FooterHours config={config} write={write} setNotice={setNotice}/>
         </> : <Field label="Column text" multiline
           value={activeColumn === 0 ? config.motto : currentColumn.text}
           onChange={text => column(activeColumn, {text})}/>}
-        {currentColumn.links.map((item, i) => <div className="footer-column-link" key={i}>
-          <Field label="Display name" value={item.label} onChange={label => column(activeColumn, {
-            links: currentColumn.links.map((l, j) => i === j
-              ? {...l, label, customLabel: true} : l),
-          })}/>
-          <button type="button" onClick={() => {
+        <FooterColumnLinks currentColumn={currentColumn} pages={pages} change={patch => column(activeColumn, patch)} editDestination={(item, i) => {
             const id = item.id || crypto.randomUUID();
             setEditingLinkId(id);
             column(activeColumn, {links: currentColumn.links.map((l, j) =>
               i === j ? {...l, id} : l)});
             setPicker(activeColumn); setDraft({...item, id});
             setSource(item.pageId ? 'pages' : item.href.startsWith('#') ? 'sections' : 'url');
-          }}><Link2 size={15}/>Change destination</button>
-          {item.pageId && !pages.some(page => page.id === item.pageId) && <p role="alert">
-            This page was removed. Choose another page.</p>}
-          <button type="button" className="footer-danger" onClick={() => column(activeColumn, {
-            links: currentColumn.links.filter((_, j) => i !== j),
-          })}><Trash2 size={15}/>Remove link</button>
-        </div>)}
+        }}/>
         <button type="button" onClick={() => addLink(activeColumn)}>
           <Plus size={15}/>Add link</button>
       </>}

@@ -1,7 +1,8 @@
 "use client";
+import {servicePreviewCount} from '../site/service-model';
 import {useId, useState, type CSSProperties} from 'react';
 import {ArrowLeft,Building2,CheckCircle2,ChevronDown,ChevronRight,FileText,HelpCircle,Image as ImageIcon,Layers,Menu as MenuIcon,MessageSquare,MousePointerClick,Plus,ShieldCheck,Star,X} from 'lucide-react';
-import {Block,BlockContent,BlockItem,ButtonData,Site,IconName,buttonIconSide,icons,servicePreviewCount} from '../site/blocks';
+import {Block,BlockContent,BlockItem,ButtonData,Site,IconName,buttonIconSide,icons} from '../site/blocks';
 import {accentRamp, FooterColumn} from '../site/settings';
 import {MediaManager} from '../media/library';
 import {mediaDefaults, mediaURL, type MediaSettings} from '../media/model';

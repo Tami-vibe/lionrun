@@ -1,7 +1,7 @@
 import {Columns} from '../columns';
 import {MediaView} from '../../media/library';
 import type {MediaSettings} from '../../media/model';
-import {servicePreviewCount} from '../blocks';
+import {servicePreviewCount} from '../service-model';
 import {serviceId} from '../service-model';
 import {SectionHeading, Icon} from './elements';
 import type {SectionProps} from './index';
