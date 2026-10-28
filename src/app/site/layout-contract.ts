@@ -2,11 +2,6 @@ import {clip} from './section-media';
 import type {SectionId} from './catalog';
 import type {Block, BlockContent, BlockItem, SectionSettings} from './contracts';
 import {defaultColumns, equalWidths} from './layout-utils';
-export const blockLayouts:Record<SectionId,readonly string[]> = {
- header:['standard','pill','rounded'],hero:['split','center','image','short','story'],logos:['Scrolling row','Still row','Heading and slider'],services:['Icon cards','Photo cards','Price list'],proof:['Text and photo','Promise band','Photo and reasons'],about:['Story and photos','Photos only','Sliding gallery'],pains:['Photo cards','One message'],solutions:['Numbered steps','Before and after'],trust:['Big numbers','Numbers and certifications','Signals'],reviews:['Review cards','One large quote','Carousel'],quote:['Photo beside the form'],faq:['Accordion','Two columns'],promo:['Offer band'],contact:['Details and map'],closing:['Quiet','Full color'],footer:['columns','minimal'],
-};
-
-
 export type LayoutContract = {
   showsEyebrow: boolean;
   showsTitle: boolean;
@@ -18,17 +13,9 @@ export type LayoutContract = {
   storyFeatured?: 1 | 2;
 };
 
-const heading = (partial: Partial<LayoutContract> = {}): LayoutContract => ({
-  showsEyebrow: true,
-  showsTitle: true,
-  showsSubtext: true,
-  allowsBody: true,
-  showsButtons: false,
-  headingTag: 'h2',
-  ...partial,
-});
-
-const none: LayoutContract = {
+type Layout = {id: string; label: string; contract?: Partial<LayoutContract>};
+const layout = (id: string, label = id, contract?: Partial<LayoutContract>): Layout => ({id, label, contract});
+const noHeading: LayoutContract = {
   showsEyebrow: false,
   showsTitle: false,
   showsSubtext: false,
@@ -36,110 +23,152 @@ const none: LayoutContract = {
   showsButtons: false,
   headingTag: 'none',
 };
+const cta = {showsButtons: true};
+const hero = {...cta, headingTag: 'h1' as const};
 
-/** Per section-type + layout: which copy/CTA slots the canvas paints. Inspector must match. */
-const contracts: Record<SectionId, Record<string, LayoutContract>> = {
-  header: {
-    standard: none,
-    pill: none,
-    rounded: none,
-  },
-  hero: {
-    split: heading({showsButtons: true, headingTag: 'h1'}),
-    center: heading({showsButtons: true, headingTag: 'h1'}),
-    image: heading({showsButtons: true, headingTag: 'h1'}),
-    short: heading({showsButtons: true, headingTag: 'h1'}),
-    story: heading({showsButtons: true, headingTag: 'h1'}),
-  },
-  logos: {
-    'Scrolling row': heading({showsButtons: false}),
-    'Still row': heading({showsButtons: false}),
-    'Heading and slider': heading({showsButtons: false}),
-  },
-  services: {
-    'Icon cards': heading({showsButtons: false}),
-    'Photo cards': heading({showsButtons: false}),
-    'Price list': heading({showsButtons: false}),
-  },
-  proof: {
-    'Text and photo': heading({showsButtons: true}),
-    'Promise band': heading({showsButtons: true}),
-    'Photo and reasons': heading({showsButtons: true}),
-  },
-  about: {
-    'Story and photos': heading({
-      showsButtons: false,
-      storyFeatured: 2,
+/** Persisted IDs, public copy slots and inspector labels have one source. */
+export const sectionLayouts: Record<SectionId, readonly Layout[]> = {
+  header: ['standard', 'pill', 'rounded'].map(id => layout(id, id, noHeading)),
+  hero: ['split', 'center', 'image', 'short', 'story'].map(id => layout(id, id, hero)),
+  logos: [layout('Scrolling row'), layout('Still row'), layout('Heading and slider', 'Heading + slider')],
+  services: [layout('Icon cards'), layout('Photo cards', 'Media cards'), layout('Price list', 'Simple list')],
+  proof: [layout('Text and photo', 'Text + media', cta), layout('Promise band', 'Promise band', cta),
+    layout('Photo and reasons', 'Media + reasons', cta)],
+  about: [
+    layout('Story and photos', 'Story & gallery', {storyFeatured: 2}),
+    layout('Photos only', 'Gallery grid', {
+      ...noHeading, grid: {maxCols: 4, maxRows: 4, defaultCols: 2, defaultRows: 2},
     }),
-    'Photos only': {
-      showsEyebrow: false,
-      showsTitle: false,
-      showsSubtext: false,
-      allowsBody: false,
-      showsButtons: false,
-      headingTag: 'none',
-      grid: {maxCols: 4, maxRows: 4, defaultCols: 2, defaultRows: 2},
-    },
-    'Sliding gallery': heading({showsButtons: false}),
-  },
-  pains: {
-    'Photo cards': heading({showsButtons: true}),
-    'One message': heading({showsButtons: true}),
-  },
-  solutions: {
-    'Numbered steps': heading({showsButtons: false}),
-    'Before and after': heading({showsButtons: false}),
-  },
-  trust: {
-    'Big numbers': heading({showsButtons: false}),
-    'Numbers and certifications': heading({showsButtons: false}),
-    Signals: heading({showsButtons: false}),
-  },
-  reviews: {
-    'Review cards': heading({showsButtons: false}),
-    'One large quote': heading({showsButtons: false}),
-    Carousel: heading({showsButtons: false}),
-  },
-  quote: {
-    'Photo beside the form': heading({showsButtons: false, allowsBody: true}),
-  },
-  faq: {
-    Accordion: heading({showsButtons: true}),
-    'Two columns': heading({showsButtons: true}),
-  },
-  promo: {
-    'Offer band': heading({showsButtons: true}),
-  },
-  contact: {
-    'Details and map': heading({showsButtons: true}),
-  },
-  closing: {
-    Quiet: heading({showsButtons: true}),
-    'Full color': heading({showsButtons: true}),
-  },
-  footer: {
-    columns: none,
-    minimal: none,
-  },
+    layout('Sliding gallery'),
+  ],
+  pains: [layout('Photo cards', 'Photo cards', cta), layout('One message', 'One message', cta)],
+  solutions: [layout('Numbered steps'), layout('Before and after')],
+  trust: [layout('Big numbers'), layout('Numbers and certifications'), layout('Signals')],
+  reviews: [layout('Review cards'), layout('One large quote'), layout('Carousel')],
+  quote: [layout('Photo beside the form')],
+  faq: [layout('Accordion', 'Accordion', cta), layout('Two columns', 'Two columns', cta)],
+  promo: [layout('Offer band', 'Offer band', cta)],
+  contact: [layout('Details and map', 'Details and map', cta)],
+  closing: [layout('Quiet', 'Quiet', cta), layout('Full color', 'Full color', cta)],
+  footer: ['columns', 'minimal'].map(id => layout(id, id, noHeading)),
 };
 
-export function layoutContract(type: SectionId, layout: string): LayoutContract {
-  const byLayout = contracts[type];
-  const exact = byLayout?.[layout];
-  if (exact) return exact;
-  const fallback = blockLayouts[type]?.[0];
-  return (fallback && byLayout?.[fallback]) || none;
+export const blockLayouts = Object.fromEntries(
+  Object.entries(sectionLayouts).map(([type, layouts]) => [type, layouts.map(item => item.id)]),
+) as Record<SectionId, string[]>;
+
+export function layoutContract(type: SectionId, name: string): LayoutContract {
+  const layouts = sectionLayouts[type];
+  if (!layouts) return noHeading;
+  const found = layouts.find(item => item.id === name) || layouts[0];
+  return {
+    showsEyebrow: true, showsTitle: true, showsSubtext: true, allowsBody: true,
+    showsButtons: false, headingTag: 'h2', ...found.contract,
+  };
 }
 
-/** Every catalog layout must have an explicit contract row (scale gate). */
 export function layoutContractCoverage(): {type: SectionId; layout: string; ok: boolean}[] {
-  return (Object.keys(blockLayouts) as SectionId[]).flatMap(type =>
-    blockLayouts[type].map(layout => ({
-      type,
-      layout,
-      ok: !!contracts[type]?.[layout],
-    })),
+  return (Object.keys(sectionLayouts) as SectionId[]).flatMap(type =>
+    sectionLayouts[type].map(item => ({type, layout: item.id, ok: true})),
   );
+}
+
+export type AppearanceField = {
+  key: keyof BlockContent;
+  label: string;
+  kind: 'choice' | 'range' | 'number' | 'toggle';
+  group?: 'layout' | 'sizing' | 'cards';
+  homeOnly?: boolean;
+  fallback: string | number | boolean;
+  options?: readonly (readonly [string | number | boolean, string])[];
+  min?: number;
+  max?: number;
+  step?: number;
+  unit?: string;
+  layouts?: readonly string[];
+  visible?: (block: Block) => boolean;
+  hint?: string;
+};
+const movement = [['still', 'Still'], ['loop', 'Loop']] as const;
+const pause: AppearanceField = {
+  key: 'galleryPauseHover', label: 'Pause on hover', kind: 'toggle', fallback: true,
+};
+
+/** Only scalar appearance properties use the shared form renderer. Collections stay explicit. */
+const appearanceFields: Partial<Record<SectionId, readonly AppearanceField[]>> = {
+  hero: [
+    {key: 'height', label: 'Height', kind: 'choice', fallback: 'standard',
+      options: [['standard', 'Standard'], ['full', 'Full screen']]},
+    {key: 'align', label: 'Text alignment', kind: 'choice', fallback: 'left',
+      options: [['left', 'Left'], ['center', 'Center']]},
+    {key: 'showBusiness', label: 'Business details', kind: 'choice', fallback: false, homeOnly: true,
+      options: [[false, 'Off'], [true, 'Bottom']], visible: block => block.id === 'hero'},
+    {key: 'darkness', label: 'Image darkness', kind: 'range', fallback: 36, min: 0, max: 80},
+  ],
+  services: [
+    {key: 'darkness', label: 'Gradient', kind: 'range', fallback: 64, min: 0, max: 80,
+      group: 'cards', layouts: ['Photo cards']},
+    {key: 'arrowCircle', label: 'Arrow', kind: 'choice', fallback: true,
+      group: 'cards', layouts: ['Photo cards'], options: [[true, 'Circle'], [false, 'Plain']]},
+  ],
+  about: [
+    {key: 'storyFeatured', label: 'Featured photos', kind: 'choice', fallback: 2,
+      options: [[1, 'One'], [2, 'Two']], layouts: ['Story and photos']},
+    {key: 'galleryRows', label: 'Rows', kind: 'choice', fallback: 2,
+      options: [[1, '1'], [2, '2'], [3, '3'], [4, '4']], layouts: ['Photos only'],
+      hint: 'Shows columns × rows photos. Extra photos stay in Content.'},
+    {key: 'galleryWidth', label: 'Gallery width', kind: 'choice', fallback: 'boxed',
+      options: [['boxed', 'Boxed'], ['full', 'Full width']], layouts: ['Sliding gallery']},
+    {key: 'galleryScale', label: 'Image scale', kind: 'range', fallback: 1, min: 1, max: 2,
+      step: 0.1, unit: '×', layouts: ['Sliding gallery'],
+      hint: 'Scale sizes every frame. Artwork stays proportional inside the frame.'},
+    {key: 'galleryMotion', label: 'Movement', kind: 'choice', fallback: 'loop',
+      options: movement, layouts: ['Sliding gallery']},
+    {key: 'gallerySpeed', label: 'Speed', kind: 'range', fallback: 3, min: 1, max: 5,
+      layouts: ['Sliding gallery'], visible: block => block.content.galleryMotion !== 'still'},
+    {...pause, layouts: ['Sliding gallery'], visible: block => block.content.galleryMotion !== 'still',
+      hint: 'Rows pause on hover or focus. Reduced motion uses Still.'},
+  ],
+  logos: [
+    {key: 'logoScale', label: 'Logo height', kind: 'number', fallback: 70, min: 40, max: 90,
+      group: 'sizing', unit: '%',
+      hint: 'Percent of the maximum artwork. Desktop slot 90px, up to 200×60. Tablet slot 72px, up to 160×48. Mobile slot 60px, up to 140×40.'},
+    {key: 'monochrome', label: 'Monochrome', kind: 'toggle', fallback: false, group: 'sizing',
+      hint: 'The saved file stays in color. Monochrome only changes the row.'},
+    {key: 'showHeading', label: 'Heading', kind: 'choice', fallback: true,
+      options: [[true, 'Show'], [false, 'Hide']], layouts: ['Heading and slider']},
+    {key: 'logoMotion', label: 'Movement', kind: 'choice', fallback: 'loop',
+      options: movement, layouts: ['Scrolling row']},
+    {...pause, key: 'logoPauseHover', layouts: ['Scrolling row'],
+      visible: block => block.content.logoMotion !== 'still',
+      hint: 'Motion is controlled here. The live page has no Pause button. Reduced motion uses Still.'},
+  ],
+  proof: [
+    {key: 'buttonCount', label: 'Buttons', kind: 'choice', fallback: 2,
+      options: [[2, 'Both'], [1, 'One'], [0, 'None']], layouts: ['Photo and reasons']},
+    {key: 'headAlign', label: 'Intro alignment', kind: 'choice', fallback: 'center',
+      options: [['top', 'Top'], ['center', 'Center'], ['bottom', 'Bottom']], layouts: ['Photo and reasons']},
+    {key: 'photoSide', label: 'Media side', kind: 'choice', fallback: 'left',
+      options: [['left', 'Left'], ['right', 'Right']], layouts: ['Photo and reasons']},
+  ],
+};
+
+export function visibleAppearanceFields(
+  block: Block, group: 'layout' | 'sizing' | 'cards' = 'layout', home = true,
+): readonly AppearanceField[] {
+  return (appearanceFields[block.type] || []).filter(field =>
+    (field.group || 'layout') === group && (!field.homeOnly || home)
+      && (!field.layouts || field.layouts.includes(block.layout)) && (!field.visible || field.visible(block)),
+  );
+}
+
+export function appearanceValue(field: AppearanceField, value: unknown): string | number | boolean {
+  if (field.options) return field.options.find(([candidate]) => candidate === value)?.[0] ?? field.fallback;
+  if (field.kind === 'toggle') return typeof value === 'boolean' ? value : field.fallback;
+  if (typeof value !== 'number' || !Number.isFinite(value)) return field.fallback;
+  const bounded = Math.max(field.min ?? value, Math.min(field.max ?? value, value));
+  const step = field.step ?? 1;
+  return Number((Math.round(bounded / step) * step).toFixed(6));
 }
 
 function sectionIsBlank(content: BlockContent): boolean {

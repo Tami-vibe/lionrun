@@ -1,40 +1,22 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {readdirSync, readFileSync, statSync} from 'node:fs';
-import {join} from 'node:path';
+import {applicationLines} from '../scripts/application-lines.mjs';
 
-/** Soft ceilings — ratchet down as cleanup continues. Fail if bloat grows. */
-// Includes the scoped main-image journey and its responsive styles.
-// Includes the approved Footer editor, shared model and responsive rendering.
-const APP_LINE_CEILING = 9500;
+// The requested acceptance ceiling counts the complete application and executable configuration.
+const APP_LINE_CEILING = 2500;
 const LONG_LINE_PCT_CEILING = 17;
-const LONG_LINE_CHARS = 120;
 
-function walk(dir, out = []) {
-  for (const name of readdirSync(dir)) {
-    const path = join(dir, name);
-    if (statSync(path).isDirectory()) walk(path, out);
-    else if (/\.(ts|tsx|css)$/.test(name)) out.push(path);
-  }
-  return out;
-}
+test('all application source and configuration stay within 2,500 physical lines', () => {
+  const audit = applicationLines();
+  assert.ok(audit.total <= APP_LINE_CEILING,
+    `Application has ${audit.total} lines; ceiling is ${APP_LINE_CEILING}. Modules: ${JSON.stringify(audit.modules)}`);
+});
 
-test('src/app stays under the line budget and long-line density ceiling', () => {
-  const files = walk(join(process.cwd(), 'src/app'));
-  let appLines = 0;
-  let tsLines = 0;
-  let long = 0;
-  for (const file of files) {
-    const text = readFileSync(file, 'utf8');
-    appLines += readFileSync(file).reduce((n, b) => n + (b === 10 ? 1 : 0), 0);
-    if (file.endsWith('.css')) continue;
-    // Match audit script: count every split segment (incl. trailing empty)
-    for (const line of text.split('\n')) {
-      tsLines += 1;
-      if (line.length > LONG_LINE_CHARS) long += 1;
-    }
-  }
-  const pct = (100 * long) / Math.max(tsLines, 1);
-  assert.ok(appLines <= APP_LINE_CEILING, `src/app has ${appLines} lines; ceiling is ${APP_LINE_CEILING}`);
-  assert.ok(pct <= LONG_LINE_PCT_CEILING, `long-line density ${pct.toFixed(1)}% exceeds ${LONG_LINE_PCT_CEILING}% (${long}/${tsLines} over ${LONG_LINE_CHARS} chars)`);
+test('application scripts retain the baseline long-line density ceiling', () => {
+  const files = applicationLines().files.filter(file => !file.path.endsWith('.css'));
+  const total = files.reduce((sum, file) => sum + file.lines, 0);
+  const long = files.reduce((sum, file) => sum + file.longLines, 0);
+  const percent = 100 * long / Math.max(total, 1);
+  assert.ok(percent <= LONG_LINE_PCT_CEILING,
+    `Long-line density ${percent.toFixed(1)}% exceeds ${LONG_LINE_PCT_CEILING}% (${long}/${total} over 120 chars)`);
 });
