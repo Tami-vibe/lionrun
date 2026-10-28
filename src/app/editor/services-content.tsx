@@ -7,7 +7,7 @@ import {mediaDefaults, normalizeMedia, type MediaSettings} from '../media/model'
 import {MediaPicker, MediaView, publishAsset, useMediaLibrary} from '../media/library';
 import {ACCEPT} from '../media/store';
 import {directMediaLink} from '../site/hero-collection';
-import {Choice, Field, Fold, IconPicker} from './fields';
+import {ServicesContentView} from './fields';
 import {MediaFramingControls, MediaVideoControls} from './media-controls';
 import {MediaImporter, mediaFileName} from './media-importer';
 import {ensureServiceIds, newServiceId, serviceId, serviceMediaKind, servicePreviewCap} from '../site/service-model';
@@ -18,136 +18,6 @@ const previewLimit = 4;
 function withMedia(item: BlockItem, src: string, kind: 'image' | 'video'): BlockItem {
   const media: MediaSettings = {...mediaDefaults, ...item.media, src, kind, alt: item.media?.alt || item.title || ''};
   return {...item, media};
-}
-
-function ServiceThumb({item}: {item: BlockItem}) {
-  const media = item.media?.src ? normalizeMedia(item.media) : null;
-  if (media?.src) {
-    const still = media.kind === 'video' && media.poster
-      ? {...media, kind: 'image' as const, src: media.poster}
-      : media.kind === 'video'
-        ? null
-        : media;
-    return (
-      <span className="service-row-thumb">
-        {still?.src ? <MediaView value={{...still, controls: false, autoplay: false}} editable /> : <span className="service-row-fallback" />}
-        {media.kind === 'video' && <span className="service-row-play"><Play size={12} aria-hidden="true" /></span>}
-      </span>
-    );
-  }
-  return (
-    <span className="service-row-thumb is-icon">
-      {item.icon !== 'none' ? <Icon name={item.icon} size={20} /> : <span className="service-row-fallback" aria-hidden="true" />}
-    </span>
-  );
-}
-
-function ServicePageLink({
-  item,
-  pages,
-  onOpenPage,
-  onHref
-}: {
-  item: BlockItem;
-  pages: {id: string; name: string}[];
-  onOpenPage?: (id: string) => void;
-  onHref: (href: string | undefined) => void;
-}) {
-  const title = item.title.trim();
-  const page = item.pageId ? pages.find(entry => entry.id === item.pageId) : undefined;
-  return (
-    <div className="service-page-link">
-      {!title && <p className="helper-text">Name the service to make its page.</p>}
-      {title && !page && <p className="helper-text">Saving creates this page.</p>}
-      {page && (
-        <div className="service-page-row">
-          <p className="helper-text">Opens: {page.name}</p>
-          <button type="button" className="subtle-action" onClick={() => onOpenPage?.(page.id)}>
-            Edit this page
-          </button>
-        </div>
-      )}
-      <Fold label="Other link" note={item.href?.trim() ? 'Set' : undefined}>
-        <Field
-          label="Call, email, or website"
-          value={item.href || ''}
-          onChange={value => onHref(value.trim() || undefined)}
-        />
-        <p className="helper-text">Optional. Use a phone, email, or website instead of the service page.</p>
-      </Fold>
-    </div>
-  );
-}
-
-function ServiceDetailsFields({
-  item,
-  pages,
-  writeSelected,
-  onOpenPage,
-}: {
-  item: BlockItem;
-  pages: {id: string; name: string}[];
-  writeSelected: (patch: Partial<BlockItem>) => void;
-  onOpenPage?: (id: string) => void;
-}) {
-  return <>
-    <Field label="Title" value={item.title} onChange={title => writeSelected({title})} />
-    <Field label="Description" value={item.description} multiline onChange={description => writeSelected({description})} />
-    <Field label="Price" value={item.price || ''} onChange={price => writeSelected({price: price.trim() || undefined})} />
-    <ServicePageLink
-      item={item}
-      pages={pages}
-      onOpenPage={onOpenPage}
-      onHref={href => writeSelected({href})}
-    />
-  </>;
-}
-
-function ServiceMediaFields({
-  media,
-  writeMedia,
-}: {
-  media: MediaSettings;
-  writeMedia: (patch: Partial<MediaSettings>) => void;
-}) {
-  return <>
-    <Field label="Alternative text" value={media.alt || ''} onChange={alt => writeMedia({alt})} />
-    <p className="helper-text">Describe the media for people who cannot see it.</p>
-    {media.kind !== 'image' && (
-      <>
-        <Field label="Captions link (.vtt)" value={media.captions} onChange={captions => writeMedia({captions})} />
-        <Field label="Caption language" value={media.captionLanguage} onChange={captionLanguage => writeMedia({captionLanguage})} />
-      </>
-    )}
-  </>;
-}
-
-function ServiceRowActions({
-  hidden,
-  allowClone,
-  onClone,
-  onToggleHidden,
-  onRemove,
-}: {
-  hidden: boolean;
-  allowClone: boolean;
-  onClone: () => void;
-  onToggleHidden: () => void;
-  onRemove: () => void;
-}) {
-  return <div className="service-row-actions" role="menu">
-    <button type="button" role="menuitem" disabled={!allowClone} onClick={onClone}>
-      <Copy size={16} strokeWidth={1.75} aria-hidden="true" /><span>Clone</span>
-    </button>
-    <button type="button" role="menuitem" onClick={onToggleHidden}>
-      {hidden
-        ? <><Eye size={16} strokeWidth={1.75} aria-hidden="true" /><span>Show</span></>
-        : <><EyeOff size={16} strokeWidth={1.75} aria-hidden="true" /><span>Hide</span></>}
-    </button>
-    <button type="button" role="menuitem" className="is-danger" onClick={onRemove}>
-      <Trash2 size={16} strokeWidth={1.75} aria-hidden="true" /><span>Delete</span>
-    </button>
-  </div>;
 }
 
 export function ServicesContent({
@@ -315,180 +185,45 @@ export function ServicesContent({
     return true;
   }
 
-  const importerItems = media?.src
-    ? [{
-        name: mediaFileName(media.src, names),
-        kind: media.kind === 'video' ? 'video' as const : 'image' as const,
-        preview: (
-          <>
-            <MediaView value={{...media, controls: false, autoplay: false}} editable />
-            {media.kind === 'video' && <span className="hero-tile-play"><Play size={16} aria-hidden="true" /></span>}
-          </>
-        )
-      }]
-    : [];
-
-  return (
-    <div className="service-collection">
-      {homePreviewNote && <p className="hint">{homePreviewNote}</p>}
-      <div className="service-rows" role="list" aria-label="Services">
-        {list.slice(0, visible).map((row, index) => {
-          const active = index === current;
-          const label = row.title.trim() || `Service ${index + 1}`;
-          return (
-            <div
-              key={serviceId(row, index)}
-              className={`service-row${row.hidden ? ' is-hidden' : ''}`}
-              role="listitem"
-              data-selected={active || undefined}
-              data-hidden={row.hidden || undefined}
-              draggable={!listLocked}
-              onDragStart={event => { if (listLocked) { event.preventDefault(); return; } event.dataTransfer.setData('application/x-service-index', String(index)); event.dataTransfer.effectAllowed = 'move'; }}
-              onDragOver={event => { if (!listLocked) event.preventDefault(); }}
-              onDrop={event => {
-                if (listLocked) return;
-                const from = Number(event.dataTransfer.getData('application/x-service-index'));
-                if (!Number.isInteger(from) || from === index) return;
-                event.preventDefault();
-                reorder(list, from, index, write);
-              }}
-            >
-              <button type="button" className="service-row-select" aria-pressed={active} onClick={() => selectAt(index)}>
-                <ServiceThumb item={row} />
-                <span className="service-row-label">{label}{row.hidden ? ' (hidden)' : ''}</span>
-              </button>
-              {!listLocked && (
-                <div className="service-row-menu">
-                  <button type="button" className="service-row-more" aria-label={`Actions for ${label}`} aria-expanded={menu === index} onClick={() => setMenu(menu === index ? null : index)}>
-                    <MoreVertical size={16} aria-hidden="true" />
-                  </button>
-                  {menu === index && (
-                    <ServiceRowActions
-                      hidden={!!row.hidden}
-                      allowClone={list.length < 60}
-                      onClone={() => cloneAt(index)}
-                      onToggleHidden={() => toggleHidden(index)}
-                      onRemove={() => removeAt(index)}
-                    />
-                  )}
-                </div>
-              )}
-            </div>
-          );
-        })}
-      </div>
-      {hiddenCount > 0 && <button type="button" className="subtle-action" onClick={() => setExpanded(true)}>Show {hiddenCount} more</button>}
-      {!listLocked && <button type="button" className="wide service-add" disabled={list.length >= 60} onClick={addService}><Plus size={16} aria-hidden="true" />Add service</button>}
-      {!listLocked && list.length >= 60 && <p className="hint">This section has as many items as it can hold.</p>}
-
-      {item && current >= 0 && (
-        <div className="service-selected">
-          <div className="service-tabs" role="tablist" aria-label="Selected service">
-            <button type="button" role="tab" aria-selected={panel === 'details'} onClick={() => setPanel('details')}>Details</button>
-            <button type="button" role="tab" aria-selected={panel === 'media'} onClick={() => setPanel('media')}>Media</button>
-          </div>
-          {panel === 'details' && (
-            <div className="service-panel" role="tabpanel">
-              {listLocked ? (
-                <>
-                  <p className="field"><span>Title</span><strong>{item.title.trim() || 'Untitled service'}</strong></p>
-                  {item.description.trim() && <p className="helper-text">{item.description}</p>}
-                  {item.price?.trim() && <p className="helper-text">Price: {item.price}</p>}
-                </>
-              ) : (
-                <ServiceDetailsFields
-                  item={item}
-                  pages={pages}
-                  writeSelected={writeSelected}
-                  onOpenPage={onOpenPage}
-                />
-              )}
-            </div>
-          )}
-          {panel === 'media' && (
-            <div className="service-panel" role="tabpanel">
-              {listLocked ? (
-                <p className="helper-text">Icons and media are edited on Home. This page only chooses how the synced list is laid out.</p>
-              ) : (
-              <>
-              <Choice
-                label="Media type"
-                value={mediaKind}
-                onChange={value => {
-                  setMediaKind(value);
-                  setNotice(value === 'media' && !item.media?.src ? 'Upload, paste a link, or choose from the library.' : '');
-                }}
-                options={[{value: 'icon', label: 'Icon'}, {value: 'media', label: 'Image / Video'}]}
-              />
-              {mediaKind === 'icon' && <IconPicker label="Icon" value={item.icon} onChange={icon => writeSelected({icon})} options={icons} />}
-              {mediaKind === 'media' && (
-                <>
-                  <MediaImporter
-                    owner="Service"
-                    hint="One image or video for this service"
-                    accept={ACCEPT}
-                    placeholder="https://example.com/photo.jpg"
-                    items={importerItems}
-                    selected={importerItems.length ? 0 : -1}
-                    busy={busy}
-                    blocked={false}
-                    status={busy ? notice || 'Saving…' : notice || (media?.src ? 'Upload replaces the current media.' : '')}
-                    onFiles={files => void setFiles(files, !!media?.src)}
-                    onLink={addLink}
-                    onLibrary={() => setLibrary(true)}
-                    onSelect={() => undefined}
-                    onRemove={() => writeSelected({media: undefined})}
-                    onReorder={() => undefined}
-                  />
-                  {media?.src && (
-                    <>
-                      <label className="media-replace">
-                        <RefreshCw size={16} aria-hidden="true" />Replace
-                        <input type="file" accept={ACCEPT} disabled={busy} aria-label={`Replace ${importerItems[0]?.name || 'media'}`} onChange={event => { const files = event.target.files; event.target.value = ''; if (files?.length) void setFiles([...files], true); }} />
-                      </label>
-                      <Fold icon={<Crop size={16} aria-hidden="true" />} label="Details" note="Framing and layout options">
-                        <MediaFramingControls media={media} onChange={writeMedia} />
-                      </Fold>
-                      <Fold icon={<Accessibility size={16} aria-hidden="true" />} label="Accessibility" note="Alt text and screen reader support">
-                        <ServiceMediaFields media={media} writeMedia={writeMedia} />
-                      </Fold>
-                      {media.kind !== 'image' && (
-                        <Fold icon={<Play size={16} aria-hidden="true" />} label="Video settings">
-                          <MediaVideoControls
-                            media={media}
-                            posterLabel={media.poster ? mediaFileName(media.poster, names) : 'No poster'}
-                            onChange={writeMedia}
-                            onChoosePoster={() => setPoster(true)}
-                            showMobileFallback={false}
-                          />
-                        </Fold>
-                      )}
-                    </>
-                  )}
-                </>
-              )}
-              </>
-              )}
-            </div>
-          )}
-        </div>
-      )}
-
-      {removed && (
-        <p className="media-toast" role="status">
-          Removed from Services
-          <button type="button" onClick={() => undoRemoval(list, write)}>Undo</button>
-          <button type="button" aria-label="Dismiss" onClick={() => setRemoved(null)}>×</button>
-        </p>
-      )}
-      {library && <MediaPicker label="Choose from library" onClose={() => setLibrary(false)} onSelect={(src, kind) => {
-        if (kind !== 'image' && kind !== 'video') { setNotice('Choose an image or video.'); return; }
-        writeSelected({media: {...mediaDefaults, ...item?.media, src, kind, alt: item?.media?.alt || item?.title || ''}});
-        setMediaKind('media');
-        setLibrary(false);
-        setNotice('');
-      }} />}
-      {poster && <MediaPicker label="Choose poster" imagesOnly onSelect={src => { writeMedia({poster: src}); setPoster(false); }} onClose={() => setPoster(false)} />}
-    </div>
-  );
+  return <ServicesContentView
+    list={list}
+    pages={pages}
+    homePreviewNote={homePreviewNote}
+    listLocked={listLocked}
+    visible={visible}
+    hiddenCount={hiddenCount}
+    current={current}
+    item={item}
+    media={media}
+    mediaKind={mediaKind}
+    panel={panel}
+    busy={busy}
+    notice={notice}
+    names={names}
+    menu={menu}
+    expanded={expanded}
+    library={library}
+    poster={poster}
+    removed={!!removed}
+    setExpanded={setExpanded}
+    setMenu={setMenu}
+    setPanel={setPanel}
+    setMediaKind={setMediaKind}
+    setNotice={setNotice}
+    setLibrary={setLibrary}
+    setPoster={setPoster}
+    selectAt={selectAt}
+    cloneAt={cloneAt}
+    toggleHidden={toggleHidden}
+    removeAt={removeAt}
+    reorder={(from, to) => reorder(list, from, to, write)}
+    addService={addService}
+    writeSelected={writeSelected}
+    writeMedia={writeMedia}
+    setFiles={setFiles}
+    addLink={addLink}
+    onOpenPage={onOpenPage}
+    onUndoRemoval={() => undoRemoval(list, write)}
+    onDismissRemoval={() => setRemoved(null)}
+  />;
 }

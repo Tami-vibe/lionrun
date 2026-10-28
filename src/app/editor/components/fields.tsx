@@ -25,3 +25,5 @@ export function ColorField({label, value, onChange}: {label: string; value: stri
   const scope = useEditScope();
   return <label className="field"><span>{label}</span><input type="color" value={value} {...scope} onChange={event => onChange(event.target.value)}/></label>;
 }
+
+export {SidebarSlider as RangeControl};
