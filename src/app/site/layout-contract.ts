@@ -217,4 +217,4 @@ export function settingsForLayout(type: string, layout: string, settings: Sectio
   return {...settings, columns: count, widths: equalWidths(count)};
 }
 
-export function defaultColumns(id:string) { return id==='solutions'?5:id==='about'||id==='proof'||id==='contact'?2:id==='faq'?1:3; }
+

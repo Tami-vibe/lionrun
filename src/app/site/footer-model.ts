@@ -125,21 +125,6 @@ export function validFooter(value: unknown): value is FooterConfig {
   });
 }
 
-export type FooterColumn = {
-  kind?: 'text' | 'hours';
-  title: string;
-  text: string;
-  links: {
-    id?: string;
-    label: string;
-    href: string;
-    pageId?: string;
-    customLabel?: boolean;
-  }[];
-};
-
-import type {Block, Site} from './blocks';
-import {equalWidths, type SectionSettings} from './settings';
 import {projectMenuLinkHref} from './link-projection';
 
 export function footerColumnWidths(settings: SectionSettings): number[] {
