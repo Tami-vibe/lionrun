@@ -35,7 +35,7 @@ export function servicePreviewCap(total: number, open: boolean, limit = 4) {
   return limit;
 }
 
-import type {IconName} from './blocks';
+import type {IconName} from './contracts';
 import type {MediaSettings} from '../media/model';
 import {still, clip} from './section-media';
 export const shopServices: {title:string;description:string;icon:IconName;media:MediaSettings}[] = [

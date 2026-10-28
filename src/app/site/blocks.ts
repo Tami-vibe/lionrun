@@ -17,6 +17,7 @@ export type BlockContent = {smallLabel:string;title:string;description:string;bo
 export type Block = {id:string;type:SectionId;layout:string;content:BlockContent;settings:SectionSettings;hidden?:boolean};
 import {blockLayouts} from './layout-contract';
 export {blockLayouts} from './layout-contract';
+export {contentForLayout, settingsForLayout} from './layout-contract';
 export type IconName = "none" | "arrow" | "phone" | "calendar" | "mail" | "check" | "message" | "car" | "wrench" | "shield" | "star" | "pin" | "paint" | "gear" | "tow" | "battery" | "wheel" | "scan" | "glass";
 export const icons: IconName[] = ["none", "arrow", "phone", "calendar", "mail", "check", "message", "car", "wrench", "shield", "star", "pin", "paint", "gear", "tow", "battery", "wheel", "scan", "glass"];
 export type ButtonData = {

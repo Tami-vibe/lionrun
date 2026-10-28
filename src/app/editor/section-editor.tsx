@@ -5,6 +5,8 @@ import {ContentBrowser} from './content-browser';
 import {FooterEditor} from './footer-editor';
 import {HeroInspector} from './inspectors/hero';
 import {SectionInspector} from './inspectors/section-inspector';
+// Compatibility for existing editor consumers and regression tests.
+export {SectionInspector as UniversalSectionInspector} from './inspectors/section-inspector';
 import {DefaultSectionInspector} from './inspectors/default';
 import type {PageEntry} from './navigation';
 import type {MediaUsageIndex} from '../media/usage';
