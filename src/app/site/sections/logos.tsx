@@ -3,7 +3,7 @@ import {useMediaLibrary} from '../../media/library';
 import {mediaURL} from '../../media/model';
 import type {BlockItem} from '../blocks';
 import {SectionHeading, Icon} from './elements';
-import type {SectionProps} from './index';
+import type {SectionProps} from './types';
 import {logoGap, logoScale} from '../logo-model';
 
 function accessibleName(item: BlockItem) {

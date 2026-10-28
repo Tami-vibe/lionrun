@@ -1,13 +1,7 @@
-import type {IconName, Site} from "./blocks";
-import {linkedPage, type MenuPage} from "./settings";
+import type {IconName, MenuItem, MenuLinkTo, MenuPage, MenuPlacementConfig, NamedMenu, Site} from './contracts';
+import {projectMenuLinkHref, projectMenuLinkPageId} from './link-projection';
 
-type MenuLinkTo = 'page' | 'section' | 'url';
-export type MenuItem = {
-  id: string; text: string; linkTo: MenuLinkTo; destination: string;
-  pageId?: string; parentId?: string | null; icon?: IconName;
-};
-export type NamedMenu = { id: string; name: string; items: MenuItem[] };
-export type MenuPlacementConfig = { header?: string; footer?: string };
+export type {MenuItem, MenuLinkTo, MenuPlacementConfig, NamedMenu} from './contracts';
 
 export function createDefaultMenus(site?: Partial<Site>, pages: MenuPage[] = []): NamedMenu[] {
   if (site?.menus?.length) return site.menus;
@@ -17,9 +11,10 @@ export function createDefaultMenus(site?: Partial<Site>, pages: MenuPage[] = [])
   const children = site?.navChildren || [];
   const mainItems: MenuItem[] = nav.map((name, i) => {
     const target = targets[i] || '#services', isSec = target.startsWith('#'), isUrl = /^https?:\/\//i.test(target);
+    const linkTo = isUrl ? 'url' : isSec ? 'section' : 'page';
     return {
-      id: `main-${i + 1}`, text: name, linkTo: isUrl ? 'url' : isSec ? 'section' : 'page', destination: target,
-      pageId: pageIds[i] || linkedPage(pages, target)?.id || undefined, parentId: null,
+      id: `main-${i + 1}`, text: name, linkTo, destination: target,
+      pageId: projectMenuLinkPageId({linkTo, destination: target, pageId: pageIds[i]}, pages) || undefined, parentId: null,
       icon: (name.toLowerCase() === 'home' ? 'none' : name.toLowerCase().includes('service') ? 'gear' : 'mail') as IconName,
     };
   });
@@ -52,9 +47,9 @@ export function syncMenusToSite(site: Site, menus: NamedMenu[], placement: MenuP
   if (headerMenu) {
     const top = headerMenu.items.filter(i => !i.parentId).slice(0, 5);
     patch.nav = top.map(i => i.text);
-    const href = (item: MenuItem) => item.linkTo === 'page' && item.pageId ? `/?page=${item.pageId}` : item.destination;
+    const href = (item: MenuItem) => projectMenuLinkHref(item);
     patch.navTargets = top.map(href);
-    patch.navPageIds = top.map(i => i.pageId || (i.linkTo === 'page' ? linkedPage(pages, i.destination)?.id || null : null));
+    patch.navPageIds = top.map(i => projectMenuLinkPageId(i, pages) || null);
     patch.navChildren = top.map(p => headerMenu.items.filter(c => c.parentId === p.id).map(c => ({ label: c.text, href: href(c), pageId: c.pageId })));
   }
   if (footerMenu && site.footerColumns?.length) {
@@ -65,8 +60,7 @@ export function syncMenusToSite(site: Site, menus: NamedMenu[], placement: MenuP
       if (i !== idx) return column;
       const custom = column.links.filter(item => item.customLabel);
       const projected = topFooter.map(item => {
-        const href = item.linkTo === 'page' && item.pageId
-          ? `/?page=${item.pageId}` : item.destination;
+        const href = projectMenuLinkHref(item);
         return custom.find(link => item.pageId ? link.pageId === item.pageId
           : link.href === href) || {label: item.text, href, pageId: item.pageId};
       });

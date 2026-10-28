@@ -6,7 +6,7 @@ import {MediaView} from '../../media/library';
 import {Columns} from '../columns';
 import {Icon} from './elements';
 import {ButtonData} from '../blocks';
-import type {SectionProps} from './index';
+import type {SectionProps} from './types';
 export function HeaderSection({block,site,link,labelFor,pages,homeId,parentIndex}:SectionProps) {
  const customLabels=site.menus?.some(menu=>menu.id===site.menuPlacement?.header);
  const buttons=<div className="header-actions">{(site.headerButtons||[{label:"Let's talk",href:`tel:${site.phone.replaceAll(' ','')}`,icon:'arrow'} as ButtonData]).slice(0,site.headerButtonCount??1).map((button,i)=><a key={i} className={`site-btn ${i?'site-btn-outline':'site-btn-primary'}`} style={buttonAppearance(button)} {...link(button.href)}>{button.label}<Icon name={button.icon}/></a>)}</div>;

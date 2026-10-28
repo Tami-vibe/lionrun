@@ -1,44 +1,8 @@
 import type {CSSProperties} from 'react';
-import type {TextStyle} from './settings';
-import type {MediaSettings} from '../media/model';
+import type {FooterColumn, FooterConfig, FooterLayout, FooterTarget, FooterText, FooterLink, OfficeDay, SectionSettings, Site, Block} from './contracts';
+import {equalWidths} from './layout-utils';
 
-export type FooterLayout = 'standard' | 'hours' | 'social' | 'stack' | 'bottom';
-export type FooterTarget = 'heading' | 'body' | 'motto' | 'bottom' | 'hours';
-export type FooterText = TextStyle & {
-  transform?: 'none' | 'uppercase' | 'capitalize';
-  rowGap?: number;
-};
-export type FooterLink = {
-  id: string;
-  label: string;
-  href: string;
-  pageId?: string;
-  customLabel?: boolean;
-};
-type SocialLink = {id: string; label: string; href: string};
-export type OfficeDay = {day: string; open: string; close: string; closed: boolean};
-export type FooterConfig = {
-  layout: FooterLayout;
-  logoMode: 'header' | 'custom' | 'none';
-  logo?: MediaSettings;
-  motto: string;
-  showMotto: boolean;
-  showSocials: boolean;
-  align: 'left' | 'center' | 'right';
-  bottomAlign: 'left' | 'center' | 'right';
-  order: 'motto' | 'social';
-  itemGap: number;
-  socials: SocialLink[];
-  bottomLinks: FooterLink[];
-  hours: OfficeDay[];
-  hoursReady: boolean;
-  online: boolean;
-  hoursTitle: string;
-  text: Partial<Record<FooterTarget, FooterText>>;
-  hover: 'match' | 'text';
-  hoverShape: 'header' | 'square' | 'rounded' | 'pill';
-  hoverPadding: number;
-};
+export type {FooterColumn, FooterConfig, FooterLayout, FooterTarget, FooterText, FooterLink, OfficeDay} from './contracts';
 
 export const footerLayouts: {id: FooterLayout; label: string; columns: number}[] = [
   {id: 'standard', label: 'Standard', columns: 3},
@@ -176,6 +140,7 @@ export type FooterColumn = {
 
 import type {Block, Site} from './blocks';
 import {equalWidths, type SectionSettings} from './settings';
+import {projectMenuLinkHref} from './link-projection';
 
 export function footerColumnWidths(settings: SectionSettings): number[] {
   return settings.widths || equalWidths(settings.columns || 3);

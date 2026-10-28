@@ -3,7 +3,7 @@ import {heroSlides, publishedStart, slideAdvancePlan} from '../hero-collection';
 import {useHeroFocus} from '../hero-focus';
 import {MediaView} from '../../media/library';
 import {SectionButtons,Icon,safeHref} from './elements';
-import type {SectionProps} from './index';
+import type {SectionProps} from './types';
 function heroShade(content: {darkness?: number; fade?: boolean; fadeWidth?: number; background?: string}) {
   const darkness = content.darkness ?? 36;
   const color = /^#[0-9a-f]{6}$/i.test(content.background || "") ? content.background! : "#0b1420";

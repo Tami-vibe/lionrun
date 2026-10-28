@@ -1,13 +1,11 @@
-export type TextStyle = {family?:string;size?:number;weight?:number;align?:string;lineHeight?:number;tracking?:number;color?:string};
-export type SectionSettings = {columns?:number;widths?:number[];gap?:number;padding?:number;heading?:TextStyle;body?:TextStyle};
-import type {FooterColumn} from './footer-model';
-export type {FooterColumn} from './footer-model';
-export const fonts = {display:'var(--font-display), sans-serif',text:'var(--font-text), sans-serif'};
+import type {FooterColumn, FooterConfig, MenuPage, MenuPlacementConfig, NamedMenu, SectionSettings, TextStyle, BrandKit, FontPairId, BrandRadius, BrandLineWidth, Site} from './contracts';
+import {defaultColumns, equalWidths} from './layout-utils';
+import {linkedPage} from './link-projection';
 
-export type FontPairId = 'northline' | 'editorial' | 'industrial' | 'friendly';
-export type BrandRadius = 'sharp' | 'soft' | 'pill';
-export type BrandLineWidth = '1' | '1.5' | '2';
-export type BrandKit = {fontPair:FontPairId;radius:BrandRadius;lineWidth:BrandLineWidth};
+export {defaultColumns, equalWidths} from './layout-utils';
+export {linkedPage} from './link-projection';
+export type {FooterColumn, FooterConfig, MenuPage, MenuPlacementConfig, NamedMenu, SectionSettings, TextStyle, BrandKit, FontPairId, BrandRadius, BrandLineWidth, Site} from './contracts';
+export const fonts = {display:'var(--font-display), sans-serif',text:'var(--font-text), sans-serif'};
 export const fontPairs: Record<FontPairId,{label:string;display:string;text:string;displayVar:string;textVar:string}> = {
   northline:{label:'Northline',display:'Syne',text:'Manrope',displayVar:'--font-pair-northline-display',textVar:'--font-pair-northline-text'},
   editorial:{label:'Editorial',display:'Fraunces',text:'Source Sans 3',displayVar:'--font-pair-editorial-display',textVar:'--font-pair-editorial-text'},
@@ -33,8 +31,6 @@ export function brandKitVariables(kit: BrandKit = defaultBrandKit): Record<strin
 function bounded(value:unknown,min:number,max:number,fallback:number) {
   return typeof value==='number'&&Number.isFinite(value)?Math.max(min,Math.min(max,value)):fallback;
 }
-export {defaultColumns} from './layout-contract';
-export function equalWidths(count:number) { return Array.from({length:count},()=>100/count); }
 export function normalizeSettings(value:SectionSettings = {}):SectionSettings {
   value=value&&typeof value==='object'?value:{};
   const columns=Math.round(bounded(value.columns,1,5,3));
@@ -110,9 +106,7 @@ export function menuPlacement(where:'top'|'bottom'|'under',count:number):'top'|'
   return where==='under'&&count===0?'top':where==='top'&&count>=5?'bottom':where;
 }
 
-export type MenuPage={id:string;name:string;slug?:string};
-type MenuLinks={menus?:import('./menu-model').NamedMenu[];nav:string[];navTargets?:string[];navPageIds?:(string|null)[];navChildren?:{label:string;href:string;pageId?:string}[][];footerColumns?:FooterColumn[]};
-export function linkedPage(pages:MenuPage[],href:string,pageId?:string|null) { const id=pageId||(/^\/\?page=/.test(href)?new URLSearchParams(href.slice(2)).get('page'):null);return pages.find(p=>id?p.id===id:`/${p.slug}`===href); }
+type MenuLinks={menus?:NamedMenu[];nav:string[];navTargets?:string[];navPageIds?:(string|null)[];navChildren?:{label:string;href:string;pageId?:string}[][];footerColumns?:FooterColumn[]};
 export function bindMenu<T extends MenuLinks>(site:T,pages:MenuPage[],prune=true):T {
   const bind=(link:{label:string;href:string;pageId?:string;customLabel?:boolean})=>{const p=linkedPage(pages,link.href,link.pageId);return p?{...link,pageId:p.id,label:link.customLabel||site.menus?.length?link.label:p.name}:link;};
   const next={...site,navPageIds:site.nav.map((_,i)=>linkedPage(pages,site.navTargets?.[i]||'',site.navPageIds?.[i])?.id||site.navPageIds?.[i]||null),navChildren:site.nav.map((_,i)=>(site.navChildren?.[i]||[]).map(bind)),footerColumns:site.footerColumns?.map(c=>({...c,links:c.links.map(bind)}))};

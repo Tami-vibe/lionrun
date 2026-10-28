@@ -4,7 +4,7 @@ import {MediaSequence,MediaView} from '../../media/library';
 import {sequenceItems} from '../../media/sequence';
 import {SectionHeading,SectionButtons,Icon,safeHref} from './elements';
 export {ReviewsSection} from './reviews';
-import type {SectionProps} from './index';
+import type {SectionProps} from './types';
 export function ConcernsSection({block,editable,selected,change,link}:SectionProps) {
  const c=block.content;
  return <><SectionHeading content={c}/>{block.layout==='Photo cards'?<Columns className="block-grid concern-layout" value={block.settings} editable={editable&&selected} onChange={change}>{c.items.map((item,i)=><article className="concern-entry" key={i}>{item.media?.src&&<MediaView value={item.media} editable={editable}/>}<div>{item.tag&&<span className="section-kicker"><Icon name={item.icon} size={14}/>{item.tag}</span>}<h3>{item.title}</h3><p>{item.description}</p></div></article>)}</Columns>:<div className="one-message">{c.items.map((item,i)=><article key={i}>{!item.tag&&<Icon name={item.icon}/ >}{item.tag&&<span className="section-kicker"><Icon name={item.icon} size={14}/>{item.tag}</span>}<h3>{item.title}</h3><p>{item.description}</p></article>)}</div>}{c.promise&&<p className="our-promise">{c.promise}</p>}<SectionButtons content={c} link={link}/></>;

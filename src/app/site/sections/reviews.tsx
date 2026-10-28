@@ -2,7 +2,7 @@ import type {CSSProperties} from 'react';
 import {MediaView} from '../../media/library';
 import {Icon,SectionHeading} from './elements';
 import {reviewInitials,reviewLayout,reviewsFromItems,type ReviewRecord} from '../reviews';
-import type {SectionProps} from './index';
+import type {SectionProps} from './types';
 import type {BlockContent} from '../blocks';
 
 function nudgeReviews(board: HTMLElement, step: number) {

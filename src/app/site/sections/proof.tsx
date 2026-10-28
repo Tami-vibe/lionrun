@@ -2,7 +2,7 @@ import {buttonAppearance} from './elements';
 import {Columns} from '../columns';
 import {MediaView,MediaSequence} from '../../media/library';
 import {SectionHeading,SectionButtons,Icon} from './elements';
-import type {SectionProps} from './index';
+import type {SectionProps} from './types';
 function initials(name:string){const parts=name.trim().split(/\s+/).filter(Boolean);if(!parts.length)return '';return (parts[0][0]+(parts.length>1?parts[parts.length-1][0]:'')).toUpperCase();}
 function faceTone(name:string){let n=5381;for(const ch of name)n=(n*33+ch.charCodeAt(0))>>>0;return String(n%8);}
 export function ProofSection({block,editable,selected,change,link}:SectionProps) {

@@ -4,7 +4,7 @@ import type {MediaSettings} from '../../media/model';
 import {servicePreviewCount} from '../service-model';
 import {serviceId} from '../service-model';
 import {SectionHeading, Icon} from './elements';
-import type {SectionProps} from './index';
+import type {SectionProps} from './types';
 
 export function ServicesSection({block, editable, selected, change, pages, link, activeId, homeId, focusItem}: SectionProps) {
   const c = block.content;

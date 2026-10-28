@@ -14,7 +14,7 @@ import {
   galleryWidth
 } from '../about-model';
 import {SectionHeading} from './elements';
-import type {SectionProps} from './index';
+import type {SectionProps} from './types';
 import {layoutContract} from '../layout-contract';
 
 function GalleryFrame({item, editable, dimmed, clone}: {item: BlockItem; editable: boolean; dimmed: boolean; clone?: boolean}) {

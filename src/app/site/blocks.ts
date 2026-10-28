@@ -215,25 +215,6 @@ function sectionIsBlank(content:BlockContent):boolean {
   const text=(value?:string)=>!value?.trim();
   return text(content.smallLabel)&&text(content.title)&&text(content.description)&&!content.items?.length&&!content.media?.src&&!(content.slides||[]).some(slide=>slide.src)&&!(content.buttons||[]).some(button=>button.label?.trim()||button.href?.trim())&&!(content.facts||[]).some(fact=>fact?.trim());
 }
-export function contentForLayout(block:Block,layout:string):BlockContent {
-  const content=block.content;
-  if(!sectionIsBlank(content))return content;
-  if(block.type==='hero'&&layout==='story'&&block.id==='hero')return {...content,...storyHeroMedia(content),showSecondary:true,factIcons:content.factIcons?.length?content.factIcons:['shield','gear','star']};
-  if(block.type==='hero'&&!['short','center'].includes(layout))return {...content,showSecondary:true};
-  if(block.type==='proof'&&layout==='Photo and reasons')return proofReasonContent(content);
-  if(block.type==='logos'&&layout==='Heading and slider')return logoBandContent(content);
-  if(block.type==='trust'&&layout==='Signals')return trustSignalContent(content);
-  return content;
-}
-const singleColumnLayouts=['Price list','Promise band','One message','One large quote','Accordion','Scrolling row','Heading and slider','Signals','Sliding gallery'];
-export function settingsForLayout(type:string,layout:string,settings:SectionSettings):SectionSettings {
-  const count=singleColumnLayouts.includes(layout)?1:layout==='Two columns'?2:defaultColumns(type);
-  if(settings.columns===count&&settings.widths?.length===count)return settings;
-  return {...settings,columns:count,widths:equalWidths(count)};
-}
-function logoBandContent(content:BlockContent):BlockContent {
-  return {...content,smallLabel:content.smallLabel.trim()?content.smallLabel:'Trust',title:content.title==='Trusted by our community'?'Trusted by\nour community':content.title,description:content.description==='Brands and partners we work with'?"We're proud to work with individuals, families, and local businesses across Chicago and the surrounding areas.":content.description};
-}
 function applyIndustryMedia(block:Block):Block {
   const content={...block.content,items:block.content.items.map(item=>({...item}))};
   if(block.type==='services'){
