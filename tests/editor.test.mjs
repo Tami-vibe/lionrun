@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {normalizeSettings,equalWidths,resizeWidth,moveDivider,sectionVariables,normalizeBrandKit,brandKitVariables,defaultBrandKit} from '../src/app/editor/settings.ts';
+import {normalizeSettings,equalWidths,resizeWidth,moveDivider,sectionVariables,normalizeBrandKit,brandKitVariables,defaultBrandKit} from '../src/app/site/settings.ts';
 const valid=widths=>{assert.ok(widths.every(n=>Number.isFinite(n)&&n>=10-1e-8));assert.ok(Math.abs(widths.reduce((a,b)=>a+b,0)-100)<1e-8);};
 test('old pages retain inherited text styling and layout defaults',()=>{
   assert.deepEqual(sectionVariables(),{});assert.equal(normalizeSettings().columns,3);
@@ -40,7 +40,7 @@ test('style output accepts only safe fonts, colors and bounded numbers',()=>{
   assert.equal(s.heading.family,undefined);assert.equal(s.heading.color,undefined);
   assert.equal(s.heading.size,96);assert.equal(s.heading.lineHeight,1);assert.equal(s.heading.tracking,-3);
 });
-import {bindMenu,linkedPage,pageLocation,placePage} from '../src/app/editor/settings.ts';
+import {bindMenu,linkedPage,pageLocation,placePage} from '../src/app/site/settings.ts';
 const rentals={id:'rentals-id',name:'Rentals',slug:'rentals'},guide={id:'guide-id',name:'Guide',slug:'guide'};
 const menu={nav:['Services','Copied name'],navTargets:['#services','/rentals'],navChildren:[[{label:'Guide',href:'/guide'}],[]],footerColumns:[{title:'Explore',text:'',links:[{label:'Old name',href:'/rentals'}]}]};
 test('legacy addresses acquire stable identities and names follow renamed pages',()=>{

@@ -4,7 +4,7 @@ import type {BlockContent, BlockItem} from '../site/blocks';
 import {mediaDefaults, normalizeMedia, type MediaSettings} from '../media/model';
 import {MediaPicker, MediaView, publishAsset, useMediaLibrary} from '../media/library';
 import {ACCEPT} from '../media/store';
-import {directMediaLink} from './hero-collection';
+import {directMediaLink} from '../site/hero-collection';
 import {Field, Fold} from './fields';
 import {MediaFramingControls, MediaVideoControls} from './media-controls';
 import {MediaImporter, mediaFileName} from './media-importer';

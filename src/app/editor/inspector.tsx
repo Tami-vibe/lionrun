@@ -1,6 +1,6 @@
 import {useState, type ReactNode} from 'react';
 import {AlignCenter, AlignLeft, AlignRight, ChevronDown, RotateCcw} from 'lucide-react';
-import {fonts,normalizeSettings,resizeWidth,equalWidths,SectionSettings,TextStyle} from './settings';
+import {fonts,normalizeSettings,resizeWidth,equalWidths,SectionSettings,TextStyle} from '../site/settings';
 import {useEditScope} from './fields';
 
 export function LayoutControls({value,change,max=5,min=1,legend='Columns'}:{value:SectionSettings;change:(s:SectionSettings)=>void;max?:number;min?:number;legend?:string}) {
@@ -14,10 +14,7 @@ export function LayoutControls({value,change,max=5,min=1,legend='Columns'}:{valu
   </>;
 }
 
-export function UnitField({label,value,min,max,step=1,change,clear,unit,placeholder='Theme default'}:{label:string;value?:number;min:number;max:number;step?:number;change:(n:number)=>void;clear?:()=>void;unit?:string;placeholder?:string}) {
-  const scope=useEditScope();
-  return <label className="field"><span>{label}</span><span className="unit-input"><input type="number" min={min} max={max} step={step} value={value??''} placeholder={placeholder} {...scope} onChange={e=>{if(e.target.value!=='')change(Math.max(min,Math.min(max,Number(e.target.value))));else clear?.();}}/>{unit&&<small>{unit}</small>}</span></label>;
-}
+import {UnitField} from './components/fields';
 
 function ColorField({color,change,compact=false}:{color?:string;change:(value:string|undefined)=>void;compact?:boolean}) {
   const [draft,setDraft]=useState(color||'');
@@ -73,7 +70,7 @@ export function TypographyControls({value,change,target,setTarget,compact=false}
   </div>;
 }
 
-export function SpacingField({label,value,max,change}:{label:string;value?:number;max:number;change:(value:number|undefined)=>void}) {
+function SpacingField({label,value,max,change}:{label:string;value?:number;max:number;change:(value:number|undefined)=>void}) {
   const scope=useEditScope();
   return <label className="spacing-field"><span>{label}</span><span className="unit-input"><input aria-label={label} type="number" min={0} max={max} value={value??''} placeholder="Theme" {...scope} onChange={event=>change(event.target.value===''?undefined:Math.max(0,Math.min(max,Number(event.target.value))))}/><small>px</small></span></label>;
 }

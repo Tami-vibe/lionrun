@@ -1,4 +1,4 @@
-export type PlaybackMode = 'loop' | 'once' | 'restart';
+type PlaybackMode = 'loop' | 'once' | 'restart';
 export type MediaSettings = {
   src: string; kind: 'image' | 'video' | 'social'; alt: string; title: string; description: string;
   poster: string; captions: string; captionLanguage: string; uploadDate: string;

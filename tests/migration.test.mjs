@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import {readFileSync} from 'node:fs';
 import {migrateSite} from '../src/app/site/blocks.ts';
-import {normalizeSettings} from '../src/app/editor/settings.ts';
+import {normalizeSettings} from '../src/app/site/settings.ts';
 import {mediaDefaults} from '../src/app/media/model.ts';
 
 const unsplash = 'https://images.unsplash.com/photo-1493238792000-8113da705763?auto=format&fit=crop&w=1800&q=85';

@@ -3,7 +3,7 @@ import {footerDefaults, footerTextStyle, footerRadius, footerHoverText,
   safeSocialUrl, socialMark, type FooterTarget} from '../footer-model';
 import {buttonAppearance} from './elements';
 import {MediaView} from '../../media/library';
-import {Columns} from '../../editor/columns';
+import {Columns} from '../columns';
 import {Icon} from './elements';
 import {ButtonData} from '../blocks';
 import type {SectionProps} from './index';

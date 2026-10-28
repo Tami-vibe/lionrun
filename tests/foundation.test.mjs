@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {historyReducer} from '../src/app/editor/history.ts';
 import {buttonIconSide, contentForLayout, initial, migrateSite, settingsForLayout, validBlocks} from '../src/app/site/blocks.ts';
 import {loadableWorkspace, preRecoveryKey, schemaBackupKey, unreadableWorkspaceKey, workspaceKey, writeWorkspace} from '../src/app/editor/workspace.ts';
-import {pageAddresses} from '../src/app/editor/settings.ts';
+import {pageAddresses} from '../src/app/site/settings.ts';
 import {mediaURL} from '../src/app/media/model.ts';
 import {validateSVG} from '../src/app/media/store.ts';
 import {htmlEscape, packageWebsite} from '../src/app/export/package.ts';

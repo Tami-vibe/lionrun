@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {destinationBody, destinationGuidance, destinationKind, destinationWarning, linkMode, sectionTargets, storedDestination, withDestinationKind, withLinkMode} from '../src/app/editor/destination.ts';
-import {displayZoom, editorSticky, fitZoom, framePieces, frameSize, geometryKey, selectionForRegion} from '../src/app/editor/scope.ts';
+import {displayZoom, editorSticky, fitZoom, framePieces, frameSize, geometryKey, selectionForRegion} from '../src/app/site/scope.ts';
 
 const blocks = [
   {id: 'header', type: 'header'},
@@ -124,7 +124,7 @@ test('rating summary uses only a valid entered score and count', async () => {
 });
 
 test('hero collection accepts a direct media file and rejects a web page', async () => {
-  const {HERO_ADD_LIMIT, SECTION_STAGE_LIMIT, directMediaLink, heroSlides, moveItem, publishedStart, reorderStart, slideIndexAllowed} = await import('../src/app/editor/hero-collection.ts');
+  const {HERO_ADD_LIMIT, SECTION_STAGE_LIMIT, directMediaLink, heroSlides, moveItem, publishedStart, reorderStart, slideIndexAllowed} = await import('../src/app/site/hero-collection.ts');
   assert.deepEqual(directMediaLink('https://cdn.example.com/road.jpg'), {ok: true, src: 'https://cdn.example.com/road.jpg', kind: 'image'});
   assert.equal(directMediaLink('https://example.com/about').ok, false);
   assert.match(directMediaLink('https://example.com/about').error, /web page/);
@@ -148,7 +148,7 @@ test('hero collection accepts a direct media file and rejects a web page', async
 });
 
 test('editor and exported slideshows use the same advance rules', async () => {
-  const {slideAdvancePlan} = await import('../src/app/editor/hero-collection.ts');
+  const {slideAdvancePlan} = await import('../src/app/site/hero-collection.ts');
   const {slideshowRuntime} = await import('../src/app/media/export.ts');
   const cases = [
     {autoplay: true, count: 3, reducedMotion: false, advance: 'time', kind: 'image', seconds: 5, mode: 'timer'},
@@ -211,7 +211,7 @@ test('editor and exported slideshows use the same advance rules', async () => {
 });
 
 test('removal undo puts the item back without replacing later collection edits', async () => {
-  const {removalStart, restoreRemoved, selectionAfterMove, selectionAfterRemove, selectionAfterRestore} = await import('../src/app/editor/hero-collection.ts');
+  const {removalStart, restoreRemoved, selectionAfterMove, selectionAfterRemove, selectionAfterRestore} = await import('../src/app/site/hero-collection.ts');
   const removed = {item: 'b', index: 1, slideIndex: 2};
   const afterRemoval = ['a', 'c', 'd'];
   const afterLaterEdit = afterRemoval.map(item => item === 'c' ? 'c-edited' : item);

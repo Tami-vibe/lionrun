@@ -1,5 +1,5 @@
 import {useState, type CSSProperties, type ReactNode} from 'react';
-import {Columns} from '../../editor/columns';
+import {Columns} from '../columns';
 import {MediaView} from '../../media/library';
 import type {BlockItem} from '../blocks';
 import {
@@ -12,7 +12,7 @@ import {
   galleryScale,
   galleryTrack,
   galleryWidth
-} from '../../editor/about-model';
+} from '../about-model';
 import {SectionHeading} from './elements';
 import type {SectionProps} from './index';
 import {layoutContract} from '../layout-contract';

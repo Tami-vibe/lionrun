@@ -2,7 +2,7 @@
 import {useId,useMemo,useState,type ReactNode} from 'react';
 import {ArrowLeft,Building2,ChevronDown,EllipsisVertical,Eye,EyeOff,FileText,FolderClosed,House,Mail,Plus,Search,Wrench} from 'lucide-react';
 import {stages} from '../site/catalog';
-import {classifyPages, type PageGroup} from './settings';
+import {classifyPages, type PageGroup} from '../site/settings';
 
 export type EditorLocation = 'pages' | 'sections' | 'inspector' | 'page-settings' | 'library' | 'create-page' | 'add-section';
 export type ShellPage = {id: string; name: string; slug?: string};

@@ -3,8 +3,8 @@ import {useEffect, useRef, useState, type PointerEvent as ReactPointerEvent, typ
 import {createPortal} from 'react-dom';
 import {Menu as MenuIcon, Link as LinkIcon, EllipsisVertical, Plus, Pencil, Copy, Trash2, ArrowLeft, CornerDownRight} from 'lucide-react';
 import type {Site} from '../site/blocks';
-import {type MenuItem, type NamedMenu, type MenuPlacementConfig, type MenuDrop, createDefaultMenus, defaultPlacement, syncMenusToSite, orderedMenuItems, moveMenuItem, duplicateMenu} from './menu-model';
-import {pageSlug, type MenuPage} from './settings';
+import {type MenuItem, type NamedMenu, type MenuPlacementConfig, type MenuDrop, createDefaultMenus, defaultPlacement, syncMenusToSite, orderedMenuItems, moveMenuItem, duplicateMenu} from '../site/menu-model';
+import {pageSlug, type MenuPage} from '../site/settings';
 import {catalog} from '../site/catalog';
 
 type Props = {site: Site; pages: MenuPage[]; update: (patch: Partial<Site>) => void};

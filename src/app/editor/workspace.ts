@@ -1,5 +1,5 @@
 import type {PageEntry} from "./navigation";
-import {bindMenu, headerLook, pageAddresses} from "./settings";
+import {bindMenu, headerLook, pageAddresses} from "../site/settings";
 import {migrateSite, validBlocks, validButton, type ButtonData, type Site} from "../site/blocks";
 
 export const workspaceKey = "business-builder-workspace-v2";

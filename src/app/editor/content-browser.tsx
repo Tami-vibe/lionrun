@@ -2,7 +2,7 @@
 import {useId, useState, type CSSProperties} from 'react';
 import {ArrowLeft,Building2,CheckCircle2,ChevronDown,ChevronRight,FileText,HelpCircle,Image as ImageIcon,Layers,Menu as MenuIcon,MessageSquare,MousePointerClick,Plus,ShieldCheck,Star,X} from 'lucide-react';
 import {Block,BlockContent,BlockItem,ButtonData,Site,IconName,buttonIconSide,icons,servicePreviewCount} from '../site/blocks';
-import {accentRamp, FooterColumn} from './settings';
+import {accentRamp, FooterColumn} from '../site/settings';
 import {MediaManager} from '../media/library';
 import {mediaDefaults, mediaURL, type MediaSettings} from '../media/model';
 import {countWarning, ratingSummary, scoreWarning} from './rating';
@@ -17,7 +17,7 @@ import {LogosContent} from './logos-content';
 import {AboutContent} from './about-content';
 import {ServicesContent} from './services-content';
 import {MenuEditor, MenuPlacement} from './menu-editor';
-import {createDefaultMenus} from './menu-model';
+import {createDefaultMenus} from '../site/menu-model';
 
 type Change = (patch: Partial<BlockContent>) => void;
 type Group = {id: string; label: string; hint: string};

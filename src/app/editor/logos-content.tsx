@@ -3,7 +3,7 @@ import type {BlockItem} from '../site/blocks';
 import {mediaDefaults, type MediaSettings} from '../media/model';
 import {MediaPicker, publishAsset, useMediaLibrary} from '../media/library';
 import {validateUpload} from '../media/store';
-import {directMediaLink} from './hero-collection';
+import {directMediaLink} from '../site/hero-collection';
 import {Destination, Field} from './fields';
 import {logoDeliveryBlob} from './logo-asset';
 import {MediaImporter, mediaFileName} from './media-importer';

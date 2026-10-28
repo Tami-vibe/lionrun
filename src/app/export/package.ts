@@ -1,5 +1,5 @@
 import type {PageEntry} from "../editor/navigation";
-import {pageAddresses} from "../editor/settings";
+import {pageAddresses} from "../site/settings";
 import {prepareMediaExport, exportRuntime, slideshowRuntime, sequenceRuntime} from "../media/export";
 import type {Site} from "../site/blocks";
 import {safeHref} from "../site/safe-href";

@@ -1,34 +1,17 @@
 "use client";
 import {createContext, useContext, useEffect, useId, useLayoutEffect, useRef, useState, type ReactNode} from 'react';
 import {createPortal} from 'react-dom';
-import {linkedPage} from './settings';
+import {linkedPage} from '../site/settings';
 import {ChevronDown, Link, Mail, Phone} from 'lucide-react';
 import {IconName} from '../site/blocks';
 import {iconChoices, IconGlyph} from '../site/icons';
 import {destinationBody, destinationGuidance, destinationKind, destinationWarning, sectionAnchorName, sectionTargets, storedDestination, withDestinationKind, withLinkMode, type DestinationKind, type LinkMode} from './destination';
 import {catalog as sections} from '../site/catalog';
 
-export type EditScope = {id?: string};
-export type EditScopeApi = {claim:(id:string)=>void; release:(id:string)=>void};
-export const EditScopeContext = createContext<EditScopeApi | null>(null);
-export function useEditScope() {
-  const scope = useContext(EditScopeContext);
-  const id = useId();
-  return {
-    onFocus: () => scope?.claim(id),
-    onBlur: () => scope?.release(id),
-  };
-}
-
-export function Field({ label, value, onChange, multiline = false, type = "text" }: {
-  label: string; value: string; onChange: (v: string) => void; multiline?: boolean; type?: "text" | "email" | "tel";
-}) {
-  const scope = useEditScope();
-  return <label className="field"><span>{label}</span>{multiline ? <textarea rows={3} value={value} {...scope} onChange={e => onChange(e.target.value)}/> : <input type={type} value={value} {...scope} onChange={e => onChange(e.target.value)}/>}</label>;
-}
-export function Choice<T extends string>({ label, value, options, onChange }: {label: string; value: T; options: {value: T; label: string}[]; onChange: (v: T) => void}) {
-  return <div className="field" role="group" aria-label={label}><span>{label}</span><div className="choice-group">{options.map(o => <button type="button" key={o.value} className={value === o.value ? "choice-active" : ""} aria-pressed={value===o.value} onClick={() => onChange(o.value)}>{o.label}</button>)}</div></div>;
-}
+export type {EditScope, EditScopeApi} from './components/edit-scope';
+export {EditScopeContext, useEditScope} from './components/edit-scope';
+import {useEditScope} from './components/edit-scope';
+export {Field, SidebarSelect as Choice} from './components/fields';
 export function Toggle({label,checked,change,hint}:{label:string;checked:boolean;change:(checked:boolean)=>void;hint?:string}) {
   return <label className="visibility-toggle">
     <div className="toggle-info">
@@ -48,10 +31,7 @@ export function Fold({icon, label, note, disabled, open, children}:{icon?: React
     </details>
   );
 }
-export function RangeControl({label, min, max, step = 1, value, text, onChange}:{label: string; min: number; max: number; step?: number; value: number; text: string; onChange: (value: number) => void}) {
-  const scope = useEditScope();
-  return <label className="field"><span>{label}: {text}</span><input aria-label={label} type="range" min={min} max={max} step={step} value={value} {...scope} onChange={event => onChange(Number(event.target.value))} /></label>;
-}
+export {SidebarSlider as RangeControl} from './components/fields';
 const destinationKinds: {id: DestinationKind; label: string; icon: typeof Link; tip: string}[] = [{id:"link", label:"Link", icon:Link, tip:"Website address or section link"},{id:"phone", label:"Call", icon:Phone, tip:"Opens the visitor's calling app."},{id:"email", label:"Email", icon:Mail, tip:"Opens the visitor's email app."}];
 export const DestinationPagesContext=createContext<{id:string;name:string;slug?:string}[]>([]);
 export function Destination({label = "Destination", value, onChange, sections: pageSections, linksOnly = false}:{label?: string; value: string; onChange: (value: string) => void; sections?: {id: string; type: string}[]; linksOnly?: boolean}) {

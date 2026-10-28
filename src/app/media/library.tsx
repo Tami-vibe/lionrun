@@ -3,7 +3,7 @@ import { createContext, useCallback, useContext, useEffect, useRef, useState } f
 import { ACCEPT, assetStore, Asset, LIMITS, validateUpload } from './store';
 import { mediaDefaults, MediaSettings, mediaURL, normalizeMedia, socialEmbed, https, videoPlan, videoClick } from './model';
 import {MediaUpload} from '../editor/media-upload';
-import {directMediaLink} from '../editor/hero-collection';
+import {directMediaLink} from '../site/hero-collection';
 import {mountMediaSequence, sequenceItems, type MediaMode} from './sequence';
 import {isAssetUnused, type MediaUsageIndex} from './usage';
 const LibraryContext=createContext<{assets:Asset[];resolve:(src:string)=>string;reload:()=>Promise<void>;error:string}>({assets:[],resolve:()=>'',reload:async()=>{},error:''});
@@ -132,4 +132,3 @@ export function MediaManager({value,onChange,usage}:{value:Partial<MediaSettings
     </details>
   </section>;
 }
-export {mediaDefaults};

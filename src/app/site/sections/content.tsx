@@ -1,5 +1,5 @@
 import {useState,type CSSProperties} from 'react';
-import {Columns} from '../../editor/columns';
+import {Columns} from '../columns';
 import {MediaSequence,MediaView} from '../../media/library';
 import {sequenceItems} from '../../media/sequence';
 import {SectionHeading,SectionButtons,Icon,safeHref} from './elements';

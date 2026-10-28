@@ -40,7 +40,7 @@ export function brandKitVariables(kit: BrandKit = defaultBrandKit): Record<strin
     '--font-text': `var(${pair.textVar})`,
   };
 }
-export function bounded(value:unknown,min:number,max:number,fallback:number) {
+function bounded(value:unknown,min:number,max:number,fallback:number) {
   return typeof value==='number'&&Number.isFinite(value)?Math.max(min,Math.min(max,value)):fallback;
 }
 export function defaultColumns(id:string) { return id==='solutions'?5:id==='about'||id==='proof'||id==='contact'?2:id==='faq'?1:3; }

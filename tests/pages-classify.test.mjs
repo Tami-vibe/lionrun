@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {classifyPages} from '../src/app/editor/settings.ts';
+import {classifyPages} from '../src/app/site/settings.ts';
 
 const homeSite = (items = [], catalogPageId, navPageIds = []) => ({
   blocks: [{type: 'services', content: {items, catalogPageId}}],

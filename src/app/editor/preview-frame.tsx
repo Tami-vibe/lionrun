@@ -1,7 +1,7 @@
 "use client";
 import {useCallback, useEffect, useLayoutEffect, useState, type ReactNode, type RefObject, type SyntheticEvent} from "react";
 import {createPortal} from "react-dom";
-import {frameSize, type EditorRegion, type PreviewDevice} from "./scope";
+import {frameSize, type EditorRegion, type PreviewDevice} from "../site/scope";
 
 const frameDocument = '<!DOCTYPE html><html><head></head><body style="margin:0"><div id="site-root"></div></body></html>';
 

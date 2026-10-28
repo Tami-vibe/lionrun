@@ -1,7 +1,7 @@
-import type {IconName, Site} from "../site/blocks";
+import type {IconName, Site} from "./blocks";
 import {linkedPage, type MenuPage} from "./settings";
 
-export type MenuLinkTo = 'page' | 'section' | 'url';
+type MenuLinkTo = 'page' | 'section' | 'url';
 export type MenuItem = {
   id: string; text: string; linkTo: MenuLinkTo; destination: string;
   pageId?: string; parentId?: string | null; icon?: IconName;

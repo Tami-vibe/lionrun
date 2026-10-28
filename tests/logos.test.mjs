@@ -4,11 +4,11 @@ import {register} from 'node:module';
 import {createElement} from 'react';
 import {renderToStaticMarkup} from 'react-dom/server';
 import {initial, validBlocks} from '../src/app/site/blocks.ts';
-import {deliverySize, logoGap, logoScale} from '../src/app/editor/logo-model.ts';
-import {restoreRemoved} from '../src/app/editor/hero-collection.ts';
+import {deliverySize, logoGap, logoScale} from '../src/app/site/logo-model.ts';
+import {restoreRemoved} from '../src/app/site/hero-collection.ts';
 register('./support/tsx.mjs', import.meta.url);
 const {ContentBrowser} = await import('../src/app/editor/content-browser.tsx');
-const {LogosStyle} = await import('../src/app/editor/logos-style.tsx');
+const {UniversalSectionInspector: LogosStyle} = await import('../src/app/editor/section-editor.tsx');
 const {LogosSection} = await import('../src/app/site/sections/logos.tsx');
 
 const logos = () => structuredClone(initial.blocks.find(block => block.type === 'logos'));

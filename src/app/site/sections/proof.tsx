@@ -1,5 +1,5 @@
 import {buttonAppearance} from './elements';
-import {Columns} from '../../editor/columns';
+import {Columns} from '../columns';
 import {MediaView,MediaSequence} from '../../media/library';
 import {SectionHeading,SectionButtons,Icon} from './elements';
 import type {SectionProps} from './index';

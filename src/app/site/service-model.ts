@@ -1,4 +1,4 @@
-import type {BlockItem} from '../site/blocks';
+import type {BlockItem} from './blocks';
 
 export type ServiceMediaKind = 'icon' | 'media';
 

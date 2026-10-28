@@ -1,13 +1,13 @@
 "use client";
 import {Fragment, useEffect, useRef, useState} from "react";
-import type {PageEntry} from "../editor/navigation";
-import {accentRamp, brandKitVariables, linkedPage, normalizeBrandKit, normalizeSettings, sectionVariables, type SectionSettings} from "../editor/settings";
+import type {PageEntry} from "./page-types";
+import {accentRamp, brandKitVariables, linkedPage, normalizeBrandKit, normalizeSettings, sectionVariables, type SectionSettings} from "./settings";
 import {normalizeEyebrowStyle} from "./blocks";
 import {fixedBlockOrder, type Block, type Site} from "../site/blocks";
 import {MediaView} from "../media/library";
 import {safeHref} from "./safe-href";
 import {sectionComponents} from "./sections";
-import {editorSticky, framePieces, type EditorScope} from "../editor/scope";
+import {editorSticky, framePieces, type EditorScope} from "./scope";
 export function SitePreview({ site, select, selected, editable, changeSettings, pages, activeId, selectPage, region = "live", focusItem = null }: {
     site: Site;
     select: (id: string) => void;

@@ -1,6 +1,6 @@
 "use client";
 import {useEffect, useState} from "react";
-import {REMOVAL_NOTICE_MS} from "./hero-collection";
+import {REMOVAL_NOTICE_MS} from "../site/hero-collection";
 
 /** Pass `ms: 0` to keep the toast until dismiss (logos). */
 export function useRemovalNotice<T>(ms = REMOVAL_NOTICE_MS) {

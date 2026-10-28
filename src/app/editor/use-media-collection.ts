@@ -1,6 +1,6 @@
 "use client";
 import {useState} from "react";
-import {moveItem, REMOVAL_NOTICE_MS, restoreRemoved, selectionAfterMove, selectionAfterRemove, selectionAfterRestore} from "./hero-collection";
+import {moveItem, REMOVAL_NOTICE_MS, restoreRemoved, selectionAfterMove, selectionAfterRemove, selectionAfterRestore} from "../site/hero-collection";
 import {useRemovalNotice} from "./use-removal-notice";
 
 /** Shared selection, busy/notice, library/poster flags, and remove/reorder/undo for section media lists. */

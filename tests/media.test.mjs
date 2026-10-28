@@ -41,7 +41,7 @@ test('recognize the remaining advertised format signatures',async()=>{
 });
 
 // Page addresses stay stable while legacy drafts gain collision-free slugs.
-import {pageSlug,pageAddresses,headerLook,menuPlacement} from '../src/app/editor/settings.ts';
+import {pageSlug,pageAddresses,headerLook,menuPlacement} from '../src/app/site/settings.ts';
 test('page addresses are safe, unique and stable after a rename',()=>{
   assert.equal(pageSlug('Àbout / Us'), 'about-us');
   const pages=pageAddresses([{name:'About us'},{name:'About us'},{name:'New name',slug:'original-name'}]);

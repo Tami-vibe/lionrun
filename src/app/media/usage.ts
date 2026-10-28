@@ -2,7 +2,7 @@ import {sectionName, type SectionId} from '../site/catalog';
 import type {Block, BlockContent, Site} from '../site/blocks';
 import type {MediaSettings} from './model';
 
-export type MediaUseField = 'image' | 'poster' | 'captions' | 'slide' | 'story' | 'before' | 'after' | 'item' | 'logo';
+type MediaUseField = 'image' | 'poster' | 'captions' | 'slide' | 'story' | 'before' | 'after' | 'item' | 'logo';
 
 export type MediaUse = {
   pageId: string;

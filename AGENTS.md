@@ -1,9 +1,16 @@
 <!-- BEGIN:nextjs-agent-rules -->
+# Codex Agent Rules: Architecture Redesign Specs
 
-## This is NOT the Next.js you know
+## 1. Strict Module Layout Validation
+- Data Pipeline Direction: Contract (`layout-contract.ts`) ➔ Primitives (`fields.tsx`) ➔ Inspector Engine (`section-editor.tsx`) ➔ View Layer.
+- Eliminate circular loops. View components are strictly prohibited from importing editor/sidebar modules.
 
-This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` (resolved from this file's directory; in monorepos the `next` package may not be visible from the repo root) before writing any code. Heed deprecation notices.
+## 2. Refactoring Targets
+- Consolidate structural layouts from `about-style.tsx`, `services-style.tsx`, `proof-style.tsx`, and `logos-style.tsx` into a single, cohesive schema module: `src/app/editor/section-editor.tsx`.
+- Centralize standard inputs, selectors, and sliders into a reusable stateless primitives file: `src/app/editor/components/fields.tsx`.
 
-This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
+## 3. Automation Verification Gate
+- Run `npm run build` and `npx knip` to verify zero broken imports or structural regressions.
+
 
 <!-- END:nextjs-agent-rules -->

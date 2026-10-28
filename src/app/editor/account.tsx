@@ -3,7 +3,7 @@ import {useEffect,useId,useRef,useState,type KeyboardEvent,type ReactNode} from 
 import {Building2,Globe,UserRound,CreditCard,Sparkles} from 'lucide-react';
 import {Field} from './fields';
 import {BrandSettings, type BrandSitePatch} from './brand-settings';
-import {fontPairs, normalizeBrandKit, headerLook} from './settings';
+import {fontPairs, normalizeBrandKit, headerLook} from '../site/settings';
 import type {Site} from '../site/blocks';
 import {normalizeEyebrowStyle} from '../site/blocks';
 

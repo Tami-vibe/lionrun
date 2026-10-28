@@ -6,11 +6,11 @@ import {Icon} from '../site/icons';
 import {mediaDefaults, normalizeMedia, type MediaSettings} from '../media/model';
 import {MediaPicker, MediaView, publishAsset, useMediaLibrary} from '../media/library';
 import {ACCEPT} from '../media/store';
-import {directMediaLink} from './hero-collection';
+import {directMediaLink} from '../site/hero-collection';
 import {Choice, Field, Fold, IconPicker} from './fields';
 import {MediaFramingControls, MediaVideoControls} from './media-controls';
 import {MediaImporter, mediaFileName} from './media-importer';
-import {ensureServiceIds, newServiceId, serviceId, serviceMediaKind, servicePreviewCap} from './service-model';
+import {ensureServiceIds, newServiceId, serviceId, serviceMediaKind, servicePreviewCap} from '../site/service-model';
 import {useMediaCollection} from './use-media-collection';
 
 const previewLimit = 4;

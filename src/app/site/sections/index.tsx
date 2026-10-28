@@ -1,6 +1,6 @@
 import type {Block,Site} from '../blocks';
-import type {SectionSettings} from '../../editor/settings';
-import type {PageEntry} from '../../editor/navigation';
+import type {SectionSettings} from '../settings';
+import type {PageEntry} from '../page-types';
 import {HeroSection} from './hero';
 import {ServicesSection} from './services';
 import {ProofSection} from './proof';

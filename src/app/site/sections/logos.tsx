@@ -4,7 +4,7 @@ import {mediaURL} from '../../media/model';
 import type {BlockItem} from '../blocks';
 import {SectionHeading, Icon} from './elements';
 import type {SectionProps} from './index';
-import {logoGap, logoScale} from '../../editor/logo-model';
+import {logoGap, logoScale} from '../logo-model';
 
 function accessibleName(item: BlockItem) {
   return item.media?.alt?.trim() || item.title.trim() || 'Logo';

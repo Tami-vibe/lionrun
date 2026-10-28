@@ -1,5 +1,5 @@
 import type {CSSProperties} from 'react';
-import type {TextStyle} from '../editor/settings';
+import type {TextStyle} from './settings';
 import type {MediaSettings} from '../media/model';
 
 export type FooterLayout = 'standard' | 'hours' | 'social' | 'stack' | 'bottom';
@@ -15,7 +15,7 @@ export type FooterLink = {
   pageId?: string;
   customLabel?: boolean;
 };
-export type SocialLink = {id: string; label: string; href: string};
+type SocialLink = {id: string; label: string; href: string};
 export type OfficeDay = {day: string; open: string; close: string; closed: boolean};
 export type FooterConfig = {
   layout: FooterLayout;
@@ -47,7 +47,7 @@ export const footerLayouts: {id: FooterLayout; label: string; columns: number}[]
   {id: 'stack', label: 'Centered brand', columns: 1},
   {id: 'bottom', label: 'Bottom row only', columns: 1},
 ];
-export const weekdays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+const weekdays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 export function footerDefaults(motto = ''): FooterConfig {
   return {
     layout: 'standard', logoMode: 'header', motto, showMotto: true,

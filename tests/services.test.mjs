@@ -4,11 +4,11 @@ import {register} from 'node:module';
 import {createElement} from 'react';
 import {renderToStaticMarkup} from 'react-dom/server';
 import {initial, servicePreviewCount, syncServicePages, validBlocks} from '../src/app/site/blocks.ts';
-import {ensureServiceIds, serviceId, serviceMediaKind, servicePreviewCap} from '../src/app/editor/service-model.ts';
-import {restoreRemoved} from '../src/app/editor/hero-collection.ts';
+import {ensureServiceIds, serviceId, serviceMediaKind, servicePreviewCap} from '../src/app/site/service-model.ts';
+import {restoreRemoved} from '../src/app/site/hero-collection.ts';
 register('./support/tsx.mjs', import.meta.url);
 const {ContentBrowser} = await import('../src/app/editor/content-browser.tsx');
-const {ServicesStyle} = await import('../src/app/editor/services-style.tsx');
+const {UniversalSectionInspector: ServicesStyle} = await import('../src/app/editor/section-editor.tsx');
 const {ServicesSection} = await import('../src/app/site/sections/services.tsx');
 
 const services = () => structuredClone(initial.blocks.find(block => block.type === 'services'));

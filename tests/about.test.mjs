@@ -13,11 +13,11 @@ import {
   gallerySpeed,
   galleryTrack,
   galleryWidth,
-} from '../src/app/editor/about-model.ts';
-import {restoreRemoved} from '../src/app/editor/hero-collection.ts';
+} from '../src/app/site/about-model.ts';
+import {restoreRemoved} from '../src/app/site/hero-collection.ts';
 register('./support/tsx.mjs', import.meta.url);
 const {ContentBrowser} = await import('../src/app/editor/content-browser.tsx');
-const {AboutStyle} = await import('../src/app/editor/about-style.tsx');
+const {UniversalSectionInspector: AboutStyle} = await import('../src/app/editor/section-editor.tsx');
 const {AboutSection} = await import('../src/app/site/sections/gallery.tsx');
 
 const about = () => structuredClone(initial.blocks.find(block => block.type === 'about'));

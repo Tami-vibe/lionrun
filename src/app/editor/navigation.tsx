@@ -1,14 +1,15 @@
 "use client";
 import {catalog,SectionId} from '../site/catalog';
 import {Block,pageStarters} from '../site/blocks';
-import {pageLocation,linkedPage} from './settings';
+import {pageLocation,linkedPage} from '../site/settings';
 import {useEffect,useId,useState} from 'react';
 import {useMediaLibrary} from '../media/library';
 import {PanelsTopLeft,PanelBottom,Sunrise,BadgeCheck,LayoutGrid,Sparkles,Images,ShieldQuestion,Route,CircleCheck,Quote,ClipboardList,CircleHelp,Tag,Mail,CircleArrowRight,EllipsisVertical,Plus,Copy,Trash2,EyeOff,Eye} from 'lucide-react';
 export const sectionIcons={header:PanelsTopLeft,hero:Sunrise,logos:BadgeCheck,services:LayoutGrid,proof:Sparkles,about:Images,pains:ShieldQuestion,solutions:Route,trust:CircleCheck,reviews:Quote,quote:ClipboardList,faq:CircleHelp,promo:Tag,contact:Mail,closing:CircleArrowRight,footer:PanelBottom};
-export type PageEntry<T>={id:string;name:string;slug?:string;site:T};
+export type {PageEntry} from '../site/page-types';
+import type {PageEntry} from '../site/page-types';
 export type PagePlacement={where:'top'|'bottom'|'under';parent:number;title:string;description:string;kind?:keyof typeof pageStarters};
-type PreviewSite={nav:string[];navTargets?:string[];navPageIds?:(string|null)[];navChildren?:{label:string;href:string;pageId?:string}[][];footerColumns?:import('./settings').FooterColumn[];seoTitle:string;seoDescription:string;brand:string;headline:string;image:string;theme?:'midnight'|'paper';eyebrowStyle?:'pill'|'line';accent?:string;layout:'split'|'center'|'image'|'short'|'story';blocks?:Block[];heroMedia?:{src:string;poster:string;kind:string}};
+type PreviewSite={nav:string[];navTargets?:string[];navPageIds?:(string|null)[];navChildren?:{label:string;href:string;pageId?:string}[][];footerColumns?:import('../site/settings').FooterColumn[];seoTitle:string;seoDescription:string;brand:string;headline:string;image:string;theme?:'midnight'|'paper';eyebrowStyle?:'pill'|'line';accent?:string;layout:'split'|'center'|'image'|'short'|'story';blocks?:Block[];heroMedia?:{src:string;poster:string;kind:string}};
 function MiniPage({site,layout=(site.blocks?.find(b=>b.type==='hero')?.layout||site.layout) as PreviewSite['layout']}:{site:PreviewSite;layout?:PreviewSite['layout']}){
   const hero=site.blocks?.find(b=>b.type==='hero'),media=hero?.content.media||site.heroMedia;
   const {resolve}=useMediaLibrary(),photo=resolve(media?(media.kind==='image'?media.src:media.poster):site.image);

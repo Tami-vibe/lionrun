@@ -6,8 +6,8 @@ import {mediaDefaults, normalizeMedia, type MediaSettings} from "../media/model"
 import {ACCEPT} from "../media/store";
 import type {BlockContent} from "../site/blocks";
 import {Field, Fold, RangeControl} from "./fields";
-import {HERO_ADD_LIMIT, SECTION_STAGE_LIMIT, collectionPatch, directMediaLink, heroSlides, moveItem, publishedStart, removalStart, reorderStart, restoreRemoved, selectionAfterRemove, selectionAfterRestore} from "./hero-collection";
-import {useHeroFocus} from "./hero-focus";
+import {HERO_ADD_LIMIT, SECTION_STAGE_LIMIT, collectionPatch, directMediaLink, heroSlides, moveItem, publishedStart, removalStart, reorderStart, restoreRemoved, selectionAfterRemove, selectionAfterRestore} from "../site/hero-collection";
+import {useHeroFocus} from "../site/hero-focus";
 import {MediaFramingControls, MediaVideoControls} from "./media-controls";
 import {MediaImporter, mediaFileName} from "./media-importer";
 import {useRemovalNotice} from "./use-removal-notice";

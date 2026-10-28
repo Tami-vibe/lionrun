@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {orderedMenuItems,moveMenuItem,duplicateMenu,syncMenusToSite} from '../src/app/editor/menu-model.ts';
+import {orderedMenuItems,moveMenuItem,duplicateMenu,syncMenusToSite} from '../src/app/site/menu-model.ts';
 const fixture=()=>[
  {id:'services',text:'Services',linkTo:'section',destination:'#services',parentId:null},
  {id:'contact',text:'Contact',linkTo:'section',destination:'#contact',parentId:null},
@@ -45,7 +45,7 @@ test('drop result updates the existing website navigation and footer projection'
  assert.equal(patch.footerColumns[0].links[0].href,'#contact');
 });
 test('page-linked menu labels and destinations survive page renaming and binding',async()=>{
- const {bindMenu}=await import('../src/app/editor/settings.ts');
+ const {bindMenu}=await import('../src/app/site/settings.ts');
  const menu={id:'main',name:'Main',items:[{id:'root',text:'Explore repairs',linkTo:'page',destination:'/old-address',pageId:'repair-page',parentId:null},{id:'child',text:'Our specialists',linkTo:'page',destination:'/old-team',pageId:'team-page',parentId:'root'}]};
  const pages=[{id:'repair-page',slug:'new-address',name:'Vehicle repairs'},{id:'team-page',slug:'new-team',name:'Team'}];
  const projected=syncMenusToSite({},[menu],{header:'main'},pages);

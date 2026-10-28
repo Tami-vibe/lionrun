@@ -7,17 +7,17 @@ import {
 } from 'lucide-react';
 import type {Block, Site} from '../site/blocks';
 import type {PageEntry} from './navigation';
-import type {FooterColumn} from './settings';
+import type {FooterColumn} from '../site/settings';
 import {
   footerDefaults, footerLayouts, safeSocialUrl, validOfficeDay,
   type FooterConfig, type FooterLink, type FooterTarget, type FooterText,
 } from '../site/footer-model';
 import {Choice, Field} from './fields';
-import {createDefaultMenus} from './menu-model';
+import {createDefaultMenus} from '../site/menu-model';
 import {MediaPicker, MediaView, publishAsset, useMediaLibrary} from '../media/library';
 import {mediaDefaults} from '../media/model';
 import {MediaUpload} from './media-upload';
-import {directMediaLink} from './hero-collection';
+import {directMediaLink} from '../site/hero-collection';
 import {HeroMediaEditor} from './hero-media';
 
 type Props = {

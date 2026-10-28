@@ -1,4 +1,4 @@
-import {deliverySize} from './logo-model';
+import {deliverySize} from '../site/logo-model';
 
 export async function logoDeliveryBlob(blob: Blob, mime: string): Promise<Blob> {
   if (mime === 'image/svg+xml' || typeof createImageBitmap !== 'function') return blob;

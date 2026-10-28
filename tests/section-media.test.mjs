@@ -5,7 +5,7 @@ import {createElement} from 'react';
 import {renderToStaticMarkup} from 'react-dom/server';
 import {initial, validBlocks} from '../src/app/site/blocks.ts';
 import {mediaDefaults} from '../src/app/media/model.ts';
-import {SECTION_STAGE_LIMIT, HERO_ADD_LIMIT, collectionPatch, heroSlides} from '../src/app/editor/hero-collection.ts';
+import {SECTION_STAGE_LIMIT, HERO_ADD_LIMIT, collectionPatch, heroSlides} from '../src/app/site/hero-collection.ts';
 register('./support/tsx.mjs', import.meta.url);
 const {ContentBrowser} = await import('../src/app/editor/content-browser.tsx');
 const {PromotionSection, QuoteSection, ContactSection, TrustSection} = await import('../src/app/site/sections/content.tsx');

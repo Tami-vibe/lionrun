@@ -1,5 +1,5 @@
 "use client";
-import {headerLook, fontPairs, normalizeBrandKit, type BrandKit, type BrandLineWidth, type BrandRadius, type FontPairId} from "./settings";
+import {headerLook, fontPairs, normalizeBrandKit, type BrandKit, type BrandLineWidth, type BrandRadius, type FontPairId} from "../site/settings";
 import type {Site} from "../site/blocks";
 import {normalizeEyebrowStyle, type EyebrowStyle} from "../site/blocks";
 

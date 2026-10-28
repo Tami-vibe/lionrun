@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {register} from 'node:module';
 import {createElement} from 'react';
 import {renderToStaticMarkup} from 'react-dom/server';
-import {linkedPage} from '../src/app/editor/settings.ts';
+import {linkedPage} from '../src/app/site/settings.ts';
 import {validButton,initial} from '../src/app/site/blocks.ts';
 register('./support/tsx.mjs',import.meta.url);
 const {SectionButtons}=await import('../src/app/site/sections/elements.tsx');
@@ -35,7 +35,7 @@ test('shared upload keeps image-only rules, replacement selection and blocked ac
  assert.match(html,/accept="image\/png"/);assert.doesNotMatch(html,/multiple=""/);assert.match(html,/disabled=""/);assert.match(html,/Choose from library/);assert.match(html,/Use a link/);
 });
 const {HeroSection}=await import('../src/app/site/sections/hero.tsx');
-const {HeroFocusProvider}=await import('../src/app/editor/hero-focus.tsx');
+const {HeroFocusProvider}=await import('../src/app/site/hero-focus.tsx');
 const {MainImageJourney}=await import('../src/app/editor/main-image-journey.tsx');
 const {mediaDefaults}=await import('../src/app/media/model.ts');
 function storyFixture(){

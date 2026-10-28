@@ -10,8 +10,8 @@ import {
 import {initial, migrateSite, validBlocks} from '../src/app/site/blocks.ts';
 import {sharedMenu, validSite} from '../src/app/editor/workspace.ts';
 import {collectMediaUsage, isAssetUnused} from '../src/app/media/usage.ts';
-import {bindMenu} from '../src/app/editor/settings.ts';
-import {syncMenusToSite} from '../src/app/editor/menu-model.ts';
+import {bindMenu} from '../src/app/site/settings.ts';
+import {syncMenusToSite} from '../src/app/site/menu-model.ts';
 import {mediaDefaults} from '../src/app/media/model.ts';
 register('./support/tsx.mjs', import.meta.url);
 const {FooterSection} = await import('../src/app/site/sections/menu.tsx');

@@ -1,8 +1,8 @@
-import {Columns} from '../../editor/columns';
+import {Columns} from '../columns';
 import {MediaView} from '../../media/library';
 import type {MediaSettings} from '../../media/model';
 import {servicePreviewCount} from '../blocks';
-import {serviceId} from '../../editor/service-model';
+import {serviceId} from '../service-model';
 import {SectionHeading, Icon} from './elements';
 import type {SectionProps} from './index';
 

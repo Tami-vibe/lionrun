@@ -1,6 +1,6 @@
 import {useEffect, useRef, useState, type CSSProperties} from 'react';
-import {heroSlides, publishedStart, slideAdvancePlan} from '../../editor/hero-collection';
-import {useHeroFocus} from '../../editor/hero-focus';
+import {heroSlides, publishedStart, slideAdvancePlan} from '../hero-collection';
+import {useHeroFocus} from '../hero-focus';
 import {MediaView} from '../../media/library';
 import {SectionButtons,Icon,safeHref} from './elements';
 import type {SectionProps} from './index';

@@ -2,10 +2,10 @@ import {validFooter, type FooterConfig} from './footer-model';
 import {catalog} from './catalog';
 import type {SectionId} from './catalog';
 import {contactHours} from './contact-hours';
-import {defaultColumns,equalWidths,normalizeSettings,normalizeBrandKit,headerLook,pageSlug} from '../editor/settings';
-import {createDefaultMenus,defaultPlacement} from '../editor/menu-model';
-import type {SectionSettings,FooterColumn,BrandKit} from '../editor/settings';
-import {heroSlides, slideIndexAllowed} from '../editor/hero-collection';
+import {defaultColumns,equalWidths,normalizeSettings,normalizeBrandKit,headerLook,pageSlug} from './settings';
+import {createDefaultMenus,defaultPlacement} from './menu-model';
+import type {SectionSettings,FooterColumn,BrandKit} from './settings';
+import {heroSlides, slideIndexAllowed} from './hero-collection';
 import {mediaDefaults,socialEmbed} from '../media/model';
 import type {MediaSettings} from '../media/model';
 export type BlockItem = {id?:string;title:string;description:string;icon:IconName;media?:MediaSettings;price?:string;pageId?:string;caption?:string;group?:string;tag?:string;value?:string;note?:string;when?:string;source?:string;stars?:number;href?:string;hidden?:boolean};
@@ -33,7 +33,7 @@ export function validButton(button: unknown): button is ButtonData {
     const value = button as Record<string, unknown>;
     return typeof value.label === "string" && typeof value.href === "string" && typeof value.icon === "string" && icons.includes(value.icon as IconName) && ['textColor','fillColor'].every(key=>value[key]===undefined||typeof value[key]==='string'&&/^#[0-9a-f]{6}$/i.test(value[key] as string)) && (value.iconPosition === undefined || value.iconPosition === "left" || value.iconPosition === "right");
 }
-export type Item = {
+type Item = {
     title: string;
     description: string;
     icon: IconName;
@@ -41,7 +41,7 @@ export type Item = {
     tag?: string;
     group?: string;
 };
-export type Extra = {
+type Extra = {
     title: string;
     description: string;
     items: Item[];
@@ -65,8 +65,8 @@ export type Site = {
     headerButtonCount?:0|1|2;
     headerButtonPlace?:"inside"|"beside";
     headerButtons?:ButtonData[];
-    menus?: import('../editor/menu-model').NamedMenu[];
-    menuPlacement?: import('../editor/menu-model').MenuPlacementConfig;
+    menus?: import('./menu-model').NamedMenu[];
+    menuPlacement?: import('./menu-model').MenuPlacementConfig;
     navChildren?:{label:string;href:string;pageId?:string}[][];
     footerStyle: "columns" | "minimal";
     eyebrow: string;
@@ -149,15 +149,15 @@ const legacyInitial: Omit<Site,'blocks'> = {
     },
 };
 
-export const workshop='/media/showcase/workshop-bay.jpg';
-export const detailPhoto='/media/showcase/diagnostic-scanner.jpg';
+const workshop='/media/showcase/workshop-bay.jpg';
+const detailPhoto='/media/showcase/diagnostic-scanner.jpg';
 const still = (src:string, alt:string): MediaSettings => ({...mediaDefaults, src, alt, kind:'image'});
 const clip = (src:string, poster:string, alt:string): MediaSettings => {
   const {playback, clickToPlay, ...stored} = {...mediaDefaults, src, poster, alt, kind:'video' as const, autoplay:true, muted:true, loop:true, controls:false};
   void playback; void clickToPlay;
   return stored as MediaSettings;
 };
-export const shopServices: {title:string;description:string;icon:IconName;media:MediaSettings}[] = [
+const shopServices: {title:string;description:string;icon:IconName;media:MediaSettings}[] = [
   {title:'Collision repair', description:'Frame and body restored to factory specs after any accident.', icon:'car', media:clip('/media/ai-images/alfa-romeo-bumper.mp4','/media/showcase/bodywork-door-repair.jpg','Collision repair')},
   {title:'Paint & refinishing', description:'Computer colour matching and a showroom finish.', icon:'paint', media:still('/media/ai-images/promo-bg.jpg','Paint and refinishing')},
   {title:'Dent removal', description:'Paintless repair for hail damage and parking dents.', icon:'wrench', media:still('/media/showcase/workshop-bay.jpg','Dent removal')},
@@ -188,8 +188,8 @@ function serviceStory(item:BlockItem) {
   const known=serviceStories[item.title],name=item.title;
   return {intro:item.description,heading:known?.heading||`${name} at this workshop.`,overview:known?.overview||item.description,included:known?.included||['A written estimate','Work done in our workshop','A final inspection'] as [string,string,string],process:known?.process||`How ${name.toLowerCase()} works`,steps:known?.steps||[['Tell us what happened','We inspect the vehicle first.'],['Approve the estimate','Work waits for your yes.'],['We do the work','It stays in this workshop.'],['Collect the vehicle','You check it before you leave.']],faqs:[[`How do I start ${name.toLowerCase()}?`,'Call the shop or request an estimate. We look at the vehicle before we promise a time.'],[`How long does ${name.toLowerCase()} take?`,'The inspection sets the timeline. We tell you if parts will change it.'],['Do I approve the cost first?','Yes. Work starts after you approve the written estimate.'],['Who do I talk to?','One person at the shop follows it from the estimate to pickup.']] as [string,string][]};
 }
-export function legacyHero(site:Omit<Site,'blocks'>):MediaSettings {return {...mediaDefaults,src:site.image,kind:site.mediaKind==='video'?(socialEmbed(site.image).src?'social':'video'):'image',alt:site.mediaAlt};}
-export function blockFromLegacy(site:Omit<Site,'blocks'>,type:SectionId):Block {
+function legacyHero(site:Omit<Site,'blocks'>):MediaSettings {return {...mediaDefaults,src:site.image,kind:site.mediaKind==='video'?(socialEmbed(site.image).src?'social':'video'):'image',alt:site.mediaAlt};}
+function blockFromLegacy(site:Omit<Site,'blocks'>,type:SectionId):Block {
  const extra=site.extras[type],content:BlockContent={smallLabel:'',title:extra?.title||'',description:extra?.description||'',items:extra?.items.map(item=>({...item,media:item.image?{...mediaDefaults,src:item.image,alt:item.title}:undefined}))||[],media:site.sectionMedia?.[type]||{...mediaDefaults,src:extra?.image||'',alt:extra?.title||''},buttons:[],facts:[],note:'',formButton:'',consent:'',fields:[]};
  if(type==='hero')Object.assign(content,{smallLabel:site.eyebrow,title:site.headline,description:site.description,media:site.heroMedia||legacyHero(site),buttons:[site.primary,site.secondary],facts:['Clear estimates','Local experts','Quality first'],indexLabel:'01 / BUILT WITH CARE',align:site.align,darkness:site.overlay,showSecondary:true,height:'standard'});
  if(type==='services')Object.assign(content,{smallLabel:'Our services',title:'Everything your car needs after an accident.',description:'From the first call to the final polish, one workshop takes care of it all.',items:shopServices.map(item=>({title:item.title,description:item.description,icon:item.icon,media:item.media})),actionLabel:'Learn more'});
@@ -220,7 +220,7 @@ function migratePainItem(item:BlockItem,index:number):BlockItem {
   return shot&&legacyMedia(next.media?.src)?{...next,media:{...mediaDefaults,...next.media,src:shot,alt:next.title,kind:'image' as const}}:next;
 }
 const storyReel=['/media/ai-images/mountain-sports-car.mp4','/media/ai-images/mirror-camera.mp4','/media/ai-images/alfa-romeo-bumper.mp4'];
-export function storyHeroMedia(content:BlockContent):Pick<BlockContent,'media'|'slides'> {
+function storyHeroMedia(content:BlockContent):Pick<BlockContent,'media'|'slides'> {
   const road='/media/ai-images/driving_in_winding_mountain_road.mp4',known=legacyMedia(content.media.src)||['/media/showcase/highway-suv.jpg','/media/ai-images/mountain-sports-car.mp4'].includes(content.media.src);
   const slides=(content.slides||[]).filter(slide=>slide.src);
   return {media:known?clip(road,'/media/showcase/mountain-road.jpg','Driving a winding mountain road'):content.media,slides:slides.length?content.slides:storyReel.map((src,i)=>clip(src,['/media/showcase/mountain-road.jpg','/media/showcase/driver-cockpit.jpg','/media/showcase/bodywork-door-repair.jpg'][i],['Sports car on a mountain road','Mirror camera','Bumper repair'][i]))};
@@ -228,7 +228,7 @@ export function storyHeroMedia(content:BlockContent):Pick<BlockContent,'media'|'
 const reasonCopy:Record<string,string>={'Transparent process':'You see the estimate, the photos, and each update before any work starts.','Quality craftsmanship':'Panels, paint, and fit are checked before the car comes back to you.','People-first service':'One shop explains the repair in plain language and stays easy to reach.','Written estimates':'The price is written down, and extra work waits for your yes.','Paint matched to your car':'The colour is compared with your car before the panels go back on.','A day to collect it':'After the inspection you get a pickup day, and we call if parts change it.'};
 const starterReasons=['Transparent process','Quality craftsmanship','People-first service'];
 const moreReasons:BlockItem[]=[{title:'Written estimates',description:'',icon:'check'},{title:'Paint matched to your car',description:'',icon:'paint'},{title:'A day to collect it',description:'',icon:'calendar'}];
-export function proofReasonContent(content:BlockContent):BlockContent {
+function proofReasonContent(content:BlockContent):BlockContent {
   const reasons=content.items.filter(item=>item.group!=='stat'&&item.group!=='avatar'&&item.group!=='more'),stats=content.items.filter(item=>item.group==='stat');
   const seeded=reasons.length?reasons:content.facts.filter(Boolean).slice(0,3).map((title,i)=>({title,description:'',icon:(['message','wrench','star'] as const)[i]||'check'}));
   const withMore=seeded.length<=3&&seeded.every(item=>starterReasons.includes(item.title))?[...seeded,...moreReasons.filter(item=>!seeded.some(have=>have.title===item.title))].slice(0,6):seeded;
@@ -246,7 +246,7 @@ export function trustSignalContent(content:BlockContent):BlockContent {
   if(content.smallLabel.trim()||content.title.trim()||content.description.trim()||content.items.length||content.media?.src)return content;
   return {...content,smallLabel:'Trust signals',title:'Confidence comes\nfrom evidence.',description:'Real qualifications, transparent processes, and documented results. No guesswork, no surprises.',items:signalStarter.map(item=>({...item}))};
 }
-export function sectionIsBlank(content:BlockContent):boolean {
+function sectionIsBlank(content:BlockContent):boolean {
   const text=(value?:string)=>!value?.trim();
   return text(content.smallLabel)&&text(content.title)&&text(content.description)&&!content.items?.length&&!content.media?.src&&!(content.slides||[]).some(slide=>slide.src)&&!(content.buttons||[]).some(button=>button.label?.trim()||button.href?.trim())&&!(content.facts||[]).some(fact=>fact?.trim());
 }
@@ -266,10 +266,10 @@ export function settingsForLayout(type:string,layout:string,settings:SectionSett
   if(settings.columns===count&&settings.widths?.length===count)return settings;
   return {...settings,columns:count,widths:equalWidths(count)};
 }
-export function logoBandContent(content:BlockContent):BlockContent {
+function logoBandContent(content:BlockContent):BlockContent {
   return {...content,smallLabel:content.smallLabel.trim()?content.smallLabel:'Trust',title:content.title==='Trusted by our community'?'Trusted by\nour community':content.title,description:content.description==='Brands and partners we work with'?"We're proud to work with individuals, families, and local businesses across Chicago and the surrounding areas.":content.description};
 }
-export function applyIndustryMedia(block:Block):Block {
+function applyIndustryMedia(block:Block):Block {
   const content={...block.content,items:block.content.items.map(item=>({...item}))};
   if(block.type==='services'){
     const legacyTitles=['Collision repair','Paint & refinishing','Dent removal'];
@@ -422,4 +422,4 @@ export function validBlocks(value:unknown):value is Block[] {
   });
 }
 export function duplicateBlock(block:Block):Block {const copy=structuredClone(block);copy.id=crypto.randomUUID();copy.content.title=`${copy.content.title} (copy)`;return copy;}
-export function moveBlock(blocks:Block[],from:string,to:string):Block[] {const next=[...blocks],index=next.findIndex(b=>b.id===from),target=next.findIndex(b=>b.id===to);if(index<0||target<0)return blocks;next.splice(target,0,next.splice(index,1)[0]);return next;}
+function moveBlock(blocks:Block[],from:string,to:string):Block[] {const next=[...blocks],index=next.findIndex(b=>b.id===from),target=next.findIndex(b=>b.id===to);if(index<0||target<0)return blocks;next.splice(target,0,next.splice(index,1)[0]);return next;}

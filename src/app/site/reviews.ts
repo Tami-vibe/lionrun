@@ -1,7 +1,7 @@
 import type {BlockItem} from './blocks';
 import type {MediaSettings} from '../media/model';
 
-export type ReviewOrigin = 'manual' | 'demo' | 'plugin';
+type ReviewOrigin = 'manual' | 'demo' | 'plugin';
 export type ReviewLayout = 'featured' | 'grid' | 'carousel';
 export type ReviewRecord = {
   id: string;
@@ -15,10 +15,10 @@ export type ReviewRecord = {
   details?: string;
   origin: ReviewOrigin;
 };
-export type ReviewFeed = {origin: ReviewOrigin; reviews: ReviewRecord[]};
+type ReviewFeed = {origin: ReviewOrigin; reviews: ReviewRecord[]};
 
 const text = (value?: string) => value?.trim() || undefined;
-export function reviewOrigin(group?: string): ReviewOrigin {
+function reviewOrigin(group?: string): ReviewOrigin {
   return group==='demo'||group==='plugin' ? group : 'manual';
 }
 export function reviewsFromItems(items: BlockItem[]): ReviewRecord[] {
@@ -36,7 +36,7 @@ export function reviewsFromItems(items: BlockItem[]): ReviewRecord[] {
   }));
 }
 // ponytail: one adapter, a Reviews Plugin calls this and the same cards render.
-export function reviewsFromPlugin(reviews: ReviewRecord[]): ReviewFeed {
+function reviewsFromPlugin(reviews: ReviewRecord[]): ReviewFeed {
   return {origin: 'plugin', reviews: reviews.map(review => ({...review, origin: 'plugin' as const}))};
 }
 export function reviewLayout(layout: string): ReviewLayout {
