@@ -1,33 +1,21 @@
 import {still, clip} from './section-media';
 import {shopServices, serviceStory, servicePreviewCount} from './service-model';
 export {servicePreviewCount} from './service-model';
-import {validFooter, type FooterConfig} from './footer-model';
+import {validFooter} from './footer-model';
 import {catalog} from './catalog';
 import type {SectionId} from './catalog';
 import {contactHours} from './contact-hours';
-import {defaultColumns,equalWidths,normalizeSettings,normalizeBrandKit,headerLook,pageSlug} from './settings';
+import {defaultColumns,normalizeSettings,normalizeBrandKit,headerLook,pageSlug} from './settings';
 import {createDefaultMenus,defaultPlacement} from './menu-model';
-import type {SectionSettings,FooterColumn,BrandKit} from './settings';
 import {heroSlides, slideIndexAllowed} from './hero-collection';
 import {mediaDefaults,socialEmbed} from '../media/model';
 import type {MediaSettings} from '../media/model';
-export type BlockItem = {id?:string;title:string;description:string;icon:IconName;media?:MediaSettings;price?:string;pageId?:string;caption?:string;group?:string;tag?:string;value?:string;note?:string;when?:string;source?:string;stars?:number;href?:string;hidden?:boolean};
-export type EyebrowStyle = 'pill' | 'line';
-export type BlockContent = {smallLabel:string;title:string;description:string;body?:string;showBody?:boolean;showBreadcrumbs?:boolean;items:BlockItem[];media:MediaSettings;buttons:ButtonData[];facts:string[];note:string;formButton:string;consent:string;fields:{label:string;type:'text'|'email'|'tel'|'textarea';required:boolean}[];rating?:{score:string;count:string;href:string};slides?:MediaSettings[];factIcons?:IconName[];story?:MediaSettings;showSecondary?:boolean;showHeading?:boolean;showMedia?:boolean;showBusiness?:boolean;arrowCircle?:boolean;buttonCount?:0|1|2;headAlign?:'top'|'center'|'bottom';photoSide?:'left'|'right';height?:'standard'|'full';align?:'left'|'center';darkness?:number;fade?:boolean;fadeDirection?:'ltr'|'rtl';fadeWidth?:number;fadeStrength?:number;background?:string;reviewText?:'full'|'excerpt';avatar?:'off'|'circle'|'square';namePrivacy?:boolean;showRating?:boolean;showDate?:boolean;showService?:boolean;showSource?:boolean;cardFace?:'filled'|'plain';cardPad?:'comfortable'|'compact';promise?:string;price?:string;oldPrice?:string;endDate?:string;badge?:string;address?:string;phone?:string;email?:string;hours?:string;indexLabel?:string;actionLabel?:string;allPhotosLabel?:string;catalogPageId?:string;before?:MediaSettings;after?:MediaSettings;beforeLabel?:string;afterLabel?:string;logoScale?:number;monochrome?:boolean;galleryVisible?:4|5|6|7;galleryRows?:number;storyFeatured?:1|2;galleryWidth?:'boxed'|'full';galleryScale?:number;galleryMotion?:'still'|'loop';gallerySpeed?:number;galleryPauseHover?:boolean;logoMotion?:'still'|'loop';logoPauseHover?:boolean;slideSeconds?:number;slideAdvance?:'time'|'end';slideFade?:number;slideAutoplay?:boolean;slideIndex?:number;mediaMode?:'image'|'video'|'slideshow';slideLoop?:boolean;footer?:FooterConfig};
-export type Block = {id:string;type:SectionId;layout:string;content:BlockContent;settings:SectionSettings;hidden?:boolean};
+import type {Block, BlockContent, BlockItem, ButtonData, EyebrowStyle, IconName, Site} from './contracts';
+export type {Block, BlockContent, BlockItem, ButtonData, EyebrowStyle, IconName, Site} from './contracts';
 import {blockLayouts} from './layout-contract';
 export {blockLayouts} from './layout-contract';
 export {contentForLayout, settingsForLayout} from './layout-contract';
-export type IconName = "none" | "arrow" | "phone" | "calendar" | "mail" | "check" | "message" | "car" | "wrench" | "shield" | "star" | "pin" | "paint" | "gear" | "tow" | "battery" | "wheel" | "scan" | "glass";
 export const icons: IconName[] = ["none", "arrow", "phone", "calendar", "mail", "check", "message", "car", "wrench", "shield", "star", "pin", "paint", "gear", "tow", "battery", "wheel", "scan", "glass"];
-export type ButtonData = {
-    textColor?: string;
-    fillColor?: string;
-    label: string;
-    href: string;
-    icon: IconName;
-    iconPosition?: "left" | "right";
-};
 export function buttonIconSide(button: Pick<ButtonData, "iconPosition">): "left" | "right" {
     return button.iconPosition === "left" ? "left" : "right";
 }
@@ -36,80 +24,6 @@ export function validButton(button: unknown): button is ButtonData {
     const value = button as Record<string, unknown>;
     return typeof value.label === "string" && typeof value.href === "string" && typeof value.icon === "string" && icons.includes(value.icon as IconName) && ['textColor','fillColor'].every(key=>value[key]===undefined||typeof value[key]==='string'&&/^#[0-9a-f]{6}$/i.test(value[key] as string)) && (value.iconPosition === undefined || value.iconPosition === "left" || value.iconPosition === "right");
 }
-type Item = {
-    title: string;
-    description: string;
-    icon: IconName;
-    image?: string;
-    tag?: string;
-    group?: string;
-};
-type Extra = {
-    title: string;
-    description: string;
-    items: Item[];
-    image?: string;
-};
-export type Site = {
-    blocks:Block[];
-    sectionSettings?: Partial<Record<SectionId,SectionSettings>>;
-    footerColumns?: FooterColumn[];
-    sectionStyle?: Partial<Record<SectionId,{spacing:"compact"|"comfortable"|"spacious";align:"left"|"center"}>>;
-    heroMedia?: MediaSettings;
-    sectionMedia?: Partial<Record<SectionId, MediaSettings>>;
-    brand: string;
-    nav: string[];
-    navTargets?: string[];
-    navPageIds?:(string|null)[];
-    headerStyle: "standard" | "pill" | "rounded";
-    headerSticky?:boolean;
-    headerOverlay?:boolean;
-    headerBackground?:boolean;
-    headerButtonCount?:0|1|2;
-    headerButtonPlace?:"inside"|"beside";
-    headerButtons?:ButtonData[];
-    menus?: import('./menu-model').NamedMenu[];
-    menuPlacement?: import('./menu-model').MenuPlacementConfig;
-    navChildren?:{label:string;href:string;pageId?:string}[][];
-    footerStyle: "columns" | "minimal";
-    eyebrow: string;
-    headline: string;
-    description: string;
-    image: string;
-    overlay: number;
-    layout: "split" | "center" | "image";
-    align: "left" | "center";
-    primary: ButtonData;
-    secondary: ButtonData;
-    servicesTitle: string;
-    services: {
-        title: string;
-        description: string;
-        icon: IconName;
-    }[];
-    proofImage?: string;
-    proofTitle: string;
-    proofText: string;
-    contactTitle: string;
-    contactText: string;
-    phone: string;
-    email: string;
-    address: string;
-    ownerName?: string;
-    mediaAlt: string;
-    mediaKind: "image" | "video";
-    seoTitle: string;
-    seoDescription: string;
-    accent: string;
-    theme?: "midnight" | "paper";
-    /** Theme brand label look: pill badge or line rule. Inherited by every section kicker. */
-    eyebrowStyle?: EyebrowStyle;
-    /** Website-level brand kit (fonts, corners, line). One kit per website; Home owns and syncs. */
-    brandKit?: BrandKit;
-    hidden: SectionId[];
-    extras: Record<string, Extra>;
-    contactSecondary: ButtonData;
-};
 export function normalizeEyebrowStyle(value: unknown): EyebrowStyle {
   return value === 'line' ? 'line' : 'pill';
 }
@@ -369,4 +283,3 @@ export function validBlocks(value:unknown):value is Block[] {
   });
 }
 export function duplicateBlock(block:Block):Block {const copy=structuredClone(block);copy.id=crypto.randomUUID();copy.content.title=`${copy.content.title} (copy)`;return copy;}
-function moveBlock(blocks:Block[],from:string,to:string):Block[] {const next=[...blocks],index=next.findIndex(b=>b.id===from),target=next.findIndex(b=>b.id===to);if(index<0||target<0)return blocks;next.splice(target,0,next.splice(index,1)[0]);return next;}

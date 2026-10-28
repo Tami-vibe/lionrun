@@ -1,5 +1,5 @@
 import type {CSSProperties} from 'react';
-import type {FooterColumn, FooterConfig, FooterLayout, FooterTarget, FooterText, FooterLink, OfficeDay, SectionSettings, Site, Block} from './contracts';
+import type {FooterColumn, FooterConfig, FooterLayout, FooterText, OfficeDay, SectionSettings, Site, Block} from './contracts';
 import {equalWidths} from './layout-utils';
 
 export type {FooterColumn, FooterConfig, FooterLayout, FooterTarget, FooterText, FooterLink, OfficeDay} from './contracts';
@@ -125,7 +125,6 @@ export function validFooter(value: unknown): value is FooterConfig {
   });
 }
 
-import {projectMenuLinkHref} from './link-projection';
 
 export function footerColumnWidths(settings: SectionSettings): number[] {
   return settings.widths || equalWidths(settings.columns || 3);

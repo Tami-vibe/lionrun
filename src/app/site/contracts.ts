@@ -44,7 +44,7 @@ export type FooterColumn = {
 };
 
 export type MenuPage = {id: string; name: string; slug?: string};
-export type MenuLinkTo = 'page' | 'section' | 'url';
+type MenuLinkTo = 'page' | 'section' | 'url';
 export type MenuItem = {
   id: string;
   text: string;

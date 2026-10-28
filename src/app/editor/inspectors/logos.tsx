@@ -1,7 +1,6 @@
 "use client";
 import {LayoutPicker, LayoutThumb} from '../layout-picker';
 import {SidebarSelect as Choice} from '../components/fields';
-import {logoScale} from '../../site/logo-model';
 import type {InspectorProps} from './shared';
 
 const logosLayouts = [

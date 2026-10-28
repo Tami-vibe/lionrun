@@ -15,7 +15,6 @@ export type ReviewRecord = {
   details?: string;
   origin: ReviewOrigin;
 };
-type ReviewFeed = {origin: ReviewOrigin; reviews: ReviewRecord[]};
 
 const text = (value?: string) => value?.trim() || undefined;
 function reviewOrigin(group?: string): ReviewOrigin {
@@ -34,10 +33,6 @@ export function reviewsFromItems(items: BlockItem[]): ReviewRecord[] {
     details: text(item.note),
     origin: reviewOrigin(item.group),
   }));
-}
-// ponytail: one adapter, a Reviews Plugin calls this and the same cards render.
-function reviewsFromPlugin(reviews: ReviewRecord[]): ReviewFeed {
-  return {origin: 'plugin', reviews: reviews.map(review => ({...review, origin: 'plugin' as const}))};
 }
 export function reviewLayout(layout: string): ReviewLayout {
   if (layout==='One large quote') return 'featured';

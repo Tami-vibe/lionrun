@@ -2,7 +2,7 @@
 import {FooterHours, FooterSocials, FooterSocialForm, FooterColumnLinks} from './footer-details';
 import {useEffect, useLayoutEffect, useRef, useState} from 'react';
 import {ArrowLeft, ChevronRight, Link2, Plus, Trash2} from 'lucide-react';
-import type {Block, Site} from '../site/blocks';
+import type {Block} from '../site/blocks';
 import type {FooterEditorProps} from './footer-details';
 import type {FooterColumn} from '../site/settings';
 import {

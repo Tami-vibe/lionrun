@@ -1,10 +1,10 @@
-import type {FooterColumn, FooterConfig, MenuPage, MenuPlacementConfig, NamedMenu, SectionSettings, TextStyle, BrandKit, FontPairId, BrandRadius, BrandLineWidth, Site} from './contracts';
-import {defaultColumns, equalWidths} from './layout-utils';
+import type {FooterColumn, MenuPage, NamedMenu, SectionSettings, TextStyle, BrandKit, FontPairId} from './contracts';
+import {equalWidths} from './layout-utils';
 import {linkedPage} from './link-projection';
 
 export {defaultColumns, equalWidths} from './layout-utils';
 export {linkedPage} from './link-projection';
-export type {FooterColumn, FooterConfig, MenuPage, MenuPlacementConfig, NamedMenu, SectionSettings, TextStyle, BrandKit, FontPairId, BrandRadius, BrandLineWidth, Site} from './contracts';
+export type {FooterColumn, MenuPage, SectionSettings, TextStyle, BrandKit, FontPairId, BrandRadius, BrandLineWidth} from './contracts';
 export const fonts = {display:'var(--font-display), sans-serif',text:'var(--font-text), sans-serif'};
 export const fontPairs: Record<FontPairId,{label:string;display:string;text:string;displayVar:string;textVar:string}> = {
   northline:{label:'Northline',display:'Syne',text:'Manrope',displayVar:'--font-pair-northline-display',textVar:'--font-pair-northline-text'},

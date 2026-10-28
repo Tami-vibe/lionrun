@@ -1,7 +1,7 @@
 "use client";
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { ACCEPT, assetStore, Asset, LIMITS, validateUpload } from './store';
-import { mediaDefaults, MediaSettings, mediaURL, normalizeMedia, socialEmbed, https, videoPlan, videoClick } from './model';
+import { MediaSettings, mediaURL, normalizeMedia, socialEmbed, https, videoPlan, videoClick } from './model';
 import {MediaUpload} from '../editor/media-upload';
 import {directMediaLink} from '../site/hero-collection';
 import {mountMediaSequence, sequenceItems, type MediaMode} from './sequence';

@@ -1,4 +1,4 @@
-import {clip, still} from './section-media';
+import {clip} from './section-media';
 import type {SectionId} from './catalog';
 import type {Block, BlockContent, BlockItem, SectionSettings} from './contracts';
 import {defaultColumns, equalWidths} from './layout-utils';

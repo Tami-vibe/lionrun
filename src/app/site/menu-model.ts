@@ -1,7 +1,7 @@
-import type {IconName, MenuItem, MenuLinkTo, MenuPage, MenuPlacementConfig, NamedMenu, Site} from './contracts';
+import type {IconName, MenuItem, MenuPage, MenuPlacementConfig, NamedMenu, Site} from './contracts';
 import {projectMenuLinkHref, projectMenuLinkPageId} from './link-projection';
 
-export type {MenuItem, MenuLinkTo, MenuPlacementConfig, NamedMenu} from './contracts';
+export type {MenuItem, MenuPlacementConfig, NamedMenu} from './contracts';
 
 export function createDefaultMenus(site?: Partial<Site>, pages: MenuPage[] = []): NamedMenu[] {
   if (site?.menus?.length) return site.menus;

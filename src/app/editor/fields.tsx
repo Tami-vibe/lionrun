@@ -14,7 +14,6 @@ import type {BlockItem} from '../site/blocks';
 import {mediaDefaults, normalizeMedia, type MediaSettings} from '../media/model';
 import {MediaPicker, MediaView} from '../media/library';
 import {ACCEPT} from '../media/store';
-import {directMediaLink} from '../site/hero-collection';
 import {MediaFramingControls, MediaVideoControls} from './media-controls';
 import {MediaImporter, mediaFileName} from './media-importer';
 import {serviceId} from '../site/service-model';
@@ -415,7 +414,6 @@ export function ServicesContentView({
   notice,
   names,
   menu,
-  expanded,
   library,
   poster,
   removed,
@@ -480,17 +478,6 @@ export function ServicesContentView({
   onUndoRemoval: () => void;
   onDismissRemoval: () => void;
 }) {
-  const importerItems = media?.src ? [{
-    name: mediaFileName(media.src, names),
-    kind: media.kind === 'video' ? 'video' as const : 'image' as const,
-    preview: (
-      <>
-        <MediaView value={{...media, controls: false, autoplay: false}} editable />
-        {media.kind === 'video' && <span className="hero-tile-play"><Play size={16} aria-hidden="true" /></span>}
-      </>
-    )
-  }] : [];
-
   return (
     <div className="service-collection">
       {homePreviewNote && <p className="hint">{homePreviewNote}</p>}

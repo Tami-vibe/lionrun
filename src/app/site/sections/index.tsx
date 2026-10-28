@@ -1,4 +1,3 @@
-import type {SectionProps} from './types';
 import {HeroSection} from './hero';
 import {ServicesSection} from './services';
 import {ProofSection} from './proof';

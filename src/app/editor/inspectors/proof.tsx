@@ -2,7 +2,6 @@
 import {ChevronDown, RotateCcw, SlidersHorizontal} from 'lucide-react';
 import {LayoutPicker, LayoutThumb} from '../layout-picker';
 import {SidebarSelect as Choice} from '../components/fields';
-import {RefinedSpacingGroup} from '../inspector';
 import {equalWidths, normalizeSettings, resizeWidth} from '../../site/settings';
 import type {InspectorProps} from './shared';
 
