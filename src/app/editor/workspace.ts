@@ -29,7 +29,7 @@ export function retainFailedWorkspace(storage: KeyValueStore): {dirty: boolean; 
 export const schemaBackupKey = "business-builder-workspace-v2-backup";
 export const legacyWorkspaceKey = "business-builder-demo-v1";
 
-const menuKeys = ["brand","nav","navTargets","navPageIds","navChildren","headerStyle","headerSticky","headerOverlay","headerBackground","headerButtonCount","headerButtonPlace","headerButtons","footerStyle","footerColumns","phone","email","address","ownerName","accent","theme","eyebrowStyle","brandKit"] as const;
+const menuKeys = ["brand","nav","navTargets","navPageIds","navChildren","menus","menuPlacement","headerStyle","headerSticky","headerOverlay","headerBackground","headerButtonCount","headerButtonPlace","headerButtons","footerStyle","footerColumns","phone","email","address","ownerName","accent","theme","eyebrowStyle","brandKit"] as const;
 export function menuButtons(site:Site):ButtonData[] {
     return [site.headerButtons?.[0]||{label:"Let's talk",href:`tel:${site.phone.replace(/[^+0-9]/g,'')}`,icon:"arrow"},site.headerButtons?.[1]||{...site.primary}];
 }
@@ -54,6 +54,8 @@ export function validSite(value: unknown): value is Site {
     const v = value as Partial<Site>;
     if(v.blocks!==undefined&&!validBlocks(v.blocks))return false;
     if(!Array.isArray(v.nav)||v.nav.length>5||!v.nav.every(n=>typeof n==="string")||(v.navTargets&&(!Array.isArray(v.navTargets)||!v.navTargets.every(n=>typeof n==="string"))))return false;
+    if(v.menus!==undefined&&(!Array.isArray(v.menus)||!v.menus.every(m=>m&&typeof m.id==='string'&&typeof m.name==='string'&&Array.isArray(m.items))))return false;
+    if(v.menuPlacement!==undefined&&(typeof v.menuPlacement!=='object'||(v.menuPlacement.header!==undefined&&typeof v.menuPlacement.header!=='string')||(v.menuPlacement.footer!==undefined&&typeof v.menuPlacement.footer!=='string')))return false;
     if([v.headerSticky,v.headerOverlay,v.headerBackground].some(x=>x!==undefined&&typeof x!=="boolean"))return false;
     if(v.ownerName!==undefined&&typeof v.ownerName!=="string")return false;
     if(v.headerButtonCount!==undefined&&![0,1,2].includes(v.headerButtonCount))return false;
@@ -61,7 +63,7 @@ export function validSite(value: unknown): value is Site {
     if(v.navPageIds&&(!Array.isArray(v.navPageIds)||v.navPageIds.length>5||!v.navPageIds.every(id=>id===null||typeof id==="string")))return false;
     if(v.navChildren&&(!Array.isArray(v.navChildren)||v.navChildren.length>5||!v.navChildren.every(rows=>Array.isArray(rows)&&rows.length<=24&&rows.every(l=>l&&typeof l.label==="string"&&typeof l.href==="string"&&(l.pageId===undefined||typeof l.pageId==="string")))))return false;
     if(v.sectionSettings&&(!Object.values(v.sectionSettings).every(s=>s&&typeof s==="object")))return false;
-    if(v.footerColumns&&(!Array.isArray(v.footerColumns)||v.footerColumns.length>5||!v.footerColumns.every(c=>typeof c.title==="string"&&typeof c.text==="string"&&Array.isArray(c.links)&&c.links.every(l=>typeof l.label==="string"&&typeof l.href==="string"&&(l.pageId===undefined||typeof l.pageId==="string")))))return false;
+    if(v.footerColumns&&(!Array.isArray(v.footerColumns)||v.footerColumns.length>5||!v.footerColumns.every(c=>typeof c.title==="string"&&typeof c.text==="string"&&(c.kind===undefined||["text","hours"].includes(c.kind))&&Array.isArray(c.links)&&c.links.every(l=>typeof l.label==="string"&&typeof l.href==="string"&&(l.pageId===undefined||typeof l.pageId==="string")))))return false;
     if(v.eyebrowStyle!==undefined&&v.eyebrowStyle!=='pill'&&v.eyebrowStyle!=='line')return false;
     return typeof v.brand === "string" && typeof v.headline === "string" && typeof v.description === "string" &&
         Array.isArray(v.services) && Array.isArray(v.hidden) && typeof v.primary?.label === "string" && typeof v.secondary?.href === "string" &&

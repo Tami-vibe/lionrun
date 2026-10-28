@@ -91,14 +91,17 @@ export function EditorShell({location,setLocation,view,setView,open,preview,page
   onPageSettings: () => void; onBusiness: () => void; onLibrary: () => void; sectionMenu: ReactNode;
   toolbar: ReactNode; canvas: ReactNode; children: ReactNode;
 }) {
-  const title = location==='inspector' ? sectionName : titles[location];
+  const imageJourney = location==='inspector' && sectionName==='Hero' && view==='Content';
+  const [mobilePreview,setMobilePreview]=useState(false);
+  const title = location==='inspector' ? (sectionName==='Hero'?'Main introduction':sectionName) : titles[location];
   const sectionIndex = Math.max(0, sections.findIndex(section => section.id===sectionId));
   const visible = sections.filter(section => section.name.toLowerCase().includes(query.trim().toLowerCase()));
   const [pageQuery,setPageQuery]=useState('');
   const [servicesExpanded,setServicesExpanded]=useState(false);
   const groups=useMemo(()=>classifyPages([...pages],homeId,homeSite),[pages,homeId,homeSite]);
-  return <div id="premium-studio" className={preview?'is-preview':''}>
+  return <div id="premium-studio" className={`${preview?'is-preview':''}${imageJourney?' has-image-journey':''}${location==='inspector'?' has-task-panel':''}${mobilePreview?' journey-mobile-preview':''}`}>
     {toolbar}
+    {location==='inspector'&&<button type="button" className="journey-mobile-switch" aria-pressed={mobilePreview} onClick={()=>setMobilePreview(v=>!v)}>{mobilePreview?'← Back to editing':'See page preview'}</button>}
     <div className={`premium-workspace${open?'':' is-collapsed'}`}>
       {!preview && <aside className="panel" aria-label="Website editor">
         <div className="paneltop">
@@ -119,16 +122,17 @@ export function EditorShell({location,setLocation,view,setView,open,preview,page
           </div>}
           {location==='inspector' && <>
             <button type="button" className="all-sections" onClick={()=>setLocation('sections')}><ArrowLeft size={16} strokeWidth={1.75} aria-hidden="true"/>All sections</button>
+            {imageJourney&&<p className="journey-location">{pageName} <span aria-hidden="true">›</span> Main introduction</p>}
             <p className="section-index">SECTION {String(sectionIndex+1).padStart(2,'0')}</p>
             <div className="paneltitle">
               <span className="section-title-icon" aria-hidden="true">{sections.find(section=>section.id===sectionId)?.icon}</span>
-              <h2>{title}</h2>
-              {shared && <span className="shared-badge">Shared</span>}
+              <h2 title={title}>{title}</h2>
+              {shared && sectionId!=='header' && <span className="shared-badge">Shared</span>}
               <div className="grow"/>
               <button type="button" className="quiet inspector-action-btn" aria-label={`${sections.find(section=>section.id===sectionId)?.hidden?'Show':'Hide'} ${sectionName}`} onClick={()=>onToggleHidden(sectionId)}>{sections.find(section=>section.id===sectionId)?.hidden?<EyeOff size={16} strokeWidth={1.75} aria-hidden="true"/>:<Eye size={16} strokeWidth={1.75} aria-hidden="true"/>}</button>
               {sectionMenu}
             </div>
-            {shared && <p className="hint shared-hint">Changes appear on every page.</p>}
+            {shared && <p className="hint shared-hint">Shown on every page.</p>}
             <div className="tabs" role="tablist" aria-label="Inspector view">
               <button type="button" role="tab" aria-selected={view==='Content'} aria-controls="editor-inspector" onClick={()=>setView('Content')}>Content</button>
               <button type="button" role="tab" aria-selected={view==='Appearance'} aria-controls="editor-inspector" onClick={()=>setView('Appearance')}>Style</button>
@@ -137,7 +141,7 @@ export function EditorShell({location,setLocation,view,setView,open,preview,page
           {location==='page-settings' && <>
             <button type="button" className="all-sections" onClick={()=>setLocation('sections')}><ArrowLeft size={16} strokeWidth={1.75} aria-hidden="true"/>All sections</button>
             <div className="paneltitle">
-              <h2>{title}</h2>
+              <h2 title={title}>{title}</h2>
               <div className="grow"/>
               <PageSettingsMenu onOpen={onPageSettings} onReset={onReset}/>
             </div>
@@ -145,7 +149,7 @@ export function EditorShell({location,setLocation,view,setView,open,preview,page
           {(location==='create-page'||location==='add-section'||location==='library') && <>
             <button type="button" className="all-sections" onClick={()=>setLocation('sections')}><ArrowLeft size={16} strokeWidth={1.75} aria-hidden="true"/>All sections</button>
             <div className="paneltitle">
-              <h2>{title}</h2>
+              <h2 title={title}>{title}</h2>
             </div>
           </>}
         </div>

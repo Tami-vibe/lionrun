@@ -37,9 +37,9 @@ test('about content uses shared MediaImporter and selected-item folds', () => {
   }));
   const html = content(block, 'gallery');
   assert.match(html, /6 items/);
-  assert.match(html, /Upload files/);
+  assert.match(html, /Add images/);
   assert.match(html, /Choose from library/);
-  assert.match(html, /Drop files or paste a link/);
+  assert.match(html, /or drop a photo or video/);
   assert.equal((html.match(/class="hero-tile"/g) || []).length, 4);
   assert.match(html, /Show 2 more/);
   assert.match(html, /Details/);

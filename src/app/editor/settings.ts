@@ -1,6 +1,17 @@
 export type TextStyle = {family?:string;size?:number;weight?:number;align?:string;lineHeight?:number;tracking?:number;color?:string};
 export type SectionSettings = {columns?:number;widths?:number[];gap?:number;padding?:number;heading?:TextStyle;body?:TextStyle};
-export type FooterColumn = {title:string;text:string;links:{label:string;href:string;pageId?:string}[]};
+export type FooterColumn = {
+  kind?: 'text' | 'hours';
+  title: string;
+  text: string;
+  links: {
+    id?: string;
+    label: string;
+    href: string;
+    pageId?: string;
+    customLabel?: boolean;
+  }[];
+};
 export const fonts = {display:'var(--font-display), sans-serif',text:'var(--font-text), sans-serif'};
 
 export type FontPairId = 'northline' | 'editorial' | 'industrial' | 'friendly';
@@ -110,15 +121,15 @@ export function menuPlacement(where:'top'|'bottom'|'under',count:number):'top'|'
 }
 
 export type MenuPage={id:string;name:string;slug?:string};
-type MenuLinks={nav:string[];navTargets?:string[];navPageIds?:(string|null)[];navChildren?:{label:string;href:string;pageId?:string}[][];footerColumns?:FooterColumn[]};
-export function linkedPage(pages:MenuPage[],href:string,pageId?:string|null) { return pages.find(p=>pageId?p.id===pageId:`/${p.slug}`===href); }
+type MenuLinks={menus?:import('./menu-model').NamedMenu[];nav:string[];navTargets?:string[];navPageIds?:(string|null)[];navChildren?:{label:string;href:string;pageId?:string}[][];footerColumns?:FooterColumn[]};
+export function linkedPage(pages:MenuPage[],href:string,pageId?:string|null) { const id=pageId||(/^\/\?page=/.test(href)?new URLSearchParams(href.slice(2)).get('page'):null);return pages.find(p=>id?p.id===id:`/${p.slug}`===href); }
 export function bindMenu<T extends MenuLinks>(site:T,pages:MenuPage[],prune=true):T {
-  const bind=(link:{label:string;href:string;pageId?:string})=>{const p=linkedPage(pages,link.href,link.pageId);return p?{...link,pageId:p.id,label:p.name}:link;};
+  const bind=(link:{label:string;href:string;pageId?:string;customLabel?:boolean})=>{const p=linkedPage(pages,link.href,link.pageId);return p?{...link,pageId:p.id,label:link.customLabel||site.menus?.length?link.label:p.name}:link;};
   const next={...site,navPageIds:site.nav.map((_,i)=>linkedPage(pages,site.navTargets?.[i]||'',site.navPageIds?.[i])?.id||site.navPageIds?.[i]||null),navChildren:site.nav.map((_,i)=>(site.navChildren?.[i]||[]).map(bind)),footerColumns:site.footerColumns?.map(c=>({...c,links:c.links.map(bind)}))};
   if(!prune)return next;
   const exists=(id?:string|null)=>!id||pages.some(p=>p.id===id),keep=next.nav.map((_,i)=>i).filter(i=>exists(next.navPageIds[i]));
   const children=next.navChildren.map(rows=>rows.filter(l=>exists(l.pageId))),orphaned=children.flatMap((rows,i)=>keep.includes(i)?[]:rows);
-  const columns=next.footerColumns?.map(c=>({...c,links:c.links.filter(l=>exists(l.pageId))}))||[];if(orphaned.length){if(!columns.length)columns.push({title:'Explore',text:'',links:[]});columns[0].links.push(...orphaned);}
+  const columns=next.footerColumns?.map(c=>({...c,links:c.links.filter(l=>l.customLabel||exists(l.pageId))}))||[];if(orphaned.length){if(!columns.length)columns.push({title:'Explore',text:'',links:[]});columns[0].links.push(...orphaned);}
   return {...next,nav:keep.map(i=>next.nav[i]),navTargets:keep.map(i=>next.navTargets?.[i]||['#services','#proof','#contact'][i]||'#contact'),navPageIds:keep.map(i=>next.navPageIds[i]),navChildren:keep.map(i=>children[i]),footerColumns:next.footerColumns||orphaned.length?columns:undefined};
 }
 export function pageLocation(site:MenuLinks,page:MenuPage):{where:'top'|'bottom'|'under'|'none';parent:number} {

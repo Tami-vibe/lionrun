@@ -1,5 +1,7 @@
 "use client";
 import {createContext, useContext, useEffect, useId, useLayoutEffect, useRef, useState, type ReactNode} from 'react';
+import {createPortal} from 'react-dom';
+import {linkedPage} from './settings';
 import {ChevronDown, Link, Mail, Phone} from 'lucide-react';
 import {IconName} from '../site/blocks';
 import {iconChoices, IconGlyph} from '../site/icons';
@@ -51,8 +53,11 @@ export function RangeControl({label, min, max, step = 1, value, text, onChange}:
   return <label className="field"><span>{label}: {text}</span><input aria-label={label} type="range" min={min} max={max} step={step} value={value} {...scope} onChange={event => onChange(Number(event.target.value))} /></label>;
 }
 const destinationKinds: {id: DestinationKind; label: string; icon: typeof Link; tip: string}[] = [{id:"link", label:"Link", icon:Link, tip:"Website address or section link"},{id:"phone", label:"Call", icon:Phone, tip:"Opens the visitor's calling app."},{id:"email", label:"Email", icon:Mail, tip:"Opens the visitor's email app."}];
+export const DestinationPagesContext=createContext<{id:string;name:string;slug?:string}[]>([]);
 export function Destination({label = "Destination", value, onChange, sections: pageSections, linksOnly = false}:{label?: string; value: string; onChange: (value: string) => void; sections?: {id: string; type: string}[]; linksOnly?: boolean}) {
   const scope = useEditScope();
+  const pages=useContext(DestinationPagesContext);
+  const selectedPage=linkedPage(pages,value);
   const helpId = useId();
   const warningId = useId();
   const labelId = useId();
@@ -60,10 +65,10 @@ export function Destination({label = "Destination", value, onChange, sections: p
   const kind = linksOnly ? "link" : destinationKind(value);
   const targets = sectionTargets(pageSections?.length ? pageSections : sections.map(section => ({id: section.id, type: section.id})));
   const recognized = sectionAnchorName(value);
-  const inferred: LinkMode | null = kind !== "link" ? null : recognized ? "section" : value.trim() ? "website" : null;
-  const [chosenMode, setChosenMode] = useState<LinkMode | null>(null);
+  const inferred: LinkMode | 'page' | null = kind !== "link" ? null : selectedPage ? "page" : recognized ? "section" : value.trim() ? "website" : null;
+  const [chosenMode, setChosenMode] = useState<LinkMode | 'page' | null>(null);
   const linkChoice = inferred ?? chosenMode ?? "section";
-  const guidance = destinationGuidance(value, kind === "link" ? linkChoice : undefined);
+  const guidance = linkChoice === "page" ? (selectedPage?`Opens ${selectedPage.name} on your website.`:"Choose a page on your website.") : destinationGuidance(value, kind === "link" ? linkChoice : undefined);
   const warning = destinationWarning(value);
   const showWarning = checked && warning !== "";
   const describedBy = showWarning ? `${helpId} ${warningId}` : helpId;
@@ -76,10 +81,10 @@ export function Destination({label = "Destination", value, onChange, sections: p
     const next = withDestinationKind(value, nextKind);
     if (next !== value) onChange(next);
   };
-  const chooseMode = (mode: LinkMode) => {
+  const chooseMode = (mode: LinkMode | 'page') => {
     setChecked(false);
     setChosenMode(mode);
-    const next = withLinkMode(value, mode);
+    const next = mode === "page" ? "" : withLinkMode(value, mode);
     if (linksOnly && destinationKind(value) !== "link") onChange("");
     else if (next !== value) onChange(next);
   };
@@ -88,10 +93,11 @@ export function Destination({label = "Destination", value, onChange, sections: p
   return <div className="field">
     <span id={labelId}>{label}</span>
     {!linksOnly && <div className="segmented destination-kind" role="group" aria-labelledby={labelId}>{destinationKinds.map(item => { const Glyph = item.icon; return <button type="button" key={item.id} title={item.tip} aria-pressed={kind===item.id} onClick={() => chooseKind(item.id)}><Glyph size={16} strokeWidth={1.75} aria-hidden="true"/>{item.label}</button>; })}</div>}
-    {kind === "link" && <div className="field destination-type-field"><label><span>Destination</span><select aria-label="Destination" value={linkChoice} onChange={event => chooseMode(event.target.value as LinkMode)}><option value="section">Section on this page</option><option value="website">Website address</option></select></label></div>}
+    {kind === "link" && <div className="field destination-type-field"><label><span>Destination</span><select aria-label="Destination" value={linkChoice} onChange={event => chooseMode(event.target.value as LinkMode | "page")}>{pages.length>0&&<option value="page">Page on my website</option>}<option value="section">Section on this page</option><option value="website">Website address</option></select></label></div>}
+    {kind === "link" && linkChoice === "page" && <label className="field"><span>Page</span><select aria-label="Page on my website" value={selectedPage?.id||''} onChange={e=>onChange(e.target.value?`/?page=${encodeURIComponent(e.target.value)}`:'')}><option value="">Choose a page</option>{pages.map(page=><option key={page.id} value={page.id}>{page.name}</option>)}</select></label>}
     {kind === "link" && linkChoice === "section"
       ? <div className="field destination-target-field"><label><span>Section</span><select aria-label="Section on this page" aria-describedby={describedBy} value={selectedAnchor} {...scope} onChange={event => { setChecked(false); onChange(event.target.value); }} onBlur={() => { scope.onBlur(); setChecked(true); }}><option value="">Choose a section</option>{options.map(option => <option key={option.anchor} value={option.anchor}>{option.label}</option>)}</select></label></div>
-      : (kind === "phone" || kind === "email" || (kind === "link" && linkChoice !== "section")) && <div className="field destination-input-field"><label><span>{inputLabel}</span><input aria-label={inputLabel} aria-describedby={describedBy} inputMode={kind==="phone" ? "tel" : kind==="email" ? "email" : "url"} value={incompatible ? value : destinationBody(value)} {...scope} onChange={event => { setChecked(false); onChange(incompatible || linksOnly ? event.target.value : storedDestination(kind, event.target.value)); }} onBlur={() => { scope.onBlur(); setChecked(true); }}/></label></div>}
+      : (kind === "phone" || kind === "email" || (kind === "link" && linkChoice === "website")) && <div className="field destination-input-field"><label><span>{inputLabel}</span><input aria-label={inputLabel} aria-describedby={describedBy} inputMode={kind==="phone" ? "tel" : kind==="email" ? "email" : "url"} value={incompatible ? value : destinationBody(value)} {...scope} onChange={event => { setChecked(false); onChange(incompatible || linksOnly ? event.target.value : storedDestination(kind, event.target.value)); }} onBlur={() => { scope.onBlur(); setChecked(true); }}/></label></div>}
     <p id={helpId} className="helper-text">{incompatible ? "Review links open a page or a section on this page." : linksOnly && linkChoice === "website" && value.trim() ? "Opens your customer reviews." : guidance}</p>
     {showWarning && <p id={warningId} className="helper-text" role="status">{warning}</p>}
   </div>;
@@ -99,13 +105,14 @@ export function Destination({label = "Destination", value, onChange, sections: p
 export function IconPicker({label, value, onChange, options, compact = false}:{label:string; value:IconName; onChange:(icon:IconName)=>void; options:readonly IconName[]; compact?: boolean}) {
   const [open, setOpen] = useState(false);
   const root = useRef<HTMLDivElement>(null);
+  const popover = useRef<HTMLDivElement>(null);
   const trigger = useRef<HTMLButtonElement>(null);
   const allowed = new Set(options);
   const choices = iconChoices.filter(choice => allowed.has(choice.id));
   const current = choices.find(choice => choice.id === value) || iconChoices.find(choice => choice.id === value) || iconChoices[0];
   useEffect(() => {
     if (!open) return;
-    const close = (event: PointerEvent) => { if (!root.current?.contains(event.target as Node)) setOpen(false); };
+    const close = (event: PointerEvent) => { if (!root.current?.contains(event.target as Node)&&!popover.current?.contains(event.target as Node)) setOpen(false); };
     const keys = (event: KeyboardEvent) => { if (event.key !== "Escape") return; event.preventDefault(); setOpen(false); trigger.current?.focus(); };
     document.addEventListener("pointerdown", close);
     document.addEventListener("keydown", keys);
@@ -115,7 +122,7 @@ export function IconPicker({label, value, onChange, options, compact = false}:{l
     if (!open) return;
     const place = () => {
       const button = trigger.current;
-      const panel = root.current?.querySelector(".icon-picker-panel");
+      const panel = popover.current?.querySelector(".icon-picker-panel");
       if (!button || !(panel instanceof HTMLElement)) return;
       const bounds = button.closest(".panelbody")?.getBoundingClientRect() ?? new DOMRect(0, 0, window.innerWidth, window.innerHeight);
       const box = button.getBoundingClientRect();
@@ -134,7 +141,7 @@ export function IconPicker({label, value, onChange, options, compact = false}:{l
     return () => { scroller?.removeEventListener("scroll", place); window.removeEventListener("resize", place); };
   }, [open]);
   const addIcon = compact && value === "none";
-  return <div className={compact ? "icon-picker is-compact" : "field icon-picker"} ref={root}>{!compact && <span>{label}</span>}<button ref={trigger} type="button" className={addIcon ? "icon-picker-trigger is-add" : "icon-picker-trigger"} title={addIcon ? "Add icon" : current.label} aria-label={addIcon ? "Add icon" : `${label}, ${current.label}`} aria-haspopup="dialog" aria-expanded={open} onClick={()=>setOpen(shown=>!shown)}>{addIcon ? "Add icon" : <IconGlyph name={current.id} size={compact ? 16 : 18}/>}</button>{open&&<IconGrid label={label} choices={choices} value={value} onChange={icon=>{onChange(icon); setOpen(false); trigger.current?.focus();}}/>}</div>;
+  return <div className={compact ? "icon-picker is-compact" : "field icon-picker"} ref={root}>{!compact && <span>{label}</span>}<button ref={trigger} type="button" className={addIcon ? "icon-picker-trigger is-add" : "icon-picker-trigger"} title={addIcon ? "Add icon" : current.label} aria-label={addIcon ? "Add icon" : `${label}, ${current.label}`} aria-haspopup="dialog" aria-expanded={open} onClick={()=>setOpen(shown=>!shown)}>{addIcon ? "Add icon" : <IconGlyph name={current.id} size={compact ? 16 : 18}/>}</button>{open&&createPortal(<div className="editor-popover-layer" ref={popover}><IconGrid label={label} choices={choices} value={value} onChange={icon=>{onChange(icon); setOpen(false); trigger.current?.focus();}}/></div>,document.body)}</div>;
 }
 function IconGrid({label, choices, value, onChange}:{label:string; choices:{id:IconName; label:string}[]; value:IconName; onChange:(icon:IconName)=>void}) {
   const selected = Math.max(0, choices.findIndex(choice => choice.id === value));

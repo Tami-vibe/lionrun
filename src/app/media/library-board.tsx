@@ -1,4 +1,5 @@
 "use client";
+import {MediaUpload} from '../editor/media-upload';
 import {useMemo, useState} from 'react';
 import {ACCEPT, assetStore, LIMITS, type Asset} from './store';
 import {publishAsset, useMediaLibrary} from './library';
@@ -73,19 +74,10 @@ export function MediaLibraryBoard({
           <button type="button" key={id} aria-pressed={filter === id} onClick={() => setFilter(id)}>{label}</button>
         ))}
       </div>
-      <label className="upload-media">{busy ? 'Saving…' : 'Upload image or video'}
-        <input disabled={busy} type="file" accept={ACCEPT} onChange={event => {
-          const file = event.target.files?.[0];
-          event.target.value = '';
-          if (!file) return;
-          setBusy(true);
-          setNotice('');
-          void publishAsset(file, reload)
-            .then(() => setNotice('Saved to your media library.'))
-            .catch(reason => setNotice(String(reason)))
-            .finally(() => setBusy(false));
-        }} />
-      </label>
+      <MediaUpload accept={ACCEPT} multiple={false} busy={busy} onFiles={files=>{
+        const file=files[0];if(!file)return;setBusy(true);setNotice('');
+        void publishAsset(file,reload).then(()=>setNotice('Saved to your media library.')).catch(reason=>setNotice(String(reason))).finally(()=>setBusy(false));
+      }}/>
       <div className="asset-list library-board-grid" role="list" aria-label="Library files">
         {rows.map(asset => {
           const unused = isAssetUnused(usage, asset.id);

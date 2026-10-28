@@ -1,14 +1,16 @@
+import {validFooter, type FooterConfig} from './footer-model';
 import {catalog} from './catalog';
 import type {SectionId} from './catalog';
 import {contactHours} from './contact-hours';
 import {defaultColumns,equalWidths,normalizeSettings,normalizeBrandKit,headerLook,pageSlug} from '../editor/settings';
+import {createDefaultMenus,defaultPlacement} from '../editor/menu-model';
 import type {SectionSettings,FooterColumn,BrandKit} from '../editor/settings';
 import {heroSlides, slideIndexAllowed} from '../editor/hero-collection';
 import {mediaDefaults,socialEmbed} from '../media/model';
 import type {MediaSettings} from '../media/model';
 export type BlockItem = {id?:string;title:string;description:string;icon:IconName;media?:MediaSettings;price?:string;pageId?:string;caption?:string;group?:string;tag?:string;value?:string;note?:string;when?:string;source?:string;stars?:number;href?:string;hidden?:boolean};
 export type EyebrowStyle = 'pill' | 'line';
-export type BlockContent = {smallLabel:string;title:string;description:string;body?:string;showBody?:boolean;showBreadcrumbs?:boolean;items:BlockItem[];media:MediaSettings;buttons:ButtonData[];facts:string[];note:string;formButton:string;consent:string;fields:{label:string;type:'text'|'email'|'tel'|'textarea';required:boolean}[];rating?:{score:string;count:string;href:string};slides?:MediaSettings[];factIcons?:IconName[];story?:MediaSettings;showSecondary?:boolean;showHeading?:boolean;showMedia?:boolean;showBusiness?:boolean;arrowCircle?:boolean;buttonCount?:0|1|2;headAlign?:'top'|'center'|'bottom';photoSide?:'left'|'right';height?:'standard'|'full';align?:'left'|'center';darkness?:number;fade?:boolean;fadeDirection?:'ltr'|'rtl';fadeWidth?:number;fadeStrength?:number;background?:string;reviewText?:'full'|'excerpt';avatar?:'off'|'circle'|'square';namePrivacy?:boolean;showRating?:boolean;showDate?:boolean;showService?:boolean;showSource?:boolean;cardFace?:'filled'|'plain';cardPad?:'comfortable'|'compact';promise?:string;price?:string;oldPrice?:string;endDate?:string;badge?:string;address?:string;phone?:string;email?:string;hours?:string;indexLabel?:string;actionLabel?:string;allPhotosLabel?:string;catalogPageId?:string;before?:MediaSettings;after?:MediaSettings;beforeLabel?:string;afterLabel?:string;logoScale?:number;monochrome?:boolean;galleryVisible?:4|5|6|7;galleryRows?:number;storyFeatured?:1|2;galleryWidth?:'boxed'|'full';galleryScale?:number;galleryMotion?:'still'|'loop';gallerySpeed?:number;galleryPauseHover?:boolean;logoMotion?:'still'|'loop';logoPauseHover?:boolean;slideSeconds?:number;slideAdvance?:'time'|'end';slideFade?:number;slideAutoplay?:boolean;slideIndex?:number;mediaMode?:'image'|'video'|'slideshow';slideLoop?:boolean};
+export type BlockContent = {smallLabel:string;title:string;description:string;body?:string;showBody?:boolean;showBreadcrumbs?:boolean;items:BlockItem[];media:MediaSettings;buttons:ButtonData[];facts:string[];note:string;formButton:string;consent:string;fields:{label:string;type:'text'|'email'|'tel'|'textarea';required:boolean}[];rating?:{score:string;count:string;href:string};slides?:MediaSettings[];factIcons?:IconName[];story?:MediaSettings;showSecondary?:boolean;showHeading?:boolean;showMedia?:boolean;showBusiness?:boolean;arrowCircle?:boolean;buttonCount?:0|1|2;headAlign?:'top'|'center'|'bottom';photoSide?:'left'|'right';height?:'standard'|'full';align?:'left'|'center';darkness?:number;fade?:boolean;fadeDirection?:'ltr'|'rtl';fadeWidth?:number;fadeStrength?:number;background?:string;reviewText?:'full'|'excerpt';avatar?:'off'|'circle'|'square';namePrivacy?:boolean;showRating?:boolean;showDate?:boolean;showService?:boolean;showSource?:boolean;cardFace?:'filled'|'plain';cardPad?:'comfortable'|'compact';promise?:string;price?:string;oldPrice?:string;endDate?:string;badge?:string;address?:string;phone?:string;email?:string;hours?:string;indexLabel?:string;actionLabel?:string;allPhotosLabel?:string;catalogPageId?:string;before?:MediaSettings;after?:MediaSettings;beforeLabel?:string;afterLabel?:string;logoScale?:number;monochrome?:boolean;galleryVisible?:4|5|6|7;galleryRows?:number;storyFeatured?:1|2;galleryWidth?:'boxed'|'full';galleryScale?:number;galleryMotion?:'still'|'loop';gallerySpeed?:number;galleryPauseHover?:boolean;logoMotion?:'still'|'loop';logoPauseHover?:boolean;slideSeconds?:number;slideAdvance?:'time'|'end';slideFade?:number;slideAutoplay?:boolean;slideIndex?:number;mediaMode?:'image'|'video'|'slideshow';slideLoop?:boolean;footer?:FooterConfig};
 export type Block = {id:string;type:SectionId;layout:string;content:BlockContent;settings:SectionSettings;hidden?:boolean};
 export const blockLayouts:Record<SectionId,readonly string[]> = {
  header:['standard','pill','rounded'],hero:['split','center','image','short','story'],logos:['Scrolling row','Still row','Heading and slider'],services:['Icon cards','Photo cards','Price list'],proof:['Text and photo','Promise band','Photo and reasons'],about:['Story and photos','Photos only','Sliding gallery'],pains:['Photo cards','One message'],solutions:['Numbered steps','Before and after'],trust:['Big numbers','Numbers and certifications','Signals'],reviews:['Review cards','One large quote','Carousel'],quote:['Photo beside the form'],faq:['Accordion','Two columns'],promo:['Offer band'],contact:['Details and map'],closing:['Quiet','Full color'],footer:['columns','minimal'],
@@ -16,6 +18,8 @@ export const blockLayouts:Record<SectionId,readonly string[]> = {
 export type IconName = "none" | "arrow" | "phone" | "calendar" | "mail" | "check" | "message" | "car" | "wrench" | "shield" | "star" | "pin" | "paint" | "gear" | "tow" | "battery" | "wheel" | "scan" | "glass";
 export const icons: IconName[] = ["none", "arrow", "phone", "calendar", "mail", "check", "message", "car", "wrench", "shield", "star", "pin", "paint", "gear", "tow", "battery", "wheel", "scan", "glass"];
 export type ButtonData = {
+    textColor?: string;
+    fillColor?: string;
     label: string;
     href: string;
     icon: IconName;
@@ -27,7 +31,7 @@ export function buttonIconSide(button: Pick<ButtonData, "iconPosition">): "left"
 export function validButton(button: unknown): button is ButtonData {
     if (!button || typeof button !== "object") return false;
     const value = button as Record<string, unknown>;
-    return typeof value.label === "string" && typeof value.href === "string" && typeof value.icon === "string" && icons.includes(value.icon as IconName) && (value.iconPosition === undefined || value.iconPosition === "left" || value.iconPosition === "right");
+    return typeof value.label === "string" && typeof value.href === "string" && typeof value.icon === "string" && icons.includes(value.icon as IconName) && ['textColor','fillColor'].every(key=>value[key]===undefined||typeof value[key]==='string'&&/^#[0-9a-f]{6}$/i.test(value[key] as string)) && (value.iconPosition === undefined || value.iconPosition === "left" || value.iconPosition === "right");
 }
 export type Item = {
     title: string;
@@ -61,6 +65,8 @@ export type Site = {
     headerButtonCount?:0|1|2;
     headerButtonPlace?:"inside"|"beside";
     headerButtons?:ButtonData[];
+    menus?: import('../editor/menu-model').NamedMenu[];
+    menuPlacement?: import('../editor/menu-model').MenuPlacementConfig;
     navChildren?:{label:string;href:string;pageId?:string}[][];
     footerStyle: "columns" | "minimal";
     eyebrow: string;
@@ -300,8 +306,14 @@ export function applyIndustryMedia(block:Block):Block {
   const layout=block.type==='reviews'&&block.layout==='Auto'?'Review cards':block.layout;
   return {...block,layout,content};
 }
-export function migrateSite(site:Omit<Site,'blocks'>&{blocks?:Block[]}):Site {return {...site,eyebrowStyle:normalizeEyebrowStyle(site.eyebrowStyle),brandKit:normalizeBrandKit(site.brandKit),footerColumns:site.footerColumns||[{title:site.brand,text:'Good work. Good people. A better way forward.',links:[]},{title:'Explore',text:'',links:catalog.filter(s=>!site.hidden.includes(s.id)&&['services','proof','about','contact'].includes(s.id)).map(s=>({label:s.label,href:`#${s.id}`}))},{title:'Get in touch',text:[site.address,site.phone,site.email].join('\n'),links:[]}],blocks:fixedBlockOrder((site.blocks?site.blocks.map(block=>({...block,layout:block.type==='header'?headerLook(site.headerStyle):block.type==='footer'?site.footerStyle:block.layout,content:{...block.content,title:block.type==='pains'&&block.content.title==="Repairs shouldn't add more stress"?'What gets in the way.':block.content.title,description:block.type==='pains'&&block.content.description==="We understand what matters when your vehicle is off the road."?"Unexpected delays, hidden supplements, and insurer red tape shouldn't define your collision repair.":block.content.description,smallLabel:block.type==='pains'&&!block.content.smallLabel?'Common industry pitfalls':block.content.smallLabel,media:legacyMedia(block.content.media?.src)?{...block.content.media,src:block.type==='hero'?'/media/showcase/highway-suv.jpg':block.type==='quote'?'/media/ai-images/repair-bench.jpg':workshop,kind:'image'}:block.content.media,items:block.type==='pains'?block.content.items.map((item,i)=>migratePainItem(item,i)):block.content.items,buttons:['hero','pains','faq','promo','contact','closing','proof'].includes(block.type)?block.content.buttons:[]},settings:normalizeSettings(block.settings)})):catalog.map(section=>blockFromLegacy(site,section.id))).map(block=>applyIndustryMedia(block as Block)))};}
-export const initial:Site=migrateSite(legacyInitial);
+export function migrateSite(site:Omit<Site,'blocks'>&{blocks?:Block[]}):Site {
+  return {...site,...(site.menus?{menus:site.menus}:{}),...(site.menuPlacement?{menuPlacement:site.menuPlacement}:{}),eyebrowStyle:normalizeEyebrowStyle(site.eyebrowStyle),brandKit:normalizeBrandKit(site.brandKit),footerColumns:site.footerColumns||[{title:site.brand,text:'Good work. Good people. A better way forward.',links:[]},{title:'Explore',text:'',links:catalog.filter(s=>!site.hidden.includes(s.id)&&['services','proof','about','contact'].includes(s.id)).map(s=>({label:s.label,href:`#${s.id}`}))},{title:'Get in touch',text:[site.address,site.phone,site.email].join('\n'),links:[]}],blocks:fixedBlockOrder((site.blocks?site.blocks.map(block=>({...block,layout:block.type==='header'?headerLook(site.headerStyle):block.type==='footer'?site.footerStyle:block.layout,content:{...block.content,title:block.type==='pains'&&block.content.title==="Repairs shouldn't add more stress"?'What gets in the way.':block.content.title,description:block.type==='pains'&&block.content.description==="We understand what matters when your vehicle is off the road."?"Unexpected delays, hidden supplements, and insurer red tape shouldn't define your collision repair.":block.content.description,smallLabel:block.type==='pains'&&!block.content.smallLabel?'Common industry pitfalls':block.content.smallLabel,media:legacyMedia(block.content.media?.src)?{...block.content.media,src:block.type==='hero'?'/media/showcase/highway-suv.jpg':block.type==='quote'?'/media/ai-images/repair-bench.jpg':workshop,kind:'image'}:block.content.media,items:block.type==='pains'?block.content.items.map((item,i)=>migratePainItem(item,i)):block.content.items,buttons:['hero','pains','faq','promo','contact','closing','proof'].includes(block.type)?block.content.buttons:[]},settings:normalizeSettings(block.settings)})):catalog.map(section=>blockFromLegacy(site,section.id))).map(block=>applyIndustryMedia(block as Block)))};
+}
+export const initial:Site=(()=>{
+  const s=migrateSite(legacyInitial);
+  const menus=createDefaultMenus(legacyInitial);
+  return {...s,menus,menuPlacement:defaultPlacement(menus)};
+})();
 export function makeBlock(type:SectionId):Block {const block=blockFromLegacy(legacyInitial,type);return {...structuredClone(block),id:crypto.randomUUID(),hidden:false};}
 export const pageStarters={service:['hero','services','faq','quote','contact'],offer:['hero','promo','quote','contact'],story:['hero','about','reviews','contact'],empty:['hero']} satisfies Record<string,SectionId[]>;
 export function starterBlocks(kind:keyof typeof pageStarters,name:string,home:Site):Block[] {return fixedBlockOrder([home.blocks.find(b=>b.type==='header'),...pageStarters[kind].map(type=>{const block=makeBlock(type);if(type==='hero'){block.layout='short';block.content.title=name;block.content.showSecondary=false;}return block;}),home.blocks.find(b=>b.type==='footer')].filter((b):b is Block=>!!b).map(b=>structuredClone(b)));}
@@ -394,6 +406,7 @@ export function validBlocks(value:unknown):value is Block[] {
     if(!block||typeof block.id!=='string'||!block.id||block.id.length>100||ids.has(block.id)||!catalog.some(s=>s.id===block.type)||!blockLayouts[block.type as SectionId].includes(block.layout)||!block.content||!block.settings||typeof block.settings!=='object'||(block.hidden!==undefined&&typeof block.hidden!=='boolean'))return false;
     ids.add(block.id);if(['header','footer'].includes(block.type)){if(shared.has(block.type))return false;shared.add(block.type);}
     const c=block.content;
+    if(c.footer!==undefined&&!validFooter(c.footer))return false;
     if(!['smallLabel','title','description','note','formButton','consent'].every(key=>typeof c[key]==='string')||!optionalStrings(c,['body','price','oldPrice','endDate','badge','promise','address','phone','email','hours','indexLabel','actionLabel','allPhotosLabel','catalogPageId','beforeLabel','afterLabel']))return false;
     if(c.showBody!==undefined&&typeof c.showBody!=='boolean')return false;
     if(c.showBreadcrumbs!==undefined&&typeof c.showBreadcrumbs!=='boolean')return false;

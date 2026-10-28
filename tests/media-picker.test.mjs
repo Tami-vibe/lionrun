@@ -26,7 +26,7 @@ test('library picker rows show image and video thumbnails', () => {
   assert.match(image, /class="asset-thumb"/);
   assert.match(image, /<img[^>]+src="blob:image-preview"/);
   assert.match(image, /tyres-upload-test\.jpg/);
-  assert.match(image, /class="upload-media"/);
+  assert.match(image, /class="media-upload-primary"/);
 
   const video = renderToStaticMarkup(createElement(MediaLibraryFixture, {
     assets: [{...sample, id: 'asset-clip', name: 'bay.mp4', kind: 'video', mime: 'video/mp4'}],

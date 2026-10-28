@@ -2,7 +2,7 @@ import {sectionName, type SectionId} from '../site/catalog';
 import type {Block, BlockContent, Site} from '../site/blocks';
 import type {MediaSettings} from './model';
 
-export type MediaUseField = 'image' | 'poster' | 'captions' | 'slide' | 'story' | 'before' | 'after' | 'item';
+export type MediaUseField = 'image' | 'poster' | 'captions' | 'slide' | 'story' | 'before' | 'after' | 'item' | 'logo';
 
 export type MediaUse = {
   pageId: string;
@@ -49,6 +49,7 @@ function scanContent(index: MediaUsageIndex, block: Block, pageId: string, pageN
     sectionLabel: sectionName(block.type)
   };
   scanMedia(index, c.media, base, 'image');
+  scanMedia(index, c.footer?.logo, base, 'logo');
   scanMedia(index, c.story, base, 'story');
   scanMedia(index, c.before, base, 'before');
   scanMedia(index, c.after, base, 'after');

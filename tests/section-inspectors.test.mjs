@@ -7,6 +7,7 @@ import {renderToStaticMarkup} from 'react-dom/server';
 register('./support/tsx.mjs', import.meta.url);
 const {initial} = await import('../src/app/site/blocks.ts');
 const {catalog} = await import('../src/app/site/catalog.ts');
+const {HeroMediaEditor} = await import('../src/app/editor/hero-media.tsx');
 const {ContentBrowser, contentGroups} = await import('../src/app/editor/content-browser.tsx');
 
 const renderContent = (block, group = null) => renderToStaticMarkup(createElement(ContentBrowser, {
@@ -22,19 +23,28 @@ const renderContent = (block, group = null) => renderToStaticMarkup(createElemen
   home: true
 }));
 
-test('header inspector uses Navigation links and Business name with data counts', () => {
+test('header inspector uses Menus, Menu placement, Business name, and Logo with data counts', () => {
   const headerBlock = initial.blocks.find(b => b.type === 'header');
   assert.ok(headerBlock);
   const groups = contentGroups(headerBlock, initial, []);
-  assert.equal(groups[0].label, 'Navigation links');
-  assert.equal(groups[1].label, 'Business name');
+  assert.equal(groups[0].label, 'Menus');
+  assert.equal(groups[1].label, 'Menu placement');
+  assert.equal(groups[2].label, 'Business name');
+  assert.equal(groups[3].label, 'Logo');
 
   const markup = renderContent(headerBlock, null);
-  assert.match(markup, /Navigation links/);
+  assert.match(markup, /Menus/);
+  assert.match(markup, /Menu placement/);
   assert.match(markup, /Business name/);
-  assert.match(markup, /class="group-count">3<\/span>/);
+  assert.match(markup, /Logo/);
+  assert.match(markup, /class="group-count">2<\/span>/);
   assert.match(markup, /class="group-list"/);
   assert.match(markup, /class="accordion"/);
+
+  const menusMarkup = renderContent(headerBlock, 'menus');
+  assert.match(menusMarkup, /Your menus/);
+  assert.match(menusMarkup, /Add menu/);
+  assert.doesNotMatch(menusMarkup, /Menu placement/);
 });
 
 test('hero inspector uses Headline & text, Action buttons, and Additional text toggle', () => {
@@ -85,12 +95,12 @@ test('hero media uses standardized drop zone, 2-column collection grid, and plai
   const heroBlock = initial.blocks.find(b => b.type === 'hero');
   assert.ok(heroBlock);
 
-  const markup = renderContent(heroBlock, 'media');
+  const markup = renderToStaticMarkup(createElement(HeroMediaEditor, {content:heroBlock.content, layout:heroBlock.layout, blockId:heroBlock.id, onChange() {}}));
   assert.match(markup, /class="media-import"/);
-  assert.match(markup, /class="hero-drop"/);
-  assert.match(markup, /Drop files or paste a link/);
-  assert.match(markup, /Upload files/);
-  assert.match(markup, /Add link/);
+  assert.match(markup, /class="media-upload-surface"/);
+  assert.match(markup, /or drop a photo or video/);
+  assert.match(markup, /Add images/);
+  assert.match(markup, /Use a link/);
   assert.match(markup, /Choose from library/);
   assert.match(markup, /class="hero-grid"/);
   assert.match(markup, /class="hero-tile-name"/);

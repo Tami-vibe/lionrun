@@ -27,7 +27,7 @@ test('Why choose us Links renders section destinations, not shared menu fields',
 test('Why choose us keeps three promises and moves its caption into Media',()=>{
   const block=proof(),promises=contentMarkup(block,'promises'),media=contentMarkup(block,'photo');
   assert.match(promises,/Promise 3/);assert.doesNotMatch(promises,/Photo caption/);
-  assert.match(media,/Caption/);assert.match(media,/Media display/);assert.match(media,/Library/);
+  assert.match(media,/Caption/);assert.match(media,/Media display/);assert.match(media,/Choose from library/);
   assert.doesNotMatch(media,/Media manager|Image darkness|Improve text readability/);
   assert.match(media,/class="hero-tile-select"[^>]*aria-pressed/);
 });

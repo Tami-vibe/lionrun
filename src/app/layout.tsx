@@ -12,8 +12,10 @@ const friendlyText = DM_Sans({subsets:["latin"], weight:["400","600","700"], var
 
 import "./globals.css";
 import "./studio.css";
+import "./editor/main-image-journey.css";
 import "./site/site.css";
 import "./media/media.css";
+import "./editor/editor-ui.css";
 
 export const metadata: Metadata = { title: "Business Builder | Visual Website Studio", description: "Responsive business website editor prototype" };
 

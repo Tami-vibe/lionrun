@@ -98,53 +98,27 @@ export function ProofStyle({
                                 type="button"
                                 className={`balance-card ${isMoreText ? 'is-selected' : ''}`}
                                 aria-pressed={isMoreText}
-                                onClick={() => {
-                                  const nextWidths = firstIsMedia ? [38, 62] : [62, 38];
-                                  changeSettings({...value, widths: nextWidths});
-                                }}
+                                onClick={() => changeSettings({...value, widths: firstIsMedia ? [38, 62] : [62, 38]})}
                               >
-                                <svg width="48" height="28" viewBox="0 0 48 28" fill="none" aria-hidden="true">
-                                  <rect width="48" height="28" rx="4" fill="#f1f5f9" />
-                                  <rect x="4" y="6" width="24" height="16" rx="2" fill="#cbd5e1" />
-                                  <rect x="7" y="10" width="18" height="2" rx="1" fill="#94a3b8" />
-                                  <rect x="7" y="14" width="14" height="2" rx="1" fill="#94a3b8" />
-                                  <rect x="31" y="6" width="13" height="16" rx="2" fill="#cbd5e1" />
-                                </svg>
+                                <BalanceThumb left={24} right={14} />
                                 <span>More text</span>
                               </button>
-
                               <button
                                 type="button"
                                 className={`balance-card ${isEqual ? 'is-selected' : ''}`}
                                 aria-pressed={isEqual}
                                 onClick={() => changeSettings({...value, widths: [50, 50]})}
                               >
-                                <svg width="48" height="28" viewBox="0 0 48 28" fill="none" aria-hidden="true">
-                                  <rect width="48" height="28" rx="4" fill="#f1f5f9" />
-                                  <rect x="4" y="6" width="18" height="16" rx="2" fill="#cbd5e1" />
-                                  <rect x="6" y="10" width="14" height="2" rx="1" fill="#94a3b8" />
-                                  <rect x="6" y="14" width="10" height="2" rx="1" fill="#94a3b8" />
-                                  <rect x="26" y="6" width="18" height="16" rx="2" fill="#cbd5e1" />
-                                </svg>
+                                <BalanceThumb left={18} right={18} />
                                 <span>Equal</span>
                               </button>
-
                               <button
                                 type="button"
                                 className={`balance-card ${isMoreMedia ? 'is-selected' : ''}`}
                                 aria-pressed={isMoreMedia}
-                                onClick={() => {
-                                  const nextWidths = firstIsMedia ? [62, 38] : [38, 62];
-                                  changeSettings({...value, widths: nextWidths});
-                                }}
+                                onClick={() => changeSettings({...value, widths: firstIsMedia ? [62, 38] : [38, 62]})}
                               >
-                                <svg width="48" height="28" viewBox="0 0 48 28" fill="none" aria-hidden="true">
-                                  <rect width="48" height="28" rx="4" fill="#f1f5f9" />
-                                  <rect x="4" y="6" width="13" height="16" rx="2" fill="#cbd5e1" />
-                                  <rect x="6" y="10" width="9" height="2" rx="1" fill="#94a3b8" />
-                                  <rect x="6" y="14" width="7" height="2" rx="1" fill="#94a3b8" />
-                                  <rect x="20" y="6" width="24" height="16" rx="2" fill="#cbd5e1" />
-                                </svg>
+                                <BalanceThumb left={14} right={24} />
                                 <span>More media</span>
                               </button>
                             </div>
@@ -264,51 +238,6 @@ export function ProofStyle({
                   settings={value}
                   onChange={changeSettings}
                 >
-                  <div className="spacing-diagram-wrapper" aria-hidden="true">
-                    <svg width="100%" height="144" viewBox="0 0 260 144" fill="none" className="spacing-diagram-svg">
-                      <rect x="0.5" y="0.5" width="259" height="143" rx="8" fill="#f0f5ff" stroke="#bfdbfe" strokeDasharray="3 3" />
-                      <line x1="130" y1="6" x2="130" y2="34" stroke="#2563eb" strokeWidth="1.25" />
-                      <path d="M127.5 9.5 L130 6 L132.5 9.5" stroke="#2563eb" strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round" />
-                      <path d="M127.5 30.5 L130 34 L132.5 30.5" stroke="#2563eb" strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round" />
-                      <text x="136" y="24" fill="#2563eb" fontSize="11" fontWeight="600" fontFamily="var(--editor-font)">
-                        {padVal}px
-                      </text>
-                      {single ? (
-                        <g>
-                          <rect x="18" y="40" width="224" height="64" rx="6" fill="#ffffff" stroke="#e2e8f0" strokeWidth="1" />
-                          <rect x="30" y="54" width="40" height="3.5" rx="1.75" fill="#94a3b8" />
-                          <rect x="30" y="62" width="60" height="2.5" rx="1.25" fill="#cbd5e1" />
-                          <rect x="100" y="54" width="40" height="3.5" rx="1.75" fill="#94a3b8" />
-                          <rect x="100" y="62" width="60" height="2.5" rx="1.25" fill="#cbd5e1" />
-                          <rect x="170" y="54" width="40" height="3.5" rx="1.75" fill="#94a3b8" />
-                          <rect x="170" y="62" width="60" height="2.5" rx="1.25" fill="#cbd5e1" />
-                        </g>
-                      ) : (
-                        <g>
-                          <rect x="18" y="40" width="88" height="64" rx="6" fill="#ffffff" stroke="#e2e8f0" strokeWidth="1" />
-                          <rect x="28" y="54" width="48" height="4" rx="2" fill="#94a3b8" />
-                          <rect x="28" y="63" width="68" height="3" rx="1.5" fill="#cbd5e1" />
-                          <rect x="28" y="70" width="56" height="3" rx="1.5" fill="#cbd5e1" />
-                          <rect x="28" y="77" width="40" height="3" rx="1.5" fill="#cbd5e1" />
-                          <line x1="108" y1="72" x2="152" y2="72" stroke="#2563eb" strokeWidth="1.25" />
-                          <path d="M111.5 69.5 L108 72 L111.5 74.5" stroke="#2563eb" strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round" />
-                          <path d="M148.5 69.5 L152 72 L148.5 74.5" stroke="#2563eb" strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round" />
-                          <text x="130" y="66" textAnchor="middle" fill="#2563eb" fontSize="10.5" fontWeight="600" fontFamily="var(--editor-font)">
-                            {gapVal}px
-                          </text>
-                          <rect x="154" y="40" width="88" height="64" rx="6" fill="#ffffff" stroke="#e2e8f0" strokeWidth="1" />
-                          <circle cx="178" cy="56" r="4.5" fill="#cbd5e1" />
-                          <path d="M166 88 L182 68 L194 80 L206 64 L226 88 Z" fill="#cbd5e1" />
-                        </g>
-                      )}
-                      <line x1="130" y1="110" x2="130" y2="138" stroke="#2563eb" strokeWidth="1.25" />
-                      <path d="M127.5 113.5 L130 110 L132.5 113.5" stroke="#2563eb" strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round" />
-                      <path d="M127.5 134.5 L130 138 L132.5 134.5" stroke="#2563eb" strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round" />
-                      <text x="136" y="128" fill="#2563eb" fontSize="11" fontWeight="600" fontFamily="var(--editor-font)">
-                        {padVal}px
-                      </text>
-                    </svg>
-                  </div>
                   <button
                     type="button"
                     className="refined-reset"
@@ -330,41 +259,21 @@ export function ProofStyle({
 }
 
 function TextMediaThumb() {
-  return (
-    <LayoutThumb>
-      <rect className="layout-shape-strong" x="7" y="11" width="18" height="3" rx="1.5" />
-      <rect className="layout-shape" x="7" y="17" width="14" height="2.5" rx="1.25" />
-      <rect className="layout-shape" x="7" y="22" width="11" height="2.5" rx="1.25" />
-      <rect className="layout-shape" x="30" y="8" width="27" height="20" rx="3" />
-    </LayoutThumb>
-  );
+  return <LayoutThumb><rect className="layout-shape-strong" x="7" y="11" width="18" height="3" rx="1.5"/><rect className="layout-shape" x="7" y="17" width="14" height="2.5" rx="1.25"/><rect className="layout-shape" x="7" y="22" width="11" height="2.5" rx="1.25"/><rect className="layout-shape" x="30" y="8" width="27" height="20" rx="3"/></LayoutThumb>;
 }
-
 function PromiseBandThumb() {
-  return (
-    <LayoutThumb>
-      {[0, 1, 2].map(column => (
-        <g key={column} transform={`translate(${6 + column * 19} 0)`}>
-          <rect className="layout-shape-strong" x="1" y="11" width="14" height="3" rx="1.5" />
-          <rect className="layout-shape" x="0" y="17" width="16" height="2.5" rx="1.25" />
-          <rect className="layout-shape" x="2" y="22" width="12" height="2.5" rx="1.25" />
-        </g>
-      ))}
-    </LayoutThumb>
-  );
+  return <LayoutThumb>{[0, 1, 2].map(c => <g key={c} transform={`translate(${6 + c * 19} 0)`}><rect className="layout-shape-strong" x="1" y="11" width="14" height="3" rx="1.5"/><rect className="layout-shape" x="0" y="17" width="16" height="2.5" rx="1.25"/><rect className="layout-shape" x="2" y="22" width="12" height="2.5" rx="1.25"/></g>)}</LayoutThumb>;
 }
-
 function MediaReasonsThumb() {
-  return (
-    <LayoutThumb>
-      <rect className="layout-shape" x="6" y="7" width="22" height="22" rx="3" />
-      {[0, 1, 2].map(row => (
-        <g key={row}>
-          <circle className="layout-shape-strong" cx="34" cy={12 + row * 7} r="1.6" />
-          <rect className="layout-shape" x="38" y={10.5 + row * 7} width={row === 2 ? 14 : 18} height="2.5" rx="1.25" />
-        </g>
-      ))}
-    </LayoutThumb>
-  );
+  return <LayoutThumb><rect className="layout-shape" x="6" y="7" width="22" height="22" rx="3"/>{[0, 1, 2].map(r => <g key={r}><circle className="layout-shape-strong" cx="34" cy={12 + r * 7} r="1.6"/><rect className="layout-shape" x="38" y={10.5 + r * 7} width={r === 2 ? 14 : 18} height="2.5" rx="1.25"/></g>)}</LayoutThumb>;
 }
 
+function BalanceThumb({left, right}: {left: number; right: number}) {
+  return (
+    <svg width="48" height="28" viewBox="0 0 48 28" fill="none" aria-hidden="true">
+      <rect width="48" height="28" rx="4" fill="#f1f5f9" />
+      <rect x="4" y="6" width={left} height="16" rx="2" fill="#cbd5e1" />
+      <rect x={6 + left} y="6" width={right} height="16" rx="2" fill="#cbd5e1" />
+    </svg>
+  );
+}

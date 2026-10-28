@@ -1,9 +1,8 @@
 "use client";
 import {useId, useState, type CSSProperties} from 'react';
-import {Building2,CheckCircle2,ChevronDown,ChevronRight,FileText,HelpCircle,Image as ImageIcon,Link as LinkIcon,MessageSquare,MousePointerClick,Plus,ShieldCheck,Star,X} from 'lucide-react';
+import {ArrowLeft,Building2,CheckCircle2,ChevronDown,ChevronRight,FileText,HelpCircle,Image as ImageIcon,Layers,Menu as MenuIcon,MessageSquare,MousePointerClick,Plus,ShieldCheck,Star,X} from 'lucide-react';
 import {Block,BlockContent,BlockItem,ButtonData,Site,IconName,buttonIconSide,icons,servicePreviewCount} from '../site/blocks';
-import {catalog as sections} from '../site/catalog';
-import {accentRamp, FooterColumn, linkedPage, pageSlug} from './settings';
+import {accentRamp, FooterColumn} from './settings';
 import {MediaManager} from '../media/library';
 import {mediaDefaults, mediaURL, type MediaSettings} from '../media/model';
 import {countWarning, ratingSummary, scoreWarning} from './rating';
@@ -13,9 +12,12 @@ import {layoutContract} from '../site/layout-contract';
 import type {SectionId} from '../site/catalog';
 import {Destination, Field, IconPicker, Toggle, useEditScope} from './fields';
 import {HeroMediaEditor} from './hero-media';
+import {MainImageJourney} from './main-image-journey';
 import {LogosContent} from './logos-content';
 import {AboutContent} from './about-content';
 import {ServicesContent} from './services-content';
+import {MenuEditor, MenuPlacement} from './menu-editor';
+import {createDefaultMenus} from './menu-model';
 
 type Change = (patch: Partial<BlockContent>) => void;
 type Group = {id: string; label: string; hint: string};
@@ -36,7 +38,7 @@ function MessageFields({content,change,intro=false,allowBody=true}:{content:Bloc
     </>}
   </>;
 }
-function ButtonText({button, onLabel, onIcon}:{button:ButtonData; onLabel:(label:string)=>void; onIcon:(icon:IconName)=>void}) {
+export function ButtonText({button, onLabel, onIcon}:{button:ButtonData; onLabel:(label:string)=>void; onIcon:(icon:IconName)=>void}) {
   const scope = useEditScope();
   const labelId = useId();
   const side = buttonIconSide(button);
@@ -44,30 +46,26 @@ function ButtonText({button, onLabel, onIcon}:{button:ButtonData; onLabel:(label
   return <div className="field"><div className="field-label-row"><span id={labelId}>Button text</span><span className="field-tooltip-icon" title="Click the icon inside the field to change it" aria-label="Click the icon inside the field to change it"><HelpCircle size={14} aria-hidden="true"/></span></div><div className="button-wording" data-side={side}>{side==="left" && picker}<input id={`${labelId}-input`} className="button-wording-input" aria-labelledby={labelId} value={button.label} {...scope} onChange={event=>onLabel(event.target.value)}/>{side==="right" && picker}</div></div>;
 }
 function luminance(hex: string) {
-  return [1, 3, 5].map(index => { const value = parseInt(hex.slice(index, index + 2), 16) / 255; return value <= 0.04045 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4; }).reduce((sum, channel, index) => sum + channel * [0.2126, 0.7152, 0.0722][index], 0);
+  return [1, 3, 5].map(index => { const v = parseInt(hex.slice(index, index + 2), 16) / 255; return v <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; }).reduce((sum, ch, idx) => sum + ch * [0.2126, 0.7152, 0.0722][idx], 0);
 }
-function contrastRatio(foreground: string, background: string) {
-  const [lighter, darker] = [luminance(foreground), luminance(background)].sort((a, b) => b - a);
-  return (lighter + 0.05) / (darker + 0.05);
+function contrastRatio(f: string, b: string) {
+  const [l, d] = [luminance(f), luminance(b)].sort((x, y) => y - x);
+  return (l + 0.05) / (d + 0.05);
 }
 function mixHex(top: string, bottom: string, alpha: number) {
-  const channel = (hex: string, index: number) => parseInt(hex.slice(index, index + 2), 16);
-  return "#" + [1, 3, 5].map(index => Math.round(channel(top, index) * alpha + channel(bottom, index) * (1 - alpha)).toString(16).padStart(2, "0")).join("");
+  const ch = (hex: string, idx: number) => parseInt(hex.slice(idx, idx + 2), 16);
+  return "#" + [1, 3, 5].map(idx => Math.round(ch(top, idx) * alpha + ch(bottom, idx) * (1 - alpha)).toString(16).padStart(2, "0")).join("");
 }
 function darkerAccessible(color: string, against: string) {
-  const darkened = (amount: number) => "#" + [1, 3, 5].map(index => Math.round(parseInt(color.slice(index, index + 2), 16) * (1 - amount)).toString(16).padStart(2, "0")).join("");
-  if (contrastRatio(darkened(1), against) < 4.5) return "";
+  const dark = (amount: number) => "#" + [1, 3, 5].map(i => Math.round(parseInt(color.slice(i, i + 2), 16) * (1 - amount)).toString(16).padStart(2, "0")).join("");
+  if (contrastRatio(dark(1), against) < 4.5) return "";
   let low = 0, high = 1, best = "";
-  for (let step = 0; step < 12; step++) {
-    const amount = (low + high) / 2, next = darkened(amount);
-    if (contrastRatio(next, against) >= 4.5) { best = next; high = amount; } else low = amount;
-  }
+  for (let s = 0; s < 12; s++) { const m = (low + high) / 2, n = dark(m); if (contrastRatio(n, against) >= 4.5) { best = n; high = m; } else low = m; }
   return best;
 }
 function contrastAlternative(foreground: string, background: string) {
   if (!/^#[0-9a-f]{6}$/i.test(foreground) || !/^#[0-9a-f]{6}$/i.test(background) || contrastRatio(foreground, background) >= 4.5) return null;
-  const lighterLabel = luminance(foreground) > luminance(background);
-  const fill = lighterLabel ? darkerAccessible(background, foreground) : "";
+  const fill = luminance(foreground) > luminance(background) ? darkerAccessible(background, foreground) : "";
   if (fill && contrastRatio(foreground, fill) >= 4.5) return {color: "", fill};
   const text = darkerAccessible(foreground, background);
   return text && contrastRatio(text, background) >= 4.5 ? {color: text, fill: ""} : null;
@@ -86,13 +84,21 @@ function buttonContext(block: Block, theme: "midnight" | "paper" | undefined, ra
   }
   return {color: ink, solid: surface, style: {background: surface, color: ink} as CSSProperties};
 }
-function ButtonContrastNote({primary, context, labelColor, fillColor}:{primary: boolean; context: ReturnType<typeof buttonContext>; labelColor: string; fillColor: string}) {
-  const [useAlternative, setUseAlternative] = useState(false);
-  const alternative = contrastAlternative(primary ? labelColor : context.color, primary ? fillColor : context.solid);
-  if (!alternative) return null;
-  return <p className="helper-text contrast-note" role="status"><span>Label contrast is too low on the website canvas.</span><button type="button" aria-pressed={useAlternative} onClick={() => setUseAlternative(shown => !shown)}>{useAlternative ? "Show website colors" : "Preview darker alternative"}</button></p>;
+function ButtonContrastNote({primary,context,labelColor,fillColor,label,onApply}:{primary:boolean;context:ReturnType<typeof buttonContext>;labelColor:string;fillColor:string;label:string;onApply:(patch:Partial<ButtonData>)=>void}) {
+  const [preview,setPreview]=useState(false);
+  const alternative=contrastAlternative(primary?labelColor:context.color,primary?fillColor:context.solid);
+  if(!alternative)return null;
+  const current={color:primary?labelColor:context.color,backgroundColor:primary?fillColor:context.solid};
+  const suggested={color:alternative.color||current.color,backgroundColor:alternative.fill||current.backgroundColor};
+  return <div className="contrast-note" role="status"><p>This button text may be hard to read.</p>
+    <button type="button" aria-expanded={preview} onClick={()=>setPreview(v=>!v)}>{preview?'Hide color comparison':'Preview darker alternative'}</button>
+    {preview&&<><div className="contrast-comparison"><div><small>Current</small><span style={current}>{label||'Button'}</span></div><div><small>Suggested</small><span style={suggested}>{label||'Button'}</span></div></div>
+      <p className="helper-text">The suggested colors improve text contrast. Apply them to this button only.</p>
+      <button type="button" onClick={()=>onApply({textColor:suggested.color,fillColor:suggested.backgroundColor||undefined})}>Apply suggested colors</button>
+      <button type="button" onClick={()=>setPreview(false)}>Keep current colors</button></>}
+  </div>;
 }
-function IconPosition({value, onChange}:{value:"left"|"right"; onChange:(side:"left"|"right")=>void}) {
+export function IconPosition({value, onChange}:{value:"left"|"right"; onChange:(side:"left"|"right")=>void}) {
   const id = useId();
   const options = [{value:"left" as const, label:"Left"}, {value:"right" as const, label:"Right"}];
   return <div className="aligned-field icon-position"><span id={id}>Icon position</span><div className="segmented" role="group" aria-labelledby={id}>{options.map(option => <button type="button" key={option.value} aria-pressed={value===option.value} onClick={() => onChange(option.value)}>{option.label}</button>)}</div></div>;
@@ -126,7 +132,8 @@ function ButtonFields({block, change, sections: pageSections, accent, theme}:{bl
     )}
     {currentButton && (
       <div className="action-editor" key={actualIndex}>
-        <ButtonContrastNote primary={actualIndex === 0} context={context} labelColor={ramp[50]} fillColor={fill}/>
+        <ButtonContrastNote primary={actualIndex === 0} context={{...context,color:currentButton.textColor||context.color,solid:currentButton.fillColor||context.solid}} labelColor={currentButton.textColor||ramp[50]} fillColor={currentButton.fillColor||fill} label={currentButton.label} onApply={patch=>write(actualIndex,patch)}/>
+        {(currentButton.textColor||currentButton.fillColor)&&<button type="button" className="subtle-action" onClick={()=>write(actualIndex,{textColor:undefined,fillColor:undefined})}>Use website button colors</button>}
         <ButtonText button={currentButton} onLabel={label=>write(actualIndex,{label})} onIcon={icon=>write(actualIndex,{icon})}/>
         {currentButton.icon!=='none' && <IconPosition value={buttonIconSide(currentButton)} onChange={iconPosition=>write(actualIndex,{iconPosition})}/>}
         <Destination label="When clicked" value={currentButton.href} onChange={href=>write(actualIndex,{href})} sections={pageSections}/>
@@ -186,7 +193,8 @@ function RatingRow({score, count, onScore, onCount}:{score:string; count:string;
   </>;
 }
 function getGroupIcon(id: string, type: string) {
-  if (id === 'links') return <LinkIcon size={16} strokeWidth={1.75} className="group-icon" aria-hidden="true"/>;
+  if (id === 'menus' || id === 'links') return <MenuIcon size={16} strokeWidth={1.75} className="group-icon" aria-hidden="true"/>;
+  if (id === 'placement') return <Layers size={16} strokeWidth={1.75} className="group-icon" aria-hidden="true"/>;
   if (id === 'name' || id === 'details') return <Building2 size={16} strokeWidth={1.75} className="group-icon" aria-hidden="true"/>;
   if (id === 'buttons') return <MousePointerClick size={16} strokeWidth={1.75} className="group-icon" aria-hidden="true"/>;
   if (['media', 'photo', 'image', 'gallery', 'logos', 'logo', 'before', 'after'].includes(id)) return <ImageIcon size={16} strokeWidth={1.75} className="group-icon" aria-hidden="true"/>;
@@ -199,7 +207,8 @@ function getGroupIcon(id: string, type: string) {
 
 function getGroupCount(id: string, block: Block, site: Site): number | null {
   const c = block.content;
-  if (id === 'links' && block.type === 'header') return site.nav.length;
+  if ((id === 'menus' || id === 'links') && block.type === 'header') return (site.menus || createDefaultMenus(site)).length;
+  if (id === 'placement' && block.type === 'header') return 2;
   if (id === 'buttons') return c.buttons?.length || null;
   if (id === 'media' && block.type === 'hero') {
     const mediaCount = [c.media, ...(c.slides || [])].filter(item => item?.src).length;
@@ -224,9 +233,9 @@ export function contentGroups(block:Block,site:Site,footerDefaults:FooterColumn[
     return groups;
   };
   const messageGroups=(groups:Group[])=>contract.showsTitle||contract.showsSubtext||contract.showsEyebrow||contract.allowsBody?groups:groups.filter(g=>g.id!=='message');
-  if(type==='header')return [{id:'links',label:'Navigation links',hint:'Up to 5 navigation links'},{id:'name',label:'Business name',hint:'The business name in the header. It is shared by every page.'},{id:'logo',label:'Logo',hint:'Optional mark beside the name'}];
+  if(type==='header')return [{id:'menus',label:'Menus',hint:''},{id:'placement',label:'Menu placement',hint:''},{id:'name',label:'Business name',hint:''},{id:'logo',label:'Logo',hint:''}];
   if(type==='footer'){const columns=site.footerColumns||footerDefaults;return [...(!site.footerColumns?[{id:'details',label:'Business details',hint:'Name, phone, email, and location'}]:[]),...columns.map((column,i)=>({id:`column:${i}`,label:column.title.trim()||`Column ${i+1}`,hint:'Heading, text, and links'})),{id:'copyright',label:'Copyright',hint:'The line under the columns'},{id:'image',label:'Image',hint:'Optional picture above the columns'}];}
-  if(type==='hero'){const groups:Group[]=[message,buttonsGroup,{id:'trust',label:'Reasons to trust you',hint:''}];if(layout==='story')groups.push({id:'statistics',label:'Your business in numbers',hint:''});const mediaCount=[c.media,...(c.slides||[])].filter(item=>item?.src).length;groups.push({id:'media',label:'Hero media',hint:mediaCount?`${mediaCount} item${mediaCount===1?'':'s'}`:''});if(layout==='story')groups.push({id:'story',label:'Story video',hint:'Plays when someone uses the story button'});groups.push({id:'rating',label:'Customer rating',hint:''});return groups;}
+  if(type==='hero'){const groups:Group[]=[message,buttonsGroup,{id:'trust',label:'Reasons to trust you',hint:''}];if(layout==='story')groups.push({id:'statistics',label:'Your business in numbers',hint:''});const mediaCount=[c.media,...(c.slides||[])].filter(item=>item?.src).length;groups.push({id:'media',label:'Main image & video',hint:mediaCount?`${mediaCount} item${mediaCount===1?'':'s'}`:''});if(layout==='story')groups.push({id:'story',label:'Story video',hint:'Plays when someone uses the story button'});groups.push({id:'rating',label:'Customer rating',hint:''});return groups;}
   if(type==='services')return [{id:'intro',label:'Introduction',hint:layout==='Photo cards'?'Headline and the note beside it':'Headline and the card link'},{id:'services',label:'Services',hint:`${c.items.length} ${c.items.length===1?'item':'items'}`}];
   if(type==='logos')return [{...message,hint:'Small label, headline, and description'},{id:'logos',label:'Logos',hint:`${c.items.length} ${c.items.length===1?'item':'items'}`}];
   if(type==='proof'){if(layout!=='Photo and reasons')return withButtons([{...message,hint:''},{id:'promises',label:'Promises',hint:''},{id:'photo',label:'Media',hint:''}]);const {reasons,avatars}=proofBuckets(c.items);return [message,{id:'stats',label:'Numbers',hint:'Two numbers on the photo'},...[0,1,2].map(i=>({id:`avatar:${i}`,label:avatars[i]?.title.trim()||`Person ${i+1}`,hint:'Name and optional photo'})),{id:'more',label:'More people',hint:'Extra count beside the names'},...reasons.map((item,i)=>({id:`reason:${i}`,label:item.title.trim()||`Reason ${i+1}`,hint:'Title, description, and icon'})),{id:'links',label:'Links',hint:'A button and a text link'},{id:'photo',label:'Media',hint:''}];}
@@ -249,8 +258,6 @@ export function ContentBrowser({block,site,pages,update,change,footerDefaults,us
   const c=block.content,type=block.type;
   const buckets=proofBuckets(c.items);
   const itemChange=(index:number,patch:Partial<BlockItem>)=>change({items:c.items.map((item,i)=>i===index?{...item,...patch}:item)});
-  const columns=()=>site.footerColumns||footerDefaults;
-  const writeColumns=(next:FooterColumn[])=>update({footerColumns:next});
   const noun=type==='quote'?'form field':type==='proof'&&block.layout==='Photo and reasons'?'reason':type==='logos'||type==='about'?'':type==='services'?'service':type==='pains'?'concern':type==='solutions'&&block.layout==='Numbered steps'?'step':type==='trust'?'signal':type==='reviews'?'review':type==='faq'?'question':'';
   const capped=type==='quote'?c.fields.length>=12:type==='proof'&&block.layout==='Photo and reasons'?buckets.reasons.length>=6:type==='solutions'&&block.layout==='Numbered steps'?c.items.length>=5:type==='trust'&&block.layout==='Signals'?c.items.length>=3:['logos','services','about','pains','solutions','trust','reviews','faq'].includes(type)?c.items.length>=60:true;
   const add=()=>{
@@ -273,7 +280,8 @@ export function ContentBrowser({block,site,pages,update,change,footerDefaults,us
   if(current==='intro')return <><MessageFields content={c} change={change} allowBody={layoutContract('services',block.layout).allowsBody}/>{block.layout!=='Photo cards'&&<Field label="Link text" value={c.actionLabel||''} onChange={actionLabel=>change({actionLabel})}/>}{block.layout==='Photo cards'&&<Field label="Side note" value={c.note} multiline onChange={note=>change({note})}/>}</>;
   if(current==='buttons')return c.buttons.length?<ButtonFields block={block} change={change} sections={site.blocks} accent={site.accent} theme={site.theme}/>:<p className="helper-text">This section has no separate buttons.</p>;
   if(current==='name')return <><Field label="Business name" value={site.brand} onChange={brand=>update({brand})}/><p className="helper-text">This changes the business name on every page.</p></>;
-  if(current==='links'&&type==='header')return <>{site.nav.map((name,i)=><div className="service-editor" key={i}>{linkedPage(pages,site.navTargets?.[i]||'',site.navPageIds?.[i])?<p>Page link: {linkedPage(pages,site.navTargets?.[i]||'',site.navPageIds?.[i])!.name}. Rename it in Page settings.</p>:<Field label={`Navigation link ${i+1}`} value={name} onChange={label=>update({nav:site.nav.map((v,j)=>i===j?label:v)})}/>}<label className="field"><span>Where this button goes</span><select value={site.navTargets?.[i]||["#services","#proof","#contact"][i]||"#contact"} onChange={e=>update({navTargets:site.nav.map((_,j)=>i===j?e.target.value:site.navTargets?.[j]||["#services","#proof","#contact"][j]||"#contact")})}>{pages.map(p=><option key={p.id} value={`/${p.slug||pageSlug(p.name)}`}>{p.name} page</option>)}{sections.filter(s=>!["header","footer"].includes(s.id)).map(s=><option key={s.id} value={s.id==="hero"?"#top":`#${s.id}`}>{s.label}{site.hidden.includes(s.id)?" (hidden)":""}</option>)}</select></label><button type="button" className="subtle-action" aria-label={`Remove navigation link ${i+1}`} onClick={()=>update({nav:site.nav.filter((_,j)=>i!==j),navChildren:site.nav.map((_,j)=>site.navChildren?.[j]||[]).filter((_,j)=>i!==j),navTargets:site.nav.map((_,j)=>site.navTargets?.[j]||["#services","#proof","#contact"][j]||"#contact").filter((_,j)=>i!==j)})}>Remove link</button></div>)}<button type="button" className="wide" disabled={site.nav.length>=5} onClick={()=>update({nav:[...site.nav,"New link"],navChildren:[...site.nav.map((_,i)=>site.navChildren?.[i]||[]),[]],navTargets:[...site.nav.map((_,i)=>site.navTargets?.[i]||["#services","#proof","#contact"][i]||"#contact"),"#contact"]})}>Add navigation link</button>{site.nav.length>=5&&<p className="hint">The top menu has five links. Remove one to add another.</p>}</>;
+  if((current==='menus'||current==='links')&&type==='header')return <MenuEditor site={site} pages={pages} update={update}/>;
+  if(current==='placement'&&type==='header')return <MenuPlacement site={site} pages={pages} update={update}/>;
   if(current==='logo')return <MediaSlot label="Logo" value={c.media} usage={usage} onChange={media=>change({media})} onClear={()=>change({media:{...mediaDefaults}})}/>;
   if(current==='trust') {
     const writeFact=(index:number,value:string)=>change({facts:c.facts.map((fact,i)=>i===index?value:fact)});
@@ -320,9 +328,6 @@ if(current==='facts')return <>{[0,1,2].map(i=><Field key={i} label={`Fact ${i+1}
   if(current.startsWith('field:')){const index=Number(current.slice(6));const field=c.fields[index];if(!field)return <p className="helper-text">This field is no longer on the form.</p>;return <><Field label="Field label" value={field.label} onChange={label=>change({fields:c.fields.map((item,i)=>i===index?{...item,label}:item)})}/><label className="field"><span>Answer type</span><select aria-label={`Answer type, field ${index+1}`} value={field.type} onChange={e=>change({fields:c.fields.map((item,i)=>i===index?{...item,type:e.target.value as typeof field.type}:item)})}><option value="text">Text</option><option value="email">Email</option><option value="tel">Phone</option><option value="textarea">Long answer</option></select></label><Toggle label={`Required, field ${index+1}`} checked={field.required} change={required=>change({fields:c.fields.map((item,i)=>i===index?{...item,required}:item)})}/><button type="button" className="subtle-action" onClick={()=>{change({fields:c.fields.filter((_,i)=>i!==index)});onOpen(null);}}>Remove field</button></>;}
   if(current==='offer')return <><Field label="Price" value={c.price||''} onChange={price=>change({price})}/><Field label="Old price" value={c.oldPrice||''} onChange={oldPrice=>change({oldPrice})}/><Field label="End date" value={c.endDate||''} onChange={endDate=>change({endDate})}/><Field label="Badge" value={c.badge||''} onChange={badge=>change({badge})}/><Field label="Offer details" value={c.note} multiline onChange={note=>change({note})}/></>;
   if(current==='details'&&type==='contact')return <><p className="helper-text">Settings → Business details updates these fields on every page.</p><Field label="Address" value={c.address||''} multiline onChange={address=>change({address})}/><Field label="Phone" value={c.phone||''} onChange={phone=>change({phone})}/><Field label="Email" value={c.email||''} onChange={email=>change({email})}/><Field label="Opening hours" value={c.hours||''} multiline onChange={hours=>change({hours})}/></>;
-  if(current==='details'&&type==='footer')return <><Field label="Business name" value={site.brand} onChange={brand=>update({brand})}/><Field label="Phone" value={site.phone} onChange={phone=>update({phone})}/><Field label="Email" value={site.email} onChange={email=>update({email})}/><Field label="Location" value={site.address} onChange={address=>update({address})}/><p className="helper-text">These details are shared. Editing a column saves a custom footer instead.</p></>;
-  if(current.startsWith('column:')){const index=Number(current.slice(7));const column=columns()[index];if(!column)return <p className="helper-text">This column is no longer in the footer.</p>;const write=(patch:Partial<FooterColumn>)=>writeColumns(columns().map((item,i)=>i===index?{...item,...patch}:item));return <><Field label="Column heading" value={column.title} onChange={title=>write({title})}/><Field label="Column text" multiline value={column.text} onChange={text=>write({text})}/>{column.links.map((link,j)=><div key={j}>{linkedPage(pages,link.href,link.pageId)?<p>Page link: {linkedPage(pages,link.href,link.pageId)!.name}. Rename it in Page settings.</p>:<Field label="Link label" value={link.label} onChange={label=>write({links:column.links.map((item,n)=>n===j?{...item,label}:item)})}/>}<Destination label="Link destination" value={link.href} onChange={href=>write({links:column.links.map((item,n)=>n===j?{...item,href}:item)})}/><button type="button" className="subtle-action" onClick={()=>write({links:column.links.filter((_,n)=>n!==j)})}>Remove link</button></div>)}<button type="button" className="wide" onClick={()=>write({links:[...column.links,{label:'New link',href:'#contact'}]})}>Add footer link</button></>;}
-  if(current==='copyright')return <Field label="Copyright and legal line" value={c.note} onChange={note=>change({note})}/>;
   if(current==='image'&&(type==='promo'||type==='quote'||type==='closing'||type==='contact'))return <>{type==='closing'&&<p className="helper-text">This picture shows above the closing message when set.</p>}<HeroMediaEditor compact content={c} layout={block.layout} blockId={block.id} onChange={change} modes={type==='contact'?CONTACT_STAGE_MODES:undefined}/></>;
   if(current==='image')return <MediaSlot label={type==='contact'?'Map image':type==='promo'?'Background image':'Image'} value={c.media} usage={usage} onChange={media=>change({media})} onClear={()=>change({media:{...mediaDefaults}})} hint={type==='closing'?'This picture shows above the closing message when set.':undefined}/>;
   if(current.startsWith('item:')){
@@ -338,12 +343,14 @@ if(current==='facts')return <>{[0,1,2].map(i=><Field key={i} label={`Fact ${i+1}
       {type==='pains'&&<Field label="Short tag" value={item.tag||''} onChange={tag=>itemChange(index,{tag})}/>}
       {type==='trust'&&<><Field label="Value" value={item.value||''} onChange={value=>itemChange(index,{value})}/><Field label="Note" value={item.note||''} onChange={note=>itemChange(index,{note})}/></>}
       {type==='reviews'&&<><Field label="Service" value={item.tag||''} onChange={tag=>itemChange(index,{tag})}/><Field label="When" value={item.when||''} onChange={when=>itemChange(index,{when})}/><Field label="Source" value={item.source||''} onChange={source=>itemChange(index,{source})}/><Field label="Details" value={item.note||''} onChange={note=>itemChange(index,{note})}/><label className="field"><span>Stars</span><select aria-label={`Stars, review ${index+1}`} value={item.stars||''} onChange={e=>itemChange(index,{stars:Number(e.target.value)||undefined})}><option value="">No rating</option>{[1,2,3,4,5].map(n=><option key={n}>{n}</option>)}</select></label><p className="helper-text">Leave details blank unless you have a real note from the customer. A photo replaces the initials.</p></>}
-      {showIcon&&<IconPicker label={`Icon, item ${index+1}`} value={item.icon} onChange={icon=>itemChange(index,{icon})} options={icons}/>}
+      {showIcon&&<IconPicker label={type==='pains'?'Badge icon':`Icon, item ${index+1}`} value={item.icon} onChange={icon=>itemChange(index,{icon})} options={icons}/>}
       {itemMedia(block)&&<><MediaSlot label="Photo" value={item.media||mediaDefaults} usage={usage} onChange={media=>itemChange(index,{media})} hint={type==='solutions'?'Put each step photo in public/media/ai-images, then set its address to /media/ai-images/your-file.jpg.':undefined}/>{item.media?.src&&<button type="button" onClick={()=>itemChange(index,{media:undefined})}>Remove item media</button>}</>}
       <button type="button" className="subtle-action" disabled={type==='solutions'&&block.layout==='Numbered steps'&&c.items.length<=3} onClick={()=>removeItem(index)}>Remove {type==='services'?'service':type==='solutions'?'step':'item'}</button>
     </>;
   }
   return <p className="helper-text">Choose a part of this section to edit.</p>;
   };
-  return <div className="group-list">{type==='footer'&&site.footerColumns&&<button type="button" className="reset-style" onClick={()=>update({footerColumns:undefined})}>Use original footer content</button>}{groups.map(item=>{const expanded=open===item.id;const slug=item.id.replace(/[^A-Za-z0-9_-]/g,"-");const buttonId=`${accordionBase}-${slug}-heading`;const panelId=`${accordionBase}-${slug}-panel`;const count=getGroupCount(item.id,block,site);return <div className="accordion" key={item.id} data-expanded={expanded}><button type="button" className="accordion-toggle" id={buttonId} aria-expanded={expanded} aria-controls={panelId} onClick={event=>{onOpen(expanded?null:item.id);event.currentTarget.scrollIntoView({block:'nearest'});}}>{getGroupIcon(item.id,type)}<span className="grow"><b>{item.label}</b>{item.hint&&<small>{item.hint}</small>}</span>{count!==null&&<span className="group-count">{count}</span>}{expanded?<ChevronDown size={16} className="group-chevron refined-chevron" aria-hidden="true"/>:<ChevronRight size={16} className="group-chevron refined-chevron" aria-hidden="true"/>}</button>{expanded&&<div className="accordion-panel" id={panelId} role="region" aria-labelledby={buttonId}>{panel(item.id)}</div>}</div>;})}{noun&&type!=='services'&&<button type="button" className="wide" disabled={capped||(type!=='quote'&&type!=='proof'&&!['logos','about','pains','solutions','trust','reviews','faq'].includes(type))} onClick={add}>Add {noun}</button>}{noun&&type!=='services'&&capped&&<p className="hint">This section has as many items as it can hold.</p>}</div>;
+  if(type==='header'&&open)return <>{<button type="button" className="menu-back-btn" onClick={()=>onOpen(null)}><ArrowLeft size={16} aria-hidden="true"/>Header</button>}{panel(open)}</>;
+  if(type==='hero'&&open==='media')return <><button type="button" className="image-journey-back" onClick={()=>onOpen(null)}><ArrowLeft size={16} aria-hidden="true"/>Introduction options</button><MainImageJourney usage={usage} content={c} layout={block.layout} blockId={block.id} onChange={change}/></>;
+  return <div className="group-list">{type==='hero'&&<button type="button" className="image-journey-entry" onClick={()=>onOpen('media')}><ImageIcon size={20} aria-hidden="true"/><span><strong>Change my main image</strong><small>Choose, adjust, and describe your picture</small></span><ChevronRight size={18} aria-hidden="true"/></button>}{groups.map(item=>{const expanded=open===item.id;const slug=item.id.replace(/[^A-Za-z0-9_-]/g,"-");const buttonId=`${accordionBase}-${slug}-heading`;const panelId=`${accordionBase}-${slug}-panel`;const count=getGroupCount(item.id,block,site);return <div className="accordion" key={item.id} data-expanded={expanded}><button type="button" className="accordion-toggle" id={buttonId} aria-expanded={expanded} aria-controls={panelId} onClick={event=>{onOpen(expanded?null:item.id);event.currentTarget.scrollIntoView({block:'nearest'});}}>{getGroupIcon(item.id,type)}<span className="grow"><b>{item.label}</b>{item.hint&&<small>{item.hint}</small>}</span>{count!==null&&<span className="group-count">{count}</span>}{expanded?<ChevronDown size={16} className="group-chevron refined-chevron" aria-hidden="true"/>:<ChevronRight size={16} className="group-chevron refined-chevron" aria-hidden="true"/>}</button>{expanded&&<div className="accordion-panel" id={panelId} role="region" aria-labelledby={buttonId}>{panel(item.id)}</div>}</div>;})}{noun&&type!=='services'&&<button type="button" className="wide" disabled={capped||(type!=='quote'&&type!=='proof'&&!['logos','about','pains','solutions','trust','reviews','faq'].includes(type))} onClick={add}>Add {noun}</button>}{noun&&type!=='services'&&capped&&<p className="hint">This section has as many items as it can hold.</p>}</div>;
 }

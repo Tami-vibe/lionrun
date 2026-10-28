@@ -32,7 +32,7 @@ test('Why choose us media stage shows Image Video Slideshow and mute for video',
   assert.match(html, />Video</);
   assert.match(html, />Slideshow</);
   assert.match(html, /aria-label="Muted"/);
-  assert.match(html, /This section holds 4 items/);
+  assert.match(html, /Your 4 existing items are preserved/);
   assert.match(html, /aria-disabled="true"|disabled/);
 });
 

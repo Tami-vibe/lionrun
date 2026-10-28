@@ -2,6 +2,8 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { ACCEPT, assetStore, Asset, LIMITS, validateUpload } from './store';
 import { mediaDefaults, MediaSettings, mediaURL, normalizeMedia, socialEmbed, https, videoPlan, videoClick } from './model';
+import {MediaUpload} from '../editor/media-upload';
+import {directMediaLink} from '../editor/hero-collection';
 import {mountMediaSequence, sequenceItems, type MediaMode} from './sequence';
 import {isAssetUnused, type MediaUsageIndex} from './usage';
 const LibraryContext=createContext<{assets:Asset[];resolve:(src:string)=>string;reload:()=>Promise<void>;error:string}>({assets:[],resolve:()=>'',reload:async()=>{},error:''});
@@ -81,14 +83,15 @@ export function MediaPicker({label,imagesOnly=false,onSelect,onClose}:{label:str
     <div className="list-actions"><strong>{label}</strong><button type="button" onClick={onClose}>Close</button></div>
     {(error||notice)&&<p role="status" className="helper-text">{error||notice}</p>}
     <label className="field"><span>Search library</span><input type="search" value={query} onChange={event=>setQuery(event.target.value)}/></label>
-    <label className="upload-media">{busy?'Saving…':'Upload image or video'}<input disabled={busy} type="file" accept={imagesOnly?'image/jpeg,image/png,image/webp,image/gif':ACCEPT} onChange={event=>{const file=event.target.files?.[0];event.target.value='';if(!file)return;setBusy(true);setNotice('');void publishAsset(file,reload).then(asset=>{if(asset.kind==='captions'||(imagesOnly&&asset.kind!=='image'))throw Error('Choose an image.');onSelect(`media:${asset.id}`,asset.kind==='video'?'video':'image');}).catch(reason=>setNotice(String(reason))).finally(()=>setBusy(false));}}/></label>
+    <MediaUpload label={imagesOnly?'Add images':'Add images or videos'} accept={imagesOnly?'image/jpeg,image/png,image/webp,image/gif':ACCEPT} multiple={false} busy={busy} onFiles={files=>{const file=files[0];if(!file)return;setBusy(true);setNotice('');void publishAsset(file,reload).then(asset=>{if(asset.kind==='captions'||(imagesOnly&&asset.kind!=='image'))throw Error('Choose an image.');onSelect(`media:${asset.id}`,asset.kind==='video'?'video':'image');}).catch(reason=>setNotice(String(reason))).finally(()=>setBusy(false));}}/>
+
     <div className="asset-list" role="listbox" aria-label="Library files">{rows.map(asset=><button type="button" key={asset.id} onClick={()=>onSelect(`media:${asset.id}`,asset.kind==='video'?'video':'image')}><AssetThumb kind={asset.kind} url={resolve(`media:${asset.id}`)}/><span className="asset-meta"><strong>{asset.name}</strong><small>{asset.kind}</small></span></button>)}{!rows.length&&<p className="helper-text">No matching files in this browser’s library.</p>}</div>
     {openManage&&<button type="button" className="media-manage-link" onClick={()=>{onClose();openManage();}}>Manage library</button>}
   </div>;
 }
 export function MediaManager({value,onChange,usage}:{value:Partial<MediaSettings>;onChange:(m:MediaSettings)=>void;usage:MediaUsageIndex}){
-  const m=normalizeMedia(value),{assets,reload,error}=useMediaLibrary(),openManage=useContext(ManageLibraryContext);
-  const [busy,setBusy]=useState(false),[notice,setNotice]=useState(''),[search,setSearch]=useState('');
+  const m=normalizeMedia(value),{assets,reload,error,resolve}=useMediaLibrary(),openManage=useContext(ManageLibraryContext);
+  const [busy,setBusy]=useState(false),[notice,setNotice]=useState(''),[search,setSearch]=useState(''),[picker,setPicker]=useState(false);
   const update=(patch:Partial<MediaSettings>)=>onChange(normalizeMedia({...m,...patch}));
   const field=(label:string,key:'src'|'alt'|'title'|'description'|'poster'|'captions'|'uploadDate'|'captionLanguage')=><label className="field"><span>{label}</span><input value={m[key]} onChange={e=>update({[key]:e.target.value})}/></label>;
   async function upload(file:File,caption=false){setBusy(true);setNotice('');try{
@@ -96,18 +99,24 @@ export function MediaManager({value,onChange,usage}:{value:Partial<MediaSettings
     if(caption)update({captions:`media:${asset.id}`});else update({src:`media:${asset.id}`,kind:asset.kind as 'image'|'video',title:m.title||file.name,uploadDate:asset.created});
     setNotice('Saved to your media library.');
   }catch(e){setNotice(String(e));}finally{setBusy(false);}}
-  return <section className="media-manager" aria-label="Media manager"><h3>Media manager</h3><p className="helper-text">Saved in this browser. Images up to 10 MB; videos up to 100 MB; library 250 MB. MOV playback depends on its codec.</p>
+  return <section className="media-manager" aria-label="Media manager">
     {(error||notice)&&<p role="status" className="media-notice">{error||notice}</p>}
-    <label className="upload-media">{busy?'Saving…':'Upload image or video'}<input disabled={busy} type="file" accept={ACCEPT} onChange={e=>{const file=e.target.files?.[0];if(file)void upload(file);e.target.value='';}}/></label>
+    <MediaUpload accept={ACCEPT} multiple={false} busy={busy} onFiles={files=>{if(files[0])void upload(files[0]);}} onLibrary={()=>setPicker(true)} onLink={value=>{const result=directMediaLink(value);if(!result.ok){setNotice(result.error);return false;}update({src:result.src,kind:result.kind});setNotice('Image updated.');return true;}}/>
+    {picker&&<MediaPicker label="Choose section media" onClose={()=>setPicker(false)} onSelect={(src,kind)=>{update({src,kind});setPicker(false);}}/>}
+    <details className="media-options"><summary>Library files and storage</summary>
+    <p className="helper-text">Saved in this browser. Images up to 10 MB; videos up to 100 MB; library 250 MB.</p>
     <label className="field"><span>Search media library</span><input type="search" value={search} onChange={e=>setSearch(e.target.value)} placeholder="Filename…"/></label>
-    <div className="asset-list">{assets.filter(a=>a.name.toLowerCase().includes(search.toLowerCase())).map(a=>{const unused=isAssetUnused(usage,a.id);return <div key={a.id}><button type="button" onClick={()=>a.kind==='captions'?update({captions:`media:${a.id}`}):update({src:`media:${a.id}`,kind:a.kind,title:m.title||a.name,uploadDate:a.created})}><strong>{a.name}</strong><small>{a.kind} · {(a.size/1_000_000).toFixed(2)} MB · Use here</small></button>{a.kind==='image'&&<button type="button" title={`Use ${a.name} as poster`} onClick={()=>update({poster:`media:${a.id}`})}>Poster</button>}<button type="button" disabled={busy||!unused} title={unused?'Delete from this browser':'Remove from every page first'} onClick={async()=>{if(!window.confirm('Delete this unused file from this browser? This cannot be undone.'))return;setBusy(true);try{await assetStore('delete',a.id);await reload();setNotice('Unused asset deleted.');}catch(e){setNotice(String(e));}finally{setBusy(false);}}}>Delete</button></div>;})}</div>
+    <div className="asset-list media-library-records">{assets.filter(a=>a.name.toLowerCase().includes(search.toLowerCase())).map(a=>{const unused=isAssetUnused(usage,a.id);return <div className="asset-record" key={a.id}><button type="button" onClick={()=>a.kind==='captions'?update({captions:`media:${a.id}`}):update({src:`media:${a.id}`,kind:a.kind,title:m.title||a.name,uploadDate:a.created})}><AssetThumb kind={a.kind} url={resolve(`media:${a.id}`)}/><span className="asset-meta"><strong title={a.name}>{a.name}</strong><small>{a.kind} · {(a.size/1_000_000).toFixed(2)} MB · Use here</small></span></button>{m.kind!=='image'&&a.kind==='image'&&<button type="button" title={`Use ${a.name} as poster`} onClick={()=>update({poster:`media:${a.id}`})}>Use as video cover</button>}<button type="button" disabled={busy||!unused} title={unused?'Delete from this browser':'Remove from every page first'} onClick={async()=>{if(!window.confirm('Delete this unused file from this browser? This cannot be undone.'))return;setBusy(true);try{await assetStore('delete',a.id);await reload();setNotice('Unused asset deleted.');}catch(e){setNotice(String(e));}finally{setBusy(false);}}}>Delete</button>{!unused&&<small className="asset-used-note">Used on your website. Remove its uses before deleting.</small>}</div>;})}</div>
     {openManage&&<button type="button" className="media-manage-link" onClick={openManage}>Manage library</button>}
     {!assets.length&&<p className="helper-text">Your uploads will appear here and can be reused in any section.</p>}
+    </details>
+    <details className="media-options"><summary>Source and file details</summary>
     <label className="field"><span>Media type</span><select value={m.kind} onChange={e=>update({kind:e.target.value as MediaSettings['kind']})}><option value="image">Image</option><option value="video">Video file / URL</option><option value="social">Social embed</option></select></label>
     {field('Media URL or library reference','src')}{m.src&&!mediaURL(m.src)&&<p role="alert">Use an HTTPS link or select a library file.</p>}
+    </details>
     <MediaView key={m.src} value={m}/>
-    {field('Image alt text','alt')}{field('Media title','title')}{field('Description / visible caption','description')}
-    <details className="media-options" open><summary>Framing and placement</summary>
+    {field('Image description','alt')}<details className="media-options"><summary>Title and caption</summary>{field('Media title','title')}{field('Description / visible caption','description')}</details>
+    <details className="media-options"><summary>Framing and placement</summary>
       {(['zoom','x','y'] as const).map(key=><label className="field" key={key}><span>{key==='zoom'?'Zoom':key==='x'?'Horizontal position':'Vertical position'}: {key==='zoom'?`${Math.round(m[key]*100)}%`:`${m[key]}%`}</span><input type="range" min={key==='zoom'?0.25:0} max={key==='zoom'?4:100} step={key==='zoom'?0.05:1} value={m[key]} onChange={e=>update({[key]:Number(e.target.value)})}/></label>)}
       <button type="button" onClick={()=>update({zoom:1,x:50,y:50})}>Reset framing</button>
       <label className="field"><span>Aspect ratio</span><select value={m.ratio} onChange={e=>update({ratio:e.target.value})}>{['16/9','4/3','1/1','9/16','21/9'].map(r=><option key={r}>{r}</option>)}</select></label>

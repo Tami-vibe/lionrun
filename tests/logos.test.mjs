@@ -22,9 +22,9 @@ test('partner logos content is Message and Logos, with four rows until the rest 
   block.content.items = Array.from({length: 6}, (_, index) => ({title: `Mark ${index + 1}`, description: '', icon: 'none'}));
   const html = content(block, 'logos');
   assert.match(html, /6 items/);
-  assert.match(html, /Upload files/);
+  assert.match(html, /Add images/);
   assert.match(html, /Choose from library/);
-  assert.match(html, /Drop files or paste a link/);
+  assert.match(html, /or drop a photo or video/);
   assert.equal((html.match(/class="hero-tile"/g) || []).length, 6);
   assert.match(html, /Logo name/);
   assert.match(html, /Destination/);

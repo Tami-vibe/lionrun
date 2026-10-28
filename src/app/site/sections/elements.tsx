@@ -10,8 +10,9 @@ export function buttonContents(button: Pick<ButtonData, "icon" | "label" | "icon
   const label = <span>{button.label}</span>;
   return buttonIconSide(button) === "left" ? <>{icon}{label}</> : <>{label}{icon}</>;
 }
+export const buttonAppearance=(button:ButtonData)=>({color:button.textColor,backgroundColor:button.fillColor,borderColor:button.fillColor});
 export function SectionButtons({content,link}:{content:import('../blocks').BlockContent;link:(href:string,id?:string|null)=>React.AnchorHTMLAttributes<HTMLAnchorElement>}) {
-  return <div className="hero-buttons">{content.buttons.filter((button,i)=>button.label&&(i===0||content.showSecondary!==false)).map((button,i)=><a key={i} className={`site-btn ${i?'site-btn-outline':'site-btn-primary'}`} {...link(button.href)}>{buttonContents(button)}</a>)}</div>;
+  return <div className="hero-buttons">{content.buttons.filter((button,i)=>button.label&&(i===0||content.showSecondary!==false)).map((button,i)=><a key={i} className={`site-btn ${i?'site-btn-outline':'site-btn-primary'}`} style={buttonAppearance(button)} {...link(button.href)}>{buttonContents(button)}</a>)}</div>;
 }
 export function ButtonPreview({button, primary}:{button: ButtonData; primary: boolean}) {
   return <span className={`site-btn ${primary ? "site-btn-primary" : "site-btn-outline"}`} role="img" aria-label={button.label ? `${button.label} preview` : "Button preview"}>{buttonContents(button, 16)}</span>;

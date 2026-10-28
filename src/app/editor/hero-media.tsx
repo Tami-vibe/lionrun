@@ -1,6 +1,6 @@
 "use client";
 import {useEffect, useLayoutEffect, useRef, useState} from "react";
-import {Accessibility, Crop, Images, Layers, Play, X} from "lucide-react";
+import {Accessibility, Crop, Images, Layers, Play, Upload, X} from "lucide-react";
 import {MediaPicker, MediaView, publishAsset, useMediaLibrary} from "../media/library";
 import {mediaDefaults, normalizeMedia, type MediaSettings} from "../media/model";
 import {ACCEPT} from "../media/store";
@@ -34,8 +34,8 @@ export function HeroMediaEditor({content, layout, blockId, onChange, compact=fal
   const candidate=items.length?Math.min(Math.max(0,index),items.length-1):-1;
   const matches=(item:MediaSettings)=>mode==='slideshow'||(mode==='image'?item.kind==='image':item.kind!=='image');
   const selected=compact&&candidate>=0&&!matches(items[candidate])?items.findIndex(matches):candidate;
-  const limitExplanation = items.length >= addLimit ? `${items.length} of ${addLimit} items • remove one to add another` : `${items.length} of ${addLimit} items`;
-  const limitNote = items.length > addLimit ? `This ${owner.toLowerCase()} already has ${items.length} items, and they all stay. New items stop at ${addLimit}.` : `${limitExplanation}. This ${owner.toLowerCase()} holds ${addLimit} items.`;
+  const limitExplanation = items.length >= addLimit ? `Your ${items.length} existing items are preserved. Remove an item before adding more.` : `${items.length} of ${addLimit} items`;
+  const limitNote = items.length > addLimit ? `Your ${items.length} existing items are preserved. Remove an item before adding more.` : `${limitExplanation}. This ${owner.toLowerCase()} holds ${addLimit} items.`;
   useEffect(() => { setFocus(compact||selected < 0 ? null : {blockId, index: selected}); }, [blockId, selected, setFocus,compact]);
   useEffect(() => () => setFocus(null), [setFocus]);
   const stageModeKey = stageModes.join(",");
@@ -90,6 +90,21 @@ export function HeroMediaEditor({content, layout, blockId, onChange, compact=fal
     if(added.length>next.length-current.length)errors.push('Some files remain in the library because this collection is full.');
     setNotice(errors.join(" "));
   };
+  const replaceFile = async (file?:File) => {
+    if(!file||!media||uploading.current)return;
+    const target=media.src,at=selected;
+    uploading.current=true;setProgress('Replacing selected file…');setNotice('');
+    try {
+      const asset=await publishAsset(file,reload);
+      if(!alive.current)return;
+      const current=heroSlides(latest.current.content);
+      if(current[at]?.src!==target){setNotice('The selection changed. Your uploaded file is in the library.');return;}
+      const next=current.map((item,i)=>i===at?normalizeMedia({...item,src:`media:${asset.id}`,kind:asset.kind==='video'?'video':'image',title:asset.name}):item);
+      latest.current.onChange(collectionPatch(next,latest.current.content.slideIndex));
+      setNotice('Selected file replaced. Your other items are unchanged.');
+    } catch(reason) {if(alive.current)setNotice(reason instanceof Error?reason.message:'The file could not be replaced.');}
+    finally {uploading.current=false;if(alive.current)setProgress('');}
+  };
   const removeAt = (i: number) => {
     const next = items.filter((_, n) => n !== i);
     setRemoved({item: normalizeMedia(items[i]), index: i, slideIndex: content.slideIndex});
@@ -143,7 +158,8 @@ export function HeroMediaEditor({content, layout, blockId, onChange, compact=fal
   return <div className={compact?"list-editor section-media":"list-editor"}>
     {compact&&stageModes.length>1&&<div className="media-modes" role="group" aria-label="Media display">{stageModes.map(value=><button key={value} type="button" aria-pressed={mode===value} onClick={()=>{onChange({mediaMode:value});const first=items.findIndex(item=>value==='slideshow'||(value==='image'?item.kind==='image':item.kind!=='image'));setIndex(Math.max(0,first));}}>{value==='slideshow'?'Slideshow':value==='image'?'Image':'Video'}</button>)}</div>}
     {compact&&media&&media.kind!=='image'&&<label className="switch-row"><span>Muted</span><input type="checkbox" role="switch" aria-label="Muted" checked={media.muted} onChange={event => writeSelected({muted: event.target.checked})}/></label>}
-    <MediaImporter compact={compact} owner={owner} hint="Images and videos" accept={ACCEPT} placeholder="https://example.com/photo.jpg" items={importerItems} selected={selected} busy={!!progress} blocked={items.length >= addLimit} status={importerStatus} limitNote={items.length >= addLimit ? `${items.length} of ${addLimit} items • remove one to add another` : undefined} onFiles={files => void addFiles(files)} onLink={addLink} onLibrary={() => setLibrary(true)} onSelect={select} onRemove={removeAt} onReorder={reorder} />
+    <MediaImporter compact={compact} owner={owner} hint="Images and videos" accept={ACCEPT} placeholder="https://example.com/photo.jpg" items={importerItems} selected={selected} busy={!!progress} blocked={items.length >= addLimit} status={importerStatus} limitNote={items.length >= addLimit ? `Your ${items.length} existing items are preserved. Remove an item before adding more.` : undefined} onFiles={files => void addFiles(files)} onLink={addLink} onLibrary={() => setLibrary(true)} onSelect={select} onRemove={removeAt} onReorder={reorder} />
+    {media&&<label className="media-replace"><Upload size={16} aria-hidden="true"/>Replace selected file<input aria-label="Replace selected file" type="file" accept={ACCEPT} disabled={!!progress} onChange={e=>{const file=e.target.files?.[0];e.target.value='';void replaceFile(file);}}/></label>}
     {media && (
       <div className="media-summary-card">
         <div className="media-summary-thumb">

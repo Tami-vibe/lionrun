@@ -1,3 +1,4 @@
+import {buttonAppearance} from './elements';
 import {Columns} from '../../editor/columns';
 import {MediaView,MediaSequence} from '../../media/library';
 import {SectionHeading,SectionButtons,Icon} from './elements';
@@ -13,7 +14,7 @@ export function ProofSection({block,editable,selected,change,link}:SectionProps)
     <figure className="proof-stage">{media}{(faces.length>0||stats.length>0)&&<div className="proof-stage-bar">{(faces.length>0||extra>0)&&<div className="proof-faces">{faces.map((face,i)=><span key={i} className="proof-face" data-tone={faceTone(face.item.title)} aria-label={face.item.title||'Customer'}>{face.photo?<MediaView value={face.photo}/>:face.letters}</span>)}{extra>0&&<span className="proof-face proof-more" aria-label={`${extra} more`}>+{extra}</span>}</div>}{stats.length>0&&<div className="proof-stats">{stats.map((stat,i)=><p key={i}><strong>{stat.value}</strong><span>{stat.title}</span></p>)}</div>}</div>}</figure>
     <div className="proof-copy"><div className="proof-head"><div>{c.smallLabel&&<span className="proof-kicker">{c.smallLabel}</span>}<h2>{lines[0]}{lines.length>1&&<span className="proof-quiet">{lines.slice(1).join(' ')}</span>}</h2></div>{c.description&&<p>{c.description}</p>}</div>
       <ul className="reason-grid">{reasons.map((item,i)=><li key={i}><span className="reason-mark"><Icon name={item.icon} size={20}/></span><div><h3>{item.title}</h3>{item.description&&<p>{item.description}</p>}</div></li>)}</ul>
-      <div className="proof-actions">{c.buttons.slice(0,shown).map((button,i)=>button.label?i===0?<a key={i} className="site-btn site-btn-primary" {...link(button.href)}><span>{button.label}</span><Icon name={button.icon} size={16}/></a>:<a key={i} className="proof-text-link" {...link(button.href)}>{button.label}<Icon name="arrow" size={16}/></a>:null)}</div>
+      <div className="proof-actions">{c.buttons.slice(0,shown).map((button,i)=>button.label?i===0?<a key={i} className="site-btn site-btn-primary" style={buttonAppearance(button)} {...link(button.href)}><span>{button.label}</span><Icon name={button.icon} size={16}/></a>:<a key={i} className="proof-text-link" style={buttonAppearance(button)} {...link(button.href)}>{button.label}<Icon name="arrow" size={16}/></a>:null)}</div>
     </div>
   </Columns>;
 }

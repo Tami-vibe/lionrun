@@ -9,7 +9,7 @@ import {SettingsDialog, type BusinessDetails, type ProfileDetails, type Settings
 import type {BrandSitePatch} from "./editor/brand-settings";
 import {displayZoom,frameSize,previewZooms,regionForBlock,selectionForRegion,type EditorRegion} from "./editor/scope";
 import {activePage,autosavedPages,legacySite,legacyWorkspaceKey,loadableWorkspace,mergedPages,pageSnapshot,retainFailedWorkspace,sharedMenu,storedPages,syncableWorkspace,upgradeSchema2,workspaceKey,writeWorkspace} from "./editor/workspace";
-import {EditScope,EditScopeApi,EditScopeContext} from "./editor/fields";
+import {DestinationPagesContext,EditScope,EditScopeApi,EditScopeContext} from "./editor/fields";
 import {contentGroups} from "./editor/content-browser";
 import {HeroFocus,HeroFocusProvider} from "./editor/hero-focus";
 import {EditorShell,EditorLocation} from "./editor/shell";
@@ -29,8 +29,8 @@ function footerContent(site:Site):FooterColumn[] {
 const sections = catalog;
 type RequestQuery=Promise<{[key:string]:string|string[]|undefined}>;
 export default function Home({searchParams}:{searchParams:RequestQuery}) { return <Suspense fallback={<div className="preview-loading"/>}><RequestedEditor searchParams={searchParams}/></Suspense>; }
-function RequestedEditor({searchParams}:{searchParams:RequestQuery}) { const query=use(searchParams);return <MediaProvider><Editor initialPreview={query.preview==='1'} requestedPage={typeof query.page==='string'?query.page:undefined}/></MediaProvider>; }
-function Editor({initialPreview,requestedPage}:{initialPreview:boolean;requestedPage?:string}) {
+function RequestedEditor({searchParams}:{searchParams:RequestQuery}) { const query=use(searchParams);return <MediaProvider><Editor initialPreview={query.preview==='1'} requestedPage={typeof query.page==='string'?query.page:undefined} requestedTask={typeof query.task==='string'?query.task:undefined}/></MediaProvider>; }
+function Editor({initialPreview,requestedPage,requestedTask}:{initialPreview:boolean;requestedPage?:string;requestedTask?:string}) {
   const [history, dispatch] = useReducer(historyReducer, { past: [], present: initial, future: [] });
   const site = history.present;
   const [pages,setPages]=useState<PageEntry<Site>[]>([{id:"home",name:"Home",slug:"home",site:initial}]);
@@ -110,7 +110,28 @@ function Editor({initialPreview,requestedPage}:{initialPreview:boolean;requested
   };
   const placeCurrent=(where:'top'|'bottom'|'under'|'none',parent:number)=>{const page=pages.find(p=>p.id===activeId)!;const shared=placePage({...site,footerColumns:footerContent(site)},page,where,parent);shared.hidden=shared.hidden.filter(id=>id!==(where==='bottom'?'footer':'header'));update(shared);};
   const renamePage=(name:string)=>{const old=pages.find(p=>p.id===activeId)!;const seoTitle=site.seoTitle===`${old.name} | ${site.brand}`?`${name} | ${site.brand}`:site.seoTitle===old.name?name:site.seoTitle;const next={...site,seoTitle,blocks:site.blocks.map(b=>b.type==='hero'&&b.content.title===old.name?{...b,content:{...b.content,title:name}}:b)};setDirty(true);dispatch({type:'set',next});setPages(snapshot().map(p=>p.id===activeId?{...p,name,site:next}:p));};
-  const update = (patch: Partial<Site>) => {if(patch.footerColumns)patch.footerColumns=patch.footerColumns.map(c=>({...c,links:c.links.map(l=>({...l,pageId:linkedPage(pages,l.href)?.id}))}));if(patch.navTargets)patch.navPageIds=patch.navTargets.map(href=>linkedPage(pages,href)?.id||null);setDirty(true);const next={ ...site, ...patch, blocks:fixedBlockOrder(patch.blocks||site.blocks).map(b=>b.type==='header'?{...b,layout:headerLook(patch.headerStyle||site.headerStyle)}:b.type==='footer'?{...b,layout:patch.footerStyle||site.footerStyle}:b) };const typing=document.activeElement instanceof HTMLInputElement||document.activeElement instanceof HTMLTextAreaElement;const groupId=typing?scope.current.id:undefined;dispatch(groupId?{type:"set",next,group:groupId}:{type:"set",next});};
+  const update = (patch: Partial<Site>) => {
+    if (patch.footerColumns) {
+      patch.footerColumns = patch.footerColumns.map(column => ({
+        ...column, links: column.links.map(item => ({
+          ...item, pageId: item.pageId || linkedPage(pages, item.href)?.id,
+        })),
+      }));
+    }
+    if (patch.navTargets) {
+      patch.navPageIds = patch.navTargets.map(href => linkedPage(pages, href)?.id || null);
+    }
+    setDirty(true);
+    const next = {...site, ...patch, blocks: fixedBlockOrder(patch.blocks || site.blocks)
+      .map(block => block.type === 'header'
+        ? {...block, layout: headerLook(patch.headerStyle || site.headerStyle)}
+        : block.type === 'footer'
+          ? {...block, layout: patch.footerStyle || site.footerStyle} : block)};
+    const typing = document.activeElement instanceof HTMLInputElement
+      || document.activeElement instanceof HTMLTextAreaElement;
+    const groupId = typing ? scope.current.id : undefined;
+    dispatch(groupId ? {type: 'set', next, group: groupId} : {type: 'set', next});
+  };
   const saveProfile=(next:ProfileDetails)=>{const apply=(source:Site):Site=>({...source,ownerName:next.ownerName});setDirty(true);setPages(list=>list.map(p=>({...p,site:apply(p.id===activeId?site:p.site)})));dispatch({type:"set",next:apply(site)});};
   const saveBusiness=(next:BusinessDetails)=>{const apply=(source:Site):Site=>({...source,brand:next.brand,address:next.address,phone:next.phone,email:next.email,blocks:source.blocks.map(b=>b.type==='contact'?{...b,content:{...b.content,address:next.address,phone:next.phone,email:next.email,hours:next.hours}}:b)});setDirty(true);setPages(list=>list.map(p=>({...p,site:apply(p.id===activeId?site:p.site)})));dispatch({type:"set",next:apply(site)});};
   const applyBrand=(patch:BrandSitePatch)=>{const source=activeId===homeId?site:pages.find(p=>p.id===homeId)!.site;const next={...source,...patch,blocks:fixedBlockOrder(source.blocks).map(b=>b.type==='header'?{...b,layout:headerLook(patch.headerStyle||source.headerStyle)}:b.type==='footer'?{...b,layout:patch.footerStyle||source.footerStyle}:b)};setDirty(true);setPages(list=>list.map(p=>p.id===homeId?{...p,site:next}:p.id===activeId&&activeId!==homeId?{...p,site:sharedMenu(p.site,next)}:p));if(activeId===homeId)dispatch({type:"set",next});else dispatch({type:"set",next:sharedMenu(site,next)});};
@@ -126,6 +147,17 @@ function Editor({initialPreview,requestedPage}:{initialPreview:boolean;requested
     if(id!==selected){setView("Content");setGroup(block?contentGroups(block,site,footerContent(site))[0]?.id??null:null);setFocusItem(null);}
     if(block?.type==="hero"||id!==selected)requestScroll(id);
   };
+  const openedRequestedTask=useRef(false);
+  useEffect(()=>{
+    if(!ready||openedRequestedTask.current||requestedTask!=='main-image')return;
+    const hero=site.blocks.find(block=>block.type==='hero');
+    if(!hero)return;
+    const timer=window.setTimeout(()=>{
+      openedRequestedTask.current=true;
+      setSelected(hero.id);setLocation('inspector');setView('Content');setGroup('media');setRegion('page');
+    },0);
+    return()=>window.clearTimeout(timer);
+  },[ready,requestedTask,site.blocks]);
   const showRegion = (next:EditorRegion) => {
     if(next===region)return;
     const scroller=frameRef.current?.contentDocument?.scrollingElement;
@@ -203,8 +235,8 @@ function Editor({initialPreview,requestedPage}:{initialPreview:boolean;requested
       </div>
     </div>
     <div className="toolbar-group toolbar-actions">
-      <button type="button" className="icon-button" onClick={()=>{setDirty(true);dispatch({type:"undo"});}} disabled={!history.past.length} aria-label="Undo"><Undo2 aria-hidden="true"/></button>
-      <button type="button" className="icon-button" onClick={()=>{setDirty(true);dispatch({type:"redo"});}} disabled={!history.future.length} aria-label="Redo"><Redo2 aria-hidden="true"/></button>
+      <button type="button" className="icon-button" onClick={()=>{setHeroFocus(null);setDirty(true);dispatch({type:"undo"});}} disabled={!history.past.length} aria-label="Undo"><Undo2 aria-hidden="true"/></button>
+      <button type="button" className="icon-button" onClick={()=>{setHeroFocus(null);setDirty(true);dispatch({type:"redo"});}} disabled={!history.future.length} aria-label="Redo"><Redo2 aria-hidden="true"/></button>
       <button type="button" className="icon-button theme-toggle is-secondary" aria-pressed={darkTheme} aria-label={darkTheme?"Switch to light website theme":"Switch to dark website theme"} onClick={()=>update({theme:darkTheme?"paper":"midnight"})}><Moon className="is-moon" size={18} strokeWidth={1.75} aria-hidden="true"/><Sun className="is-sun" size={18} strokeWidth={1.75} aria-hidden="true"/></button>
       <button type="button" onClick={openPreview} className="preview-toggle is-secondary"><Eye size={16} strokeWidth={1.75} aria-hidden="true"/><span>Live preview</span></button>
       <div className="export-menu" onKeyDown={e=>{if(e.key==="Escape")setMenu("");}}>
@@ -229,11 +261,11 @@ function Editor({initialPreview,requestedPage}:{initialPreview:boolean;requested
   const siteView=<SitePreview selectPage={switchPage} site={site} selected={selected} select={chooseSection} editable={!preview} changeSettings={changeSectionSettings} pages={pages} activeId={activeId} region={preview?"live":region} focusItem={focusItem}/>;
   const canvas=preview
     ? <div ref={canvasRef} className="canvas-area canvas-preview"><div className="canvas-frame" style={{width:"100%"}}>{siteView}</div></div>
-    : <PreviewFrame areaRef={canvasRef} frameRef={frameRef} device={device} width={previewWidth} scale={frameScale} zoomLabel={zoomLabel} address={`/${pages.find(p=>p.id===activeId)?.slug||"home"}`} selectedId={selectedBlock?.id||""} sectionName={catalog.find(s=>s.id===selectedBlock?.type)?.label||"Section"} region={region} onRegion={showRegion}>{siteView}</PreviewFrame>;
-  return <HeroFocusProvider value={{focus: heroFocus, setFocus: setHeroFocus}}><main className={`studio-editor${preview?" standalone-preview":""}`}>
-    <EditScopeContext.Provider value={editScope}>
+    : <PreviewFrame areaRef={canvasRef} frameRef={frameRef} device={device} width={previewWidth} scale={frameScale} zoomLabel={zoomLabel} address={`/${pages.find(p=>p.id===activeId)?.slug||"home"}`} selectedId={selectedBlock?.id||""} sectionName={selectedBlock?.type==="hero"?"Main introduction":catalog.find(s=>s.id===selectedBlock?.type)?.label||"Section"} region={region} onRegion={showRegion}>{siteView}</PreviewFrame>;
+  return <HeroFocusProvider value={{focus: heroFocus, setFocus: setHeroFocus, select:(blockId,index)=>{setHeroFocus({blockId,index,target:"background"});update({blocks:site.blocks.map(block=>block.id===blockId?{...block,content:{...block.content,slideIndex:index}}:block)});}}}><main className={`studio-editor${preview?" standalone-preview":""}`}>
+    <EditScopeContext.Provider value={editScope}><DestinationPagesContext.Provider value={pages}>
       <ManageLibraryProvider onOpen={openLibrary}>
-      <EditorShell location={location} setLocation={setLocation} view={view} setView={setView} open={sidebarOpen} preview={preview} pageName={pageName} sectionName={catalog.find(s=>s.id===selectedBlock?.type)?.label||"Section"} shared={!!selectedBlock&&["header","footer"].includes(selectedBlock.type)} saveLabel={saveError||(dirty?"Saving…":"Saved in this browser")} saveError={!!saveError} onReset={()=>{if(window.confirm("Reset this page to its starter content? Other pages and uploaded media will remain."))update(sharedMenu({...initial,brand:site.brand,theme:site.theme},site));}} pages={pages.map(p=>({id:p.id,name:p.name,slug:p.slug}))} pageId={activeId} homeId={homeId} homeSite={homeSite} onSelectPage={id=>{switchPage(id);setLocation("sections");}} onPageMenu={id=>{switchPage(id);setLocation("page-settings");setSidebarOpen(true);}} sections={site.blocks.map((block,index)=>{const Icon=sectionIcons[block.type];const entry=catalog.find(s=>s.id===block.type)!;return {id:block.id,name:entry.label,hidden:!!block.hidden,shared:block.type==="header"||block.type==="footer",stage:entry.stage,icon:<Icon size={16} strokeWidth={1.75} aria-hidden="true"/>,menu:<SectionMenu block={block} index={index} blocks={site.blocks} editBlocks={editBlocks} onAdd={openAdd}/>};})} sectionId={selectedBlock?.id||""} onSelectSection={chooseSection} onToggleHidden={id=>editBlocks("visibility",id)} homeStages={activeId===homeId} query={sectionQuery} setQuery={setSectionQuery} canAddSection={site.blocks.length<80} onAddSection={()=>openAdd(selected)} onPageSettings={()=>{setLocation("page-settings");setSidebarOpen(true);}} onBusiness={()=>openSettings('business')} onLibrary={openLibrary} sectionMenu={selectedBlock?<SectionMenu block={selectedBlock} index={site.blocks.findIndex(b=>b.id===selectedBlock.id)} blocks={site.blocks} editBlocks={editBlocks} onAdd={openAdd}/>:null} toolbar={toolbar} canvas={canvas}>
+      <EditorShell location={location} setLocation={setLocation} view={view} setView={setView} open={sidebarOpen} preview={preview} pageName={pageName} sectionName={catalog.find(s=>s.id===selectedBlock?.type)?.label||"Section"} shared={!!selectedBlock&&["header","footer"].includes(selectedBlock.type)} saveLabel={saveError||(dirty?"Saving…":"Saved in this browser")} saveError={!!saveError} onReset={()=>{if(window.confirm("Reset this page to its starter content? Other pages and uploaded media will remain."))update(sharedMenu({...initial,brand:site.brand,theme:site.theme},site));}} pages={pages.map(p=>({id:p.id,name:p.name,slug:p.slug}))} pageId={activeId} homeId={homeId} homeSite={homeSite} onSelectPage={id=>{switchPage(id);setLocation("sections");}} onPageMenu={id=>{switchPage(id);setLocation("page-settings");setSidebarOpen(true);}} sections={site.blocks.map((block,index)=>{const Icon=sectionIcons[block.type];const entry=catalog.find(s=>s.id===block.type)!;return {id:block.id,name:block.type==='hero'?'Main introduction':entry.label,hidden:!!block.hidden,shared:block.type==="header"||block.type==="footer",stage:entry.stage,icon:<Icon size={16} strokeWidth={1.75} aria-hidden="true"/>,menu:<SectionMenu block={block} index={index} blocks={site.blocks} editBlocks={editBlocks} onAdd={openAdd}/>};})} sectionId={selectedBlock?.id||""} onSelectSection={chooseSection} onToggleHidden={id=>editBlocks("visibility",id)} homeStages={activeId===homeId} query={sectionQuery} setQuery={setSectionQuery} canAddSection={site.blocks.length<80} onAddSection={()=>openAdd(selected)} onPageSettings={()=>{setLocation("page-settings");setSidebarOpen(true);}} onBusiness={()=>openSettings('business')} onLibrary={openLibrary} sectionMenu={selectedBlock?<SectionMenu block={selectedBlock} index={site.blocks.findIndex(b=>b.id===selectedBlock.id)} blocks={site.blocks} editBlocks={editBlocks} onAdd={openAdd}/>:null} toolbar={toolbar} canvas={canvas}>
         {location==="inspector"&&selectedBlock&&<SectionEditor view={view} group={group} onGroup={id=>{setGroup(id);if(id!=='services')setFocusItem(null);}} site={site} pages={pages} block={selectedBlock} usage={mediaUsage} footerDefaults={footerDefaults} home={activeId===homeId} update={update} onFocusItem={setFocusItem} onOpenPage={id=>{switchPage(id);setLocation('inspector');}}/>}
         {location==="library"&&<MediaLibraryBoard usage={mediaUsage} onJump={use=>{switchPage(use.pageId);setSelected(use.blockId);setLocation('inspector');setGroup(null);setView('Content');}}/>}
         {location==="page-settings"&&<PageSettings site={site} pages={pages} activeId={activeId} homeId={homeId} renamePage={renamePage} setSlug={setPageSlug} placeCurrent={placeCurrent} editSEO={update} setBreadcrumbs={setBreadcrumbs} home={activeId===homeId} onEditService={()=>{const services=homeSite.blocks.find(b=>b.type==='services');const item=services?.content.items.find(entry=>entry.pageId===activeId);switchPage(homeId);setSelected(services?.id||'');setLocation('inspector');setGroup('services');setFocusItem(item?.id||null);setSidebarOpen(true);}}/>}
@@ -241,7 +273,7 @@ function Editor({initialPreview,requestedPage}:{initialPreview:boolean;requested
         {location==="add-section"&&<AddSectionForm blocks={site.blocks} onAdd={type=>editBlocks("add",addAnchor||selected,type)}/>}
       </EditorShell>
       </ManageLibraryProvider>
-    </EditScopeContext.Provider>
+    </DestinationPagesContext.Provider></EditScopeContext.Provider>
     {exportPages.length>0&&<div className="export-stage" data-editor-only="true">{exportPages.map(page=><div key={page.id} data-export-page={page.id}><SitePreview site={page.site} pages={exportPages} activeId={page.id} editable={false} selected="" select={()=>{}}/></div>)}</div>}
     {settingsPane&&<SettingsDialog profile={profileValue} business={businessValue} pageCount={pages.length} initialPane={settingsPane} onClose={()=>setSettingsPane(null)} onSaveProfile={saveProfile} onSaveBusiness={saveBusiness} site={homeSite} onSaveBrand={applyBrand}/>}
     {notice&&<div className="toast" role="status">{notice}<button type="button" onClick={()=>setNotice("")} aria-label="Dismiss notification">×</button></div>}
